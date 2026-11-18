@@ -26,3 +26,6 @@ private/
 
 # CodeGraph local index cache
 .codegraph/
+
+# Dumps de la base local (scripts/db-local-backup.sh): recuperables, no se comparten.
+.local/

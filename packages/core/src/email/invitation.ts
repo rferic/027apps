@@ -49,6 +49,9 @@ export function buildInvitationEmail(input: InvitationEmailInput): EmailMessage 
   const base = input.publicUrl.replace(/\/+$/, "");
   const href = invitationUrl(base, input.token);
   const date = formatExpiry(input.expiresAt, input.locale, input.timeZone);
+  const existing = input.accountExists === true;
+  const lead = existing ? copy.existingLead : copy.lead;
+  const cta = existing ? copy.existingCta : copy.cta;
 
   const raw = {
     name: input.inviteeName,
@@ -60,17 +63,23 @@ export function buildInvitationEmail(input: InvitationEmailInput): EmailMessage 
     Object.entries(raw).map(([key, value]) => [key, escapeHtml(value)]),
   ) as Record<string, string>;
 
+  // The note box explains the expiry and, when they apply, that the password
+  // stays the same and that the invitation grants an administrator role.
+  const notes = [fill(copy.expiry, html)];
+  if (existing) notes.push(copy.passwordNote);
+  if (input.role === "admin") notes.push(copy.adminNote);
+
   const body = `
 <h1 class="email-text" style="margin:0 0 10px;font-family:${FONT};font-size:22px;line-height:1.3;font-weight:600;color:#17191c">${fill(copy.greeting, html)}</h1>
-<p class="email-muted" style="margin:0 0 26px;font-family:${FONT};font-size:15px;line-height:1.6;color:#5b6472">${fill(copy.lead, html)}</p>
+<p class="email-muted" style="margin:0 0 26px;font-family:${FONT};font-size:15px;line-height:1.6;color:#5b6472">${fill(lead, html)}</p>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 22px">
 <tr><td align="center" bgcolor="#09795f" style="border-radius:8px">
-<a class="email-cta" href="${escapeHtml(href)}" style="display:inline-block;padding:14px 28px;font-family:${FONT};font-size:16px;font-weight:600;line-height:1.2;color:#ffffff;text-decoration:none;border-radius:8px">${copy.cta}</a>
+<a class="email-cta" href="${escapeHtml(href)}" style="display:inline-block;padding:14px 28px;font-family:${FONT};font-size:16px;font-weight:600;line-height:1.2;color:#ffffff;text-decoration:none;border-radius:8px">${cta}</a>
 </td></tr>
 </table>
 <p class="email-muted" style="margin:0 0 22px;font-family:${FONT};font-size:12px;line-height:1.7;color:#5b6472;word-break:break-all">${copy.fallback}<br><a class="email-link" href="${escapeHtml(href)}" style="color:#09795f">${escapeHtml(href)}</a></p>
 <table role="presentation" width="380" cellpadding="0" cellspacing="0" border="0" align="center" class="email-note" bgcolor="#eceef0" style="width:380px;max-width:100%;margin:0 auto 22px;background:#eceef0;border-radius:8px">
-<tr><td class="email-note-text" style="padding:10px 14px;font-family:${FONT};font-size:13px;line-height:1.5;color:#17191c;text-align:center">${fill(copy.expiry, html)}</td></tr>
+<tr><td class="email-note-text" style="padding:10px 14px;font-family:${FONT};font-size:13px;line-height:1.5;color:#17191c;text-align:center">${notes.join("<br>")}</td></tr>
 </table>
 <hr class="email-hr" style="border:0;border-top:1px solid #e3e5e8;margin:0 0 18px">
 <p class="email-muted" style="margin:0;font-family:${FONT};font-size:12px;line-height:1.6;color:#5b6472;text-align:left">${copy.security}</p>`;
@@ -78,14 +87,14 @@ export function buildInvitationEmail(input: InvitationEmailInput): EmailMessage 
   const text = [
     fill(copy.greeting, raw),
     "",
-    fill(copy.lead, raw),
+    fill(lead, raw),
     "",
-    `${copy.cta}: ${href}`,
+    `${cta}: ${href}`,
     "",
     copy.fallback,
     href,
     "",
-    fill(copy.expiry, raw),
+    ...notes.map((note) => fill(note, raw)),
     "",
     copy.security,
     "",

@@ -3,6 +3,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Phone migration: only the new phone scans the QR, never in the background. -->
+    <uses-permission android:name="android.permission.CAMERA" />
     <!-- Self-update: the app hands the downloaded APK to the system installer. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
@@ -24,12 +26,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Fallback for any instance: the app's own scheme. -->
+            <!-- Fallback for any instance: the app's own scheme. `zero27apps`
+                 is browser-valid (a scheme cannot start with a digit), so the
+                 web "Open in the app" can use it; the old `027apps` stays for
+                 links and adb commands that already exist. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="zero27apps" android:host="invite" />
                 <data android:scheme="027apps" android:host="invite" />
+                <!-- Phone migration: the web landing and the old phone's QR hand
+                     the one-shot code to the new phone. -->
+                <data android:scheme="zero27apps" android:host="migrate" />
+                <data android:scheme="027apps" android:host="migrate" />
             </intent-filter>
         </activity>
 

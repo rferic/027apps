@@ -7,7 +7,6 @@ import {
 } from "./invite-form";
 
 const VALID = {
-  email: "ana@example.com",
   password: "a".repeat(MIN_PASSWORD),
   confirmation: "a".repeat(MIN_PASSWORD),
 };
@@ -31,29 +30,25 @@ describe("isValidInviteToken", () => {
 });
 
 describe("validateInviteForm", () => {
-  it("accepts a valid form", () => {
+  it("accepts a valid new-account form", () => {
     expect(validateInviteForm(VALID)).toEqual({});
   });
 
-  it("requires an email", () => {
-    expect(validateInviteForm({ ...VALID, email: "  " })).toEqual({ email: "email_required" });
-  });
-
-  it("rejects a malformed email", () => {
-    expect(validateInviteForm({ ...VALID, email: "not-an-email" })).toEqual({
-      email: "email_invalid",
+  it("requires a password", () => {
+    expect(validateInviteForm({ password: "", confirmation: "" })).toEqual({
+      password: "password_required",
     });
   });
 
-  it("rejects a password below the Core minimum", () => {
-    expect(validateInviteForm({ ...VALID, password: "a".repeat(11), confirmation: "a".repeat(11) })).toEqual({
-      password: "password_short",
-    });
+  it("rejects a new password below the Core minimum", () => {
+    expect(
+      validateInviteForm({ password: "a".repeat(11), confirmation: "a".repeat(11) }),
+    ).toEqual({ password: "password_short" });
   });
 
   it("rejects a password above the Core maximum", () => {
     const long = "a".repeat(MAX_PASSWORD + 1);
-    expect(validateInviteForm({ ...VALID, password: long, confirmation: long })).toEqual({
+    expect(validateInviteForm({ password: long, confirmation: long })).toEqual({
       password: "password_long",
     });
   });
@@ -66,10 +61,24 @@ describe("validateInviteForm", () => {
 
   it("accepts a password of exactly 12 characters", () => {
     const password = "a".repeat(12);
-    expect(validateInviteForm({ email: VALID.email, password, confirmation: password })).toEqual({});
+    expect(validateInviteForm({ password, confirmation: password })).toEqual({});
   });
 
-  it("trims the email before checking it", () => {
-    expect(validateInviteForm({ ...VALID, email: "  ana@example.com  " })).toEqual({});
+  it("does not impose the new-password floor on an existing account", () => {
+    expect(
+      validateInviteForm({ password: "old-pass", accountExists: true }),
+    ).toEqual({});
+  });
+
+  it("still requires the current password", () => {
+    expect(validateInviteForm({ password: "", accountExists: true })).toEqual({
+      password: "password_required",
+    });
+  });
+
+  it("does not ask for a confirmation on an existing account", () => {
+    expect(
+      validateInviteForm({ password: "old-pass", confirmation: "", accountExists: true }),
+    ).toEqual({});
   });
 });

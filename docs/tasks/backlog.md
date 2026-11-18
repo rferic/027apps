@@ -11,6 +11,12 @@ aquí.
 | 2 | Editar una liquidación abre el formulario de gasto | app | 2026-11-15 | auditoría de seguridad del sprint 15 |
 | 3 | El importador crea miembros antes de confirmar | app + servidor | 2026-11-15 | auditoría de seguridad del sprint 15 |
 | 4 | Idempotencia también en el commit del importador | servidor | 2026-11-15 | auditoría de seguridad del sprint 15 |
+| 5 | El importador del panel no parece un sitio donde se sube un fichero | panel | 2026-11-16 | propietario, probando producción |
+
+> Las entradas 1–3 y 5 están agrupadas en el **sprint 17**
+> ([`sprint-17-panel-y-notificaciones`](sprint-17-panel-y-notificaciones/README.md)), a la espera de
+> la aprobación del propietario. El sprint 16 es el flujo de invitación, sesión y migración de
+> teléfono.
 
 > Cerrado en esta ronda y retirado de aquí: RLS del módulo alineada con el dominio (migración
 > `1.8.0`), monedas separadas en widget y panel, token FCM que caduca tras una rotación, la espera

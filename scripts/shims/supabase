@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+#
+# Tripwire for the Supabase CLI (install it earlier in PATH than the real one).
+#
+# `supabase db reset` deletes the whole local database, and something in this
+# machine ran it once without anybody typing it: the stack lost every account,
+# invitation and module row. No watcher was found in the repo or in the user
+# configuration, so instead of guessing, this wrapper:
+#
+#   1. logs every invocation (when, pid, ppid, cwd and arguments), and
+#   2. refuses `db reset` unless SUPABASE_ALLOW_LOCAL_RESET=1 is set, which the
+#      sanctioned wrapper (scripts/db-reset-local.sh) does after taking a dump.
+#
+# A future automatic reset therefore fails loudly and leaves the culprit
+# (its working directory and parent process) in the log.
+#
+# Install:
+#   cp scripts/shims/supabase ~/.local/bin/supabase && chmod +x ~/.local/bin/supabase
+# (`~/.local/bin` must come before the Homebrew bin; check with `command -v supabase`).
+#
+# Remove: rm ~/.local/bin/supabase
+
+set -uo pipefail
+
+log_dir="${XDG_STATE_HOME:-$HOME/.local/state}/027apps"
+log="$log_dir/supabase-guard.log"
+mkdir -p "$log_dir"
+printf '%s pid=%s ppid=%s cwd=%s cmd=%s\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$$" "$PPID" "$PWD" "$*" >> "$log"
+
+# The real CLI: the first `supabase` in PATH that is not this file.
+real=""
+old_ifs="$IFS"
+IFS=:
+for dir in $PATH; do
+  [ "$dir" = "$HOME/.local/bin" ] && continue
+  if [ -x "$dir/supabase" ] && [ ! "$dir/supabase" -ef "$0" ]; then
+    real="$dir/supabase"
+    break
+  fi
+done
+IFS="$old_ifs"
+
+if [ -z "$real" ]; then
+  echo "supabase-guard: no real supabase CLI found after this shim in PATH" >&2
+  exit 127
+fi
+
+if [ "${1:-}" = "db" ] && [ "${2:-}" = "reset" ]; then
+  case " $* " in
+    *" --remote"* | *" --linked"* | *" --db-url"*)
+      printf 'supabase-guard: refusing to reset a remote database.\n' >&2
+      printf 'Production changes only through .github/workflows/migrations.yml.\n' >&2
+      exit 2
+      ;;
+  esac
+
+  if [ "${SUPABASE_ALLOW_LOCAL_RESET:-}" != "1" ]; then
+    {
+      echo "supabase-guard: blocked a local database reset."
+      echo "  caller : $0"
+      echo "  cwd    : $PWD"
+      echo "  parent : $(ps -o command= -p "$PPID" 2>/dev/null || echo unknown)"
+      echo "  logged : $log"
+      echo
+      echo "The local database holds every account, invitation and module row."
+      echo "Take a dump and reset through the sanctioned wrapper instead:"
+      echo "  pnpm db:reset"
+    } >&2
+    exit 3
+  fi
+fi
+
+exec "$real" "$@"

@@ -1,5 +1,6 @@
 package com.rferic.zero27apps.ui
 
+import com.rferic.zero27apps.ui.components.AppAlertDialog
 import com.rferic.zero27apps.ui.components.AppFormSheet
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -40,13 +41,36 @@ fun InstancePickerDialog(
     current: String,
     onAdd: (String) -> String?,
     onPick: (String) -> Unit,
+    onRemove: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var selected by rememberSaveable { mutableStateOf(current) }
     var newUrl by rememberSaveable { mutableStateOf("") }
     var invalid by rememberSaveable { mutableStateOf(false) }
+    // The row waiting for a "really remove it?" answer; the item survives until
+    // the person confirms, so a stray tap never forgets a server.
+    var pendingRemove by rememberSaveable { mutableStateOf<String?>(null) }
     val palette = LocalPalette.current
     val strings = LocalStrings.current
+    val removable = known.filterNot { it == current || it == known.first() }
+
+    pendingRemove?.let { url ->
+        AppAlertDialog(
+            onDismissRequest = { pendingRemove = null },
+            title = { Text(strings.removeInstanceTitle) },
+            text = { Text(strings.removeInstanceBody.replace("{instance}", url)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    onRemove(url)
+                    pendingRemove = null
+                    if (selected == url) selected = current
+                }) { Text(strings.remove) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRemove = null }) { Text(strings.cancel) }
+            },
+        )
+    }
 
     AppFormSheet(
         onDismissRequest = onDismiss,
@@ -70,7 +94,17 @@ fun InstancePickerDialog(
                                 selected = url == selected,
                                 onClick = { selected = url },
                             )
-                            Text(url, fontSize = 13.sp, color = palette.foreground)
+                            Text(
+                                url,
+                                fontSize = 13.sp,
+                                color = palette.foreground,
+                                modifier = Modifier.weight(1f),
+                            )
+                            if (url in removable) {
+                                TextButton(onClick = { pendingRemove = url }) {
+                                    Text(strings.remove, fontSize = 12.sp)
+                                }
+                            }
                         }
                     }
                 }

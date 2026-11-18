@@ -27,6 +27,29 @@ class InvitationLinkTest {
     }
 
     @Test
+    fun `reads the browser-valid scheme used by the web button`() {
+        val link = InvitationLink.parse(
+            "zero27apps://invite/$token?instance=http%3A%2F%2F10.0.2.2%3A3003",
+        )
+        assertEquals(token, link?.token)
+        assertEquals("http://10.0.2.2:3003", link?.instance)
+
+        val debug = InvitationLink.parse(
+            "zero27apps-dev://invite/$token?instance=http%3A%2F%2F192.168.1.108%3A3003",
+        )
+        assertEquals("http://192.168.1.108:3003", debug?.instance)
+    }
+
+    @Test
+    fun `accepts a short token the server would accept`() {
+        val link = InvitationLink.parse(
+            "zero27apps-dev://invite/027_inv_apptest?instance=http%3A%2F%2F10.0.2.2%3A3003",
+        )
+        assertEquals("027_inv_apptest", link?.token)
+        assertEquals("http://10.0.2.2:3003", link?.instance)
+    }
+
+    @Test
     fun `falls back to production when the scheme carries no instance`() {
         val link = InvitationLink.parse("027apps://invite/$token")
         assertEquals("https://027apps.ericrf.com", link?.instance)

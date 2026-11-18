@@ -17,6 +17,8 @@ const CODES: DomainErrorCode[] = [
   'already_setup',
   'invitation_expired',
   'invitation_used',
+  'invitation_not_expired',
+  'existing_account_signin_required',
   'currency_not_enabled',
   'locale_not_available',
   'cors_origin_not_allowed',

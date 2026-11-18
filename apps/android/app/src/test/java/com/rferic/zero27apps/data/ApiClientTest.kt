@@ -25,8 +25,9 @@ class ApiClientTest {
     private fun client(
         engine: MockEngine,
         token: () -> String? = { "token" },
-        refresh: suspend () -> Boolean = { false },
-    ) = ApiClient("https://example.test", engine, token, refresh)
+        refresh: suspend () -> RefreshResult = { RefreshResult.NoSession },
+        onSessionEnded: suspend () -> Unit = {},
+    ) = ApiClient("https://example.test", engine, token, refresh, onSessionEnded)
 
     @Test
     fun `parses instance with the auth block and ignores unknown keys`() = runTest {
@@ -110,7 +111,59 @@ class ApiClientTest {
 
         assertEquals("/api/v1/invitations/027_inv_abcdefghijklmnop/redeem", seenPath)
         assertTrue(seenBody.contains("a@example.test"))
-        assertEquals("i1", result.invitation_id)
+        assertEquals("i1", result.invitationId)
+        assertEquals("u1", result.user.id)
+    }
+
+    @Test
+    fun `parses the public invitation preview`() = runTest {
+        var seenPath = ""
+        val engine = MockEngine { request ->
+            seenPath = request.url.encodedPath
+            respond(
+                content = """
+                    {"invitation":{"state":"pending","email":"ana@example.test","name":"Ana",
+                     "role":"admin","role_applies":true,"account_exists":false,"locale":"es",
+                     "expires_at":"2026-11-24T12:00:00.000Z","inviter_name":"Eric",
+                     "instance_name":"Familia Pérez","timezone":"Europe/Madrid"}}
+                """,
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+
+        val preview = client(engine, token = { null })
+            .invitationPreview("027_inv_abcdefghijklmnop")
+
+        assertEquals("/api/v1/invitations/027_inv_abcdefghijklmnop/preview", seenPath)
+        assertEquals("pending", preview.state)
+        assertEquals("ana@example.test", preview.email)
+        assertEquals("admin", preview.role)
+        assertTrue(preview.roleApplies)
+        assertEquals(false, preview.accountExists)
+        assertEquals("Familia Pérez", preview.instanceName)
+        assertEquals("Europe/Madrid", preview.timezone)
+    }
+
+    @Test
+    fun `an existing account redeems without a password`() = runTest {
+        var seenBody = ""
+        val engine = MockEngine { request ->
+            seenBody = (request.body as io.ktor.http.content.TextContent).text
+            respond(
+                content = """{"user":{"id":"u1","email":"a@example.test","role":"user"},"invitation_id":"i1"}""",
+                status = HttpStatusCode.Created,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+
+        client(engine).redeemInvitation(
+            "027_inv_abcdefghijklmnop",
+            RedeemRequest(email = "a@example.test"),
+        )
+
+        assertTrue(seenBody.contains("a@example.test"))
+        assertEquals(false, seenBody.contains("password"))
     }
 
     @Test
@@ -136,7 +189,7 @@ class ApiClientTest {
             refresh = {
                 refreshed++
                 token = "new"
-                true
+                RefreshResult.Refreshed
             },
         )
 
@@ -149,10 +202,83 @@ class ApiClientTest {
     @Test
     fun `a second 401 ends the session`() = runTest {
         val engine = MockEngine { respondError(HttpStatusCode.Unauthorized) }
-        val error = runCatching { client(engine, token = { "t" }).me() }.exceptionOrNull()
+        val error = runCatching {
+            client(engine, token = { "t" }, refresh = { RefreshResult.Refreshed }).me()
+        }.exceptionOrNull()
 
         assertTrue(error is ApiException)
         assertEquals("unauthorized", (error as ApiException).code)
+    }
+
+    @Test
+    fun `a revoked refresh reports unauthorized without a network flag`() = runTest {
+        val engine = MockEngine { respondError(HttpStatusCode.Unauthorized) }
+        val error = runCatching {
+            client(engine, refresh = { RefreshResult.NoSession }).me()
+        }.exceptionOrNull()
+
+        assertTrue(error is ApiException)
+        assertEquals("unauthorized", (error as ApiException).code)
+        assertEquals(false, (error as ApiException).network)
+    }
+
+    @Test
+    fun `a network refresh is retryable and keeps the session`() = runTest {
+        val engine = MockEngine { respondError(HttpStatusCode.Unauthorized) }
+        val error = runCatching {
+            client(engine, refresh = { RefreshResult.Network }).me()
+        }.exceptionOrNull()
+
+        assertTrue(error is ApiException)
+        assertEquals("network_error", (error as ApiException).code)
+        assertTrue((error as ApiException).network)
+    }
+
+    @Test
+    fun `a revoked refresh ends the session once`() = runTest {
+        val engine = MockEngine { respondError(HttpStatusCode.Unauthorized) }
+        var ended = 0
+        val api = client(engine, onSessionEnded = { ended++ })
+
+        repeat(2) { runCatching { api.me() } }
+
+        assertEquals(1, ended)
+    }
+
+    @Test
+    fun `a 401 that survives the refresh ends the session`() = runTest {
+        val engine = MockEngine { respondError(HttpStatusCode.Unauthorized) }
+        var ended = 0
+        val error = runCatching {
+            client(engine, refresh = { RefreshResult.Refreshed }, onSessionEnded = { ended++ }).me()
+        }.exceptionOrNull()
+
+        assertEquals(1, ended)
+        assertEquals("unauthorized", (error as ApiException).code)
+    }
+
+    @Test
+    fun `a network refresh never ends the session`() = runTest {
+        val engine = MockEngine { respondError(HttpStatusCode.Unauthorized) }
+        var ended = 0
+        runCatching {
+            client(engine, refresh = { RefreshResult.Network }, onSessionEnded = { ended++ }).me()
+        }
+
+        assertEquals(0, ended)
+    }
+
+    @Test
+    fun `a new session re-arms the revoked signal`() = runTest {
+        val engine = MockEngine { respondError(HttpStatusCode.Unauthorized) }
+        var ended = 0
+        val api = client(engine, onSessionEnded = { ended++ })
+
+        runCatching { api.me() }
+        api.resetSessionState()
+        runCatching { api.me() }
+
+        assertEquals(2, ended)
     }
 
     @Test
@@ -163,5 +289,37 @@ class ApiClientTest {
         assertTrue(error is ApiException)
         assertEquals("network_error", (error as ApiException).code)
         assertTrue(error.network)
+    }
+}
+
+/** The debug log must never carry a credential: only ids and tokens are redacted. */
+class ApiPathRedactionTest {
+    private val client = ApiClient(
+        "https://example.test",
+        MockEngine { respond("{}", HttpStatusCode.OK) },
+        { "token" },
+        { RefreshResult.NoSession },
+        {},
+    )
+
+    @Test
+    fun `invitation and migration tokens become a placeholder`() {
+        assertEquals(
+            "/api/v1/invitations/:token/redeem",
+            client.redactPath("/api/v1/invitations/027_inv_abcdEFGH123456789012345/redeem"),
+        )
+        assertEquals(
+            "/api/v1/device-transfers/:token/exchange",
+            client.redactPath("/api/v1/device-transfers/027_mig_abcdEFGH123456789012345/exchange"),
+        )
+    }
+
+    @Test
+    fun `ids become a placeholder and short routes stay readable`() {
+        assertEquals(
+            "/api/v1/me/device-transfers/:id",
+            client.redactPath("/api/v1/me/device-transfers/0fc652bc-e7fd-401e-af76-a0332f71d27b"),
+        )
+        assertEquals("/api/v1/me", client.redactPath("/api/v1/me"))
     }
 }

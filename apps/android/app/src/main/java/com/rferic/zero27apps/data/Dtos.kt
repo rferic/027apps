@@ -109,14 +109,42 @@ data class PatchMeRequest(
 @Serializable
 data class RedeemRequest(
     val email: String,
-    val password: String,
-    @SerialName("display_name") val displayName: String? = null,
+    /** Only for a new account; an existing one signs in first (D21). */
+    val password: String? = null,
+)
+
+@Serializable
+data class RedeemUserDto(
+    val id: String = "",
+    val email: String = "",
+    @SerialName("display_name") val displayName: String = "",
+    val role: String = "user",
 )
 
 @Serializable
 data class RedeemResponse(
-    val invitation_id: String = "",
+    @SerialName("invitation_id") val invitationId: String = "",
+    val user: RedeemUserDto = RedeemUserDto(),
 )
+
+/** Public invitation preview (A2): the form is rendered from this, not the link. */
+@Serializable
+data class InvitationPreviewDto(
+    val state: String = "pending",
+    val email: String = "",
+    val name: String = "",
+    val role: String = "user",
+    @SerialName("role_applies") val roleApplies: Boolean = false,
+    @SerialName("account_exists") val accountExists: Boolean = false,
+    val locale: String = "en",
+    @SerialName("expires_at") val expiresAt: String = "",
+    @SerialName("inviter_name") val inviterName: String? = null,
+    @SerialName("instance_name") val instanceName: String = "027Apps",
+    val timezone: String = "UTC",
+)
+
+@Serializable
+data class InvitationPreviewResponse(val invitation: InvitationPreviewDto)
 
 @Serializable
 data class AndroidReleaseDto(
@@ -126,3 +154,42 @@ data class AndroidReleaseDto(
     @SerialName("apk_url") val apkUrl: String,
     val sha256: String? = null,
 )
+
+@Serializable
+data class DeviceTransferCreatedDto(
+    @SerialName("transfer") val transfer: DeviceTransferIdDto,
+    val token: String = "",
+    val path: String = "",
+)
+
+@Serializable
+data class DeviceTransferIdDto(
+    val id: String = "",
+    @SerialName("expires_at") val expiresAt: String = "",
+)
+
+@Serializable
+data class DeviceTransferStatusDto(
+    val id: String = "",
+    val state: String = "pending",
+    @SerialName("expires_at") val expiresAt: String = "",
+    @SerialName("used_at") val usedAt: String? = null,
+)
+
+@Serializable
+data class DeviceTransferStatusResponse(val transfer: DeviceTransferStatusDto)
+
+/** The exchange returns a magic-link hash, never a session or refresh token. */
+@Serializable
+data class DeviceTransferExchangeDto(
+    @SerialName("transfer_id") val transferId: String = "",
+    val email: String = "",
+    @SerialName("token_hash") val tokenHash: String = "",
+    @SerialName("expires_at") val expiresAt: String = "",
+)
+
+@Serializable
+data class RevokeOtherSessionsRequest(@SerialName("keep_session_id") val keepSessionId: String)
+
+@Serializable
+data class RevokeOthersResponse(val revoked: Int = 0)

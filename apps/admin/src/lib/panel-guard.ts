@@ -26,17 +26,24 @@ const ROLE_RANK: Record<PanelUser["role"], number> = {
   super_admin: 2,
 };
 
+/** What the panel guard knows before deciding: no session, session without a usable profile, or a profile. */
+export type PanelIdentity =
+  | { kind: "anonymous" }
+  | { kind: "unusable" }
+  | { kind: "user"; user: PanelUser };
+
 /**
  * Server-side panel identity: the session comes from Supabase auth, the role
  * and display name from `profiles` (RLS-bypassing read through the service
- * pool, the same source the API door uses). A deactivated profile has no row
- * for this query, so it is treated as signed out. `cache()` makes the layout
- * and the page share one read per request.
+ * pool, the same source the API door uses). A session whose profile is
+ * deactivated or missing is `unusable`, not anonymous: the guard must clear it
+ * instead of bouncing between /panel and /login. `cache()` makes the layout and
+ * the page share one read per request.
  */
-export const loadPanelUser = cache(async (): Promise<PanelUser | null> => {
+export const loadPanelIdentity = cache(async (): Promise<PanelIdentity> => {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
-  if (!data.user) return null;
+  if (!data.user) return { kind: "anonymous" };
 
   const { settingsDeps } = await getInfra();
   const { rows } = await settingsDeps.db.query(
@@ -45,17 +52,26 @@ export const loadPanelUser = cache(async (): Promise<PanelUser | null> => {
     [data.user.id],
   );
   const row = rows[0];
-  if (!row) return null;
+  if (!row) return { kind: "unusable" };
 
   return {
-    id: data.user.id,
-    email: data.user.email ?? "",
-    displayName: String(row.display_name ?? ""),
-    role: row.role as PanelUser["role"],
-    locale:
-      typeof row.locale === "string" && isSupportedLocale(row.locale) ? row.locale : "en",
-    theme: typeof row.theme === "string" && isTheme(row.theme) ? row.theme : "system",
+    kind: "user",
+    user: {
+      id: data.user.id,
+      email: data.user.email ?? "",
+      displayName: String(row.display_name ?? ""),
+      role: row.role as PanelUser["role"],
+      locale:
+        typeof row.locale === "string" && isSupportedLocale(row.locale) ? row.locale : "en",
+      theme: typeof row.theme === "string" && isTheme(row.theme) ? row.theme : "system",
+    },
   };
+});
+
+/** The profile for callers that only need a user (setup wizard). */
+export const loadPanelUser = cache(async (): Promise<PanelUser | null> => {
+  const identity = await loadPanelIdentity();
+  return identity.kind === "user" ? identity.user : null;
 });
 
 /** Whether `user` reaches at least `min` (super_admin ≥ admin ≥ user). */
@@ -77,8 +93,12 @@ export async function requirePanel(
   // it loads the session, and Cache Components forbids that while prerendering
   // a static shell.
   await connection();
-  const user = await loadPanelUser();
-  if (!user) redirect("/login");
+  const identity = await loadPanelIdentity();
+  if (identity.kind === "anonymous") redirect("/login");
+  // A session without an active profile is not a login problem: clear the
+  // cookies before returning to /login, or /login would bounce to /panel.
+  if (identity.kind === "unusable") redirect("/logout?reason=access_revoked");
 
+  const user = identity.user;
   return hasPanelRole(user, min) ? { user } : { denied: true, user };
 }

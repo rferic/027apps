@@ -46,6 +46,12 @@ function deliveryFrom(data: FormData): "email" | "link" {
   return data.get("delivery") === "link" ? "link" : "email";
 }
 
+/** Only a super_admin's form carries a role field; everyone else invites `user`. */
+function applyRole(input: CreateInvitationInput, data: FormData): void {
+  const role = String(data.get("role") ?? "");
+  if (role === "user" || role === "admin") input.role = role;
+}
+
 function buildCreateInput(data: FormData): CreateInvitationInput {
   const categoryId = String(data.get("user_category_id") ?? "");
   const locale = String(data.get("locale") ?? "");
@@ -58,6 +64,7 @@ function buildCreateInput(data: FormData): CreateInvitationInput {
     email: String(data.get("email") ?? "").trim(),
     name: String(data.get("name") ?? "").trim(),
   };
+  applyRole(input, data);
   if (categoryId) input.user_category_id = categoryId;
   if (modules.length > 0) input.modules = modules;
   if (Number.isInteger(days)) input.expires_in_days = days;
@@ -138,10 +145,50 @@ function TokenPanel({
  * only copy of it (the Core returns the plaintext once), so "Create another"
  * asks first while the token has not been copied. "Done" goes back to the list.
  */
+/** The two facts that change the success copy: existing account and admin role. */
+function InvitationNotes({
+  accountExists,
+  role,
+  messages,
+}: {
+  accountExists: boolean;
+  role: "user" | "admin";
+  messages: TranslationMap;
+}) {
+  if (!accountExists && role !== "admin") return null;
+  return (
+    <>
+      {accountExists && (
+        <p className="text-xs text-muted-foreground">
+          {t(
+            "That email already has an account. The email asks it to sign in with its usual password.",
+            messages,
+          )}
+        </p>
+      )}
+      {role === "admin" && (
+        <p className="text-xs text-muted-foreground">
+          {t("They will join as an administrator.", messages)}
+        </p>
+      )}
+    </>
+  );
+}
+
+/** One line for the delivery outcome; null when the caller sent no email. */
+function emailNote(email: InvitationDelivery | null, messages: TranslationMap): string | null {
+  if (!email) return null;
+  if (email.status === "sent") return t("The invitation email was sent.", messages);
+  if (email.status === "skipped") return t("No email was sent. Share this link instead.", messages);
+  return t("The email could not be sent.", messages);
+}
+
 export function InvitationCreatedPanel({
   token,
   publicUrl,
   email = null,
+  accountExists = false,
+  role = "user",
   copied,
   copyFailed = false,
   confirmingAnother = false,
@@ -154,6 +201,8 @@ export function InvitationCreatedPanel({
   token: string | null;
   publicUrl: string | null;
   email?: InvitationDelivery | null;
+  accountExists?: boolean;
+  role?: "user" | "admin";
   copied: boolean;
   copyFailed?: boolean;
   confirmingAnother?: boolean;
@@ -163,18 +212,12 @@ export function InvitationCreatedPanel({
   onCancelAnother: () => void;
   messages: TranslationMap;
 }) {
+  const delivery = emailNote(email, messages);
   return (
     <section role="status" className="flex max-w-xl flex-col gap-3">
       <h2 className="text-sm font-semibold">{t("Invitation created", messages)}</h2>
-      {email && (
-        <p className="text-xs text-muted-foreground">
-          {email.status === "sent"
-            ? t("The invitation email was sent.", messages)
-            : email.status === "skipped"
-              ? t("No email was sent. Share this link instead.", messages)
-              : t("The email could not be sent.", messages)}
-        </p>
-      )}
+      {delivery && <p className="text-xs text-muted-foreground">{delivery}</p>}
+      <InvitationNotes accountExists={accountExists} role={role} messages={messages} />
       {token ? (
         <TokenPanel
           token={token}
@@ -220,12 +263,14 @@ export function InvitationCreatedPanel({
 function InvitationFields({
   categories,
   modules,
+  canInviteAdmin,
   fieldErrors,
   defaultLocale,
   messages,
 }: {
   categories: { id: string; name: string }[];
   modules: ModuleChoice[];
+  canInviteAdmin: boolean;
   fieldErrors: Record<string, string[]>;
   defaultLocale: Locale;
   messages: TranslationMap;
@@ -267,6 +312,20 @@ function InvitationFields({
           className={inputClass}
         />
       </FormField>
+
+      {canInviteAdmin && (
+        <FormField
+          id="invitation-role"
+          label={t("Role", messages)}
+          error={fieldErrors.role?.[0]}
+          errorId="invitation-role-error"
+        >
+          <Select id="invitation-role" name="role" defaultValue="user">
+            <option value="user">{t("User", messages)}</option>
+            <option value="admin">{t("Admin", messages)}</option>
+          </Select>
+        </FormField>
+      )}
 
       <FormField
         id="invitation-category"
@@ -346,6 +405,8 @@ function InvitationFields({
 interface InvitationCreateFormProps {
   categories: { id: string; name: string }[];
   modules: ModuleChoice[];
+  /** Only a super_admin can invite an admin; the Core enforces it too. */
+  canInviteAdmin: boolean;
   /** The category or module reads failed: creation still works without them. */
   optionsUnavailable?: boolean;
   /** Preselected email language: the panel locale. */
@@ -364,6 +425,7 @@ interface InvitationCreateFormProps {
 export function InvitationCreateForm({
   categories,
   modules,
+  canInviteAdmin,
   optionsUnavailable = false,
   defaultLocale,
   publicUrl,
@@ -372,6 +434,8 @@ export function InvitationCreateForm({
   const router = useRouter();
   const createForm = useCreateForm();
   const [delivery, setDelivery] = useState<InvitationDelivery | null>(null);
+  const [accountExists, setAccountExists] = useState(false);
+  const [role, setRole] = useState<"user" | "admin">("user");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -392,6 +456,8 @@ export function InvitationCreateForm({
     }
 
     setDelivery(result.email ?? null);
+    setAccountExists(result.accountExists === true);
+    setRole(result.role ?? "user");
     createForm.dispatch({ type: "created", result: result.token ?? null });
     router.refresh();
   }
@@ -409,12 +475,18 @@ export function InvitationCreateForm({
         token={createForm.result}
         publicUrl={publicUrl}
         email={delivery}
+        accountExists={accountExists}
+        role={role}
         copied={createForm.copied}
         copyFailed={createForm.copyFailed}
         confirmingAnother={createForm.confirmingAnother}
         onCopy={handleCopy}
         onCreateAnother={() => createForm.dispatch({ type: "another-requested" })}
-        onConfirmAnother={() => createForm.dispatch({ type: "another-confirmed" })}
+        onConfirmAnother={() => {
+          setAccountExists(false);
+          setRole("user");
+          createForm.dispatch({ type: "another-confirmed" });
+        }}
         onCancelAnother={() => createForm.dispatch({ type: "another-cancelled" })}
         messages={messages}
       />
@@ -430,6 +502,7 @@ export function InvitationCreateForm({
       <InvitationFields
         categories={categories}
         modules={modules}
+        canInviteAdmin={canInviteAdmin}
         fieldErrors={createForm.fieldErrors}
         defaultLocale={defaultLocale}
         messages={messages}

@@ -246,6 +246,8 @@ export const invitationSchema = component(
       id: z.uuid(),
       email: z.email(),
       name: z.string(),
+      role: z.enum(["user", "admin"]),
+      expires_in_days: z.number().int(),
       user_category_id: z.uuid().nullable(),
       modules: z.array(z.string()),
       status: z.enum(["pending", "used", "expired", "revoked"]),
@@ -290,6 +292,8 @@ export const invitationCreatedSchema = component(
     .object({
       invitation: invitationSchema,
       token: z.string(),
+      /** The address already has an account: the email asks it to sign in. */
+      account_exists: z.boolean(),
       email: invitationEmailSchema,
     })
     .strict(),
@@ -326,10 +330,53 @@ export const redeemResultSchema = component(
   "RedeemResult",
   z
     .object({
-      user: z.object({ id: z.uuid(), email: z.email(), display_name: z.string() }).strict(),
+      user: z
+        .object({
+          id: z.uuid(),
+          email: z.email(),
+          display_name: z.string(),
+          role: z.enum(["super_admin", "admin", "user"]),
+        })
+        .strict(),
       invitation_id: z.uuid(),
     })
     .strict() satisfies z.ZodType<RedeemResult>,
+);
+
+/** Public preview of an invitation (spec §6.2). */
+export const invitationPreviewSchema = component(
+  "InvitationPreview",
+  z
+    .object({
+      state: z.enum(["pending", "expired", "used"]),
+      email: z.email(),
+      name: z.string(),
+      role: z.enum(["user", "admin"]),
+      role_applies: z.boolean(),
+      account_exists: z.boolean(),
+      locale: z.enum(EMAIL_LOCALES),
+      expires_at: isoDate,
+      inviter_name: z.string().nullable(),
+      instance_name: z.string(),
+      timezone: z.string(),
+    })
+    .strict(),
+);
+
+export const invitationPreviewResponseSchema = component(
+  "InvitationPreviewResponse",
+  z.object({ invitation: invitationPreviewSchema }).strict(),
+);
+
+export const invitationRenewResponseSchema = component(
+  "InvitationRenewResponse",
+  z
+    .object({
+      invitation: invitationSchema,
+      token: z.string(),
+      email: invitationEmailSchema,
+    })
+    .strict(),
 );
 
 export const apiKeySchema = component(
@@ -1012,4 +1059,71 @@ export const errorResponseSchema = component(
         .loose(),
     })
     .strict() satisfies z.ZodType<ErrorEnvelope>,
+);
+
+export const deviceTransferStatusSchema = component(
+  "DeviceTransferStatus",
+  z
+    .object({
+      id: z.uuid(),
+      state: z.enum(["pending", "used", "expired"]),
+      expires_at: isoDate,
+      used_at: nullableDate,
+    })
+    .strict(),
+);
+
+export const deviceTransferStatusResponseSchema = component(
+  "DeviceTransferStatusResponse",
+  z.object({ transfer: deviceTransferStatusSchema }).strict(),
+);
+
+export const deviceTransferCreatedSchema = component(
+  "DeviceTransferCreated",
+  z
+    .object({
+      transfer: z.object({ id: z.uuid(), expires_at: isoDate }).strict(),
+      token: z.string(),
+      path: z.string(),
+    })
+    .strict(),
+);
+
+export const deviceTransferExchangeSchema = component(
+  "DeviceTransferExchange",
+  z
+    .object({
+      transfer_id: z.uuid(),
+      email: z.email(),
+      token_hash: z.string(),
+      expires_at: isoDate,
+    })
+    .strict(),
+);
+
+export const revokeOtherDevicesSchema = component(
+  "RevokeOtherDevicesRequest",
+  z
+    .object({
+      keep_device_id: z
+        .uuid()
+        .nullable()
+        .describe("Device to keep; null when the new phone could not register push."),
+    })
+    .strict(),
+);
+
+export const revokeOtherSessionsSchema = component(
+  "RevokeOtherSessionsRequest",
+  z.object({ keep_session_id: z.uuid() }).strict(),
+);
+
+export const revokeOtherSessionsResponseSchema = component(
+  "RevokeOtherSessionsResponse",
+  z.object({ revoked: z.number().int() }).strict(),
+);
+
+export const revokeOtherDevicesResponseSchema = component(
+  "RevokeOtherDevicesResponse",
+  z.object({ revoked: z.number().int() }).strict(),
 );

@@ -37,6 +37,11 @@ no está `finalizada`.
   es grep y lectura; nada del build ni del CI depende de él.
 - **Contexto inyectado, nunca recordado** (subagentes): quien despacha pasa el contexto como texto armado desde ficheros (extracto de spec + convenciones + criterios de aceptación + rutas). Un subagente no asume lo que "ya se habló" ni lo que recuerda de otra sesión; si le falta contexto, reporta `NEEDS_CONTEXT`. Un subagente no despacha otros subagentes.
 - **Secretos**: nunca en git, logs, ni en la salida de comandos (`.env*`, keystores, tokens). Ver `docs/flows/cicd.md`.
+- **Base de datos**: `supabase db reset` solo contra el stack **local** y avisando (borra los datos
+  de desarrollo). `db reset --remote/--linked/--db-url` contra un proyecto enlazado, nunca:
+  producción cambia solo por `.github/workflows/migrations.yml` con el Environment `production` y
+  su revisor. `pnpm check:destructive-db` (job `guard-secrets`) rechaza cualquier automatización que
+  lo intente. Ver `docs/flows/cicd.md`.
 - **API-first**: móvil y terceros solo hablan con `/api/v1`; nunca con la BD.
 - **Verificar antes de entregar**: nada se anuncia al propietario (PR, mensaje, APK, «ya puedes
   probarlo») sin haberlo ejecutado antes contra el entorno real y con la salida leída. La rutina

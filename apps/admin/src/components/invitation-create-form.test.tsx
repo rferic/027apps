@@ -22,7 +22,7 @@ const PANEL_ACTIONS = {
 describe("InvitationCreateForm", () => {
   it("renders the fields on a page, not inside a creation dialog", () => {
     const html = renderToStaticMarkup(
-      <InvitationCreateForm categories={CATEGORIES} modules={MODULES} defaultLocale="es"
+      <InvitationCreateForm categories={CATEGORIES} modules={MODULES} canInviteAdmin={false} defaultLocale="es"
         publicUrl="https://panel.test"
         messages={{}} />,
     );
@@ -41,7 +41,7 @@ describe("InvitationCreateForm", () => {
 
   it("starts empty: no token from a previous creation", () => {
     const html = renderToStaticMarkup(
-      <InvitationCreateForm categories={CATEGORIES} modules={MODULES} defaultLocale="es"
+      <InvitationCreateForm categories={CATEGORIES} modules={MODULES} canInviteAdmin={false} defaultLocale="es"
         publicUrl="https://panel.test"
         messages={{}} />,
     );
@@ -56,6 +56,7 @@ describe("InvitationCreateForm", () => {
       <InvitationCreateForm
         categories={[]}
         modules={[]}
+        canInviteAdmin={false}
         optionsUnavailable
         defaultLocale="es"
         publicUrl="https://panel.test"
@@ -64,6 +65,23 @@ describe("InvitationCreateForm", () => {
     );
 
     expect(html).toContain("Some category or module options are unavailable right now.");
+  });
+
+  it("shows the role selector only to a super_admin", () => {
+    const withoutRole = renderToStaticMarkup(
+      <InvitationCreateForm categories={CATEGORIES} modules={MODULES} canInviteAdmin={false} defaultLocale="es"
+        publicUrl="https://panel.test"
+        messages={{}} />,
+    );
+    const withRole = renderToStaticMarkup(
+      <InvitationCreateForm categories={CATEGORIES} modules={MODULES} canInviteAdmin defaultLocale="es"
+        publicUrl="https://panel.test"
+        messages={{}} />,
+    );
+
+    expect(withoutRole).not.toContain("invitation-role");
+    expect(withRole).toContain("invitation-role");
+    expect(withRole).toContain('value="admin"');
   });
 });
 

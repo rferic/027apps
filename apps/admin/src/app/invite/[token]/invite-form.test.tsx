@@ -5,23 +5,45 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
 }));
 
+vi.mock("./actions", () => ({
+  submitInvitation: vi.fn(async () => ({ ok: true, role: "user" })),
+}));
+
+import type { InvitePublicView } from "./invite-details";
 import { InviteFailureAlert, InviteForm, fieldProps } from "./invite-form";
 
 const TOKEN = "027_inv_abc123";
+const VIEW: InvitePublicView = {
+  email: "ana@example.com",
+  name: "Ana",
+  role: "user",
+  role_applies: true,
+  account_exists: false,
+  inviter_name: "Eric",
+  instance_name: "Familia Pérez",
+  expires_at: "2026-11-24T12:00:00.000Z",
+  timezone: "Europe/Madrid",
+  locale: "es",
+};
 
-function form() {
-  return <InviteForm token={TOKEN} messages={{}} />;
+function form(view: InvitePublicView = VIEW) {
+  return <InviteForm token={TOKEN} view={view} messages={{}} />;
 }
 
 describe("InviteForm", () => {
-  it("renders email, password and confirmation with the Core limits", () => {
+  it("leaves the invitation card to the wizard, so it renders once", () => {
+    const html = renderToStaticMarkup(form());
+
+    expect(html).not.toContain("ana@example.com");
+    expect(html).not.toContain("Familia Pérez");
+    expect(html).not.toContain('name="email"');
+    expect(html).not.toContain('name="name"');
+  });
+
+  it("asks for a password and its confirmation on a new account", () => {
     const html = renderToStaticMarkup(form());
 
     expect(html).toContain("<form");
-    expect(html).toContain('for="invite-email"');
-    expect(html).toContain('id="invite-email"');
-    expect(html).toContain('type="email"');
-    expect(html).toContain('autoComplete="email"');
     expect(html).toContain('name="password"');
     expect(html).toContain('name="confirmation"');
     expect(html).toContain('autoComplete="new-password"');
@@ -30,17 +52,17 @@ describe("InviteForm", () => {
     expect(html).toContain("Accept invitation");
   });
 
-  it("does not ask for a name", () => {
-    const html = renderToStaticMarkup(form());
+  it("asks only for the current password on an existing account", () => {
+    const html = renderToStaticMarkup(form({ ...VIEW, account_exists: true, role_applies: false }));
 
-    expect(html).not.toContain('name="name"');
-    expect(html).not.toContain("Display name");
+    expect(html).toContain('autoComplete="current-password"');
+    expect(html).not.toContain('name="confirmation"');
+    expect(html).toContain("Sign in and accept");
+    expect(html).toContain('href="/forgot-password"');
   });
 
   it("links to the login page as the way out", () => {
-    const html = renderToStaticMarkup(form());
-
-    expect(html).toContain('href="/login"');
+    expect(renderToStaticMarkup(form())).toContain('href="/login"');
   });
 });
 
@@ -59,9 +81,9 @@ describe("fieldProps", () => {
   });
 
   it("marks a field without a hint as invalid and points at its error", () => {
-    expect(fieldProps("email", { email: "email_invalid" })).toEqual({
+    expect(fieldProps("confirmation", { confirmation: "password_mismatch" })).toEqual({
       "aria-invalid": true,
-      "aria-describedby": "invite-email-error",
+      "aria-describedby": "invite-confirmation-error",
     });
   });
 });
@@ -79,53 +101,12 @@ describe("InviteFailureAlert", () => {
     expect(html).toContain("req-42");
   });
 
-  it("does not distinguish a revoked invitation from a missing one", () => {
+  it("offers the recovery path when the existing password is wrong", () => {
     const html = renderToStaticMarkup(
-      <InviteFailureAlert failure={{ ok: false, code: "not_found" }} messages={{}} />,
+      <InviteFailureAlert failure={{ ok: false, code: "wrong_credentials" }} messages={{}} />,
     );
 
-    expect(html).toContain("This invitation link is not valid.");
-  });
-
-  it("sends an already used invitation to the login page", () => {
-    const html = renderToStaticMarkup(
-      <InviteFailureAlert failure={{ ok: false, code: "invitation_used" }} messages={{}} />,
-    );
-
-    expect(html).toContain("This invitation has already been used.");
-    expect(html).toContain('href="/login"');
-    expect(html).toContain("Sign in");
-  });
-
-  it("explains an expired invitation", () => {
-    const html = renderToStaticMarkup(
-      <InviteFailureAlert failure={{ ok: false, code: "invitation_expired" }} messages={{}} />,
-    );
-
-    expect(html).toContain("This invitation has expired. Ask an administrator for a new one.");
-  });
-
-  it("explains a deactivated account", () => {
-    const html = renderToStaticMarkup(
-      <InviteFailureAlert failure={{ ok: false, code: "conflict" }} messages={{}} />,
-    );
-
-    expect(html).toContain("This account is deactivated. Contact an administrator.");
-  });
-
-  it("asks for the invited email without revealing it", () => {
-    const html = renderToStaticMarkup(
-      <InviteFailureAlert failure={{ ok: false, code: "validation_failed" }} messages={{}} />,
-    );
-
-    expect(html).toContain("Use the email address this invitation was sent to.");
-  });
-
-  it("asks the user to wait after rate limiting", () => {
-    const html = renderToStaticMarkup(
-      <InviteFailureAlert failure={{ ok: false, code: "rate_limited" }} messages={{}} />,
-    );
-
-    expect(html).toContain("Too many attempts. Wait a minute and try again.");
+    expect(html).toContain("The password is not correct.");
+    expect(html).toContain('href="/forgot-password"');
   });
 });

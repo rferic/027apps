@@ -75,6 +75,30 @@ class InstanceStoreTest {
     }
 
     @Test
+    fun `forget removes an inactive instance and leaves the active one in place`() {
+        val store = InstanceStore(FakeStore(), default)
+        store.remember("http://192.168.1.108:3003")
+        store.remember("https://staging.example.test")
+        store.save("http://192.168.1.108:3003")
+
+        store.forget("https://staging.example.test")
+
+        assertEquals("http://192.168.1.108:3003", store.current())
+        assertFalse(store.known().contains("https://staging.example.test"))
+        assertTrue(store.known().contains("http://192.168.1.108:3003"))
+    }
+
+    @Test
+    fun `the build default is never forgotten`() {
+        val store = InstanceStore(FakeStore(), default)
+
+        store.forget(default)
+
+        assertEquals(default, store.current())
+        assertTrue(store.known().contains(default))
+    }
+
+    @Test
     fun `pinning keeps the instance when an update changes the default`() {
         val prefs = FakeStore()
         // The test build defaults to the LAN; the user opens it once.

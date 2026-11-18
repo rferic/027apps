@@ -25,7 +25,7 @@ function hasSessionCookie(cookieHeader: string | null): boolean {
 }
 
 /** First host when a proxy appends the upstream host (`host, internal:3003`). */
-function requestHost(headers: OriginCheckRequest["headers"]): string | null {
+export function requestHost(headers: OriginCheckRequest["headers"]): string | null {
   const forwarded = headers.get("x-forwarded-host");
   const host = forwarded ?? headers.get("host");
   const first = host?.split(",")[0]?.trim();

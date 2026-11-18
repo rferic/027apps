@@ -73,17 +73,34 @@ class FcmRegistrar(private val context: Context) {
      * had the token and kept sending a former account's groups to this phone.
      * It runs before the session is dropped, so the JWT is still valid.
      */
-    fun revoke() {
+    /** The server device id of this install, when push registration succeeded. */
+    fun deviceId(): String? = prefs.getString("device_id", null)
+
+    /**
+     * `accessToken` is the live Supabase token: the one kept from `configure`
+     * expires after 15 minutes, and sending it would leave the device
+     * registered forever. Falls back to the stored one when none is given.
+     */
+    fun revoke(accessToken: String? = null) {
         val baseUrl = instanceUrl
-        val jwt = sessionToken
+        val jwt = accessToken ?: sessionToken
         val deviceId = prefs.getString("device_id", null)
         val token = prefs.getString("push_token", null)
         if (baseUrl != null && jwt != null) {
             Thread {
                 runCatching {
-                    if (deviceId != null) request("DELETE", "$baseUrl/api/v1/devices/$deviceId", jwt, null)
+                    if (deviceId != null) {
+                        request("DELETE", "$baseUrl/api/v1/devices/$deviceId?sessions=local", jwt, null)
+                    }
                 }.onFailure { Log.w(TAG, "Could not revoke this device", it) }
-                FirebaseMessaging.getInstance().deleteToken()
+                // A local instance has no FCM config, so Firebase is never
+                // initialised here: calling it anyway killed the process (an
+                // uncaught exception in a plain thread) on every local logout.
+                runCatching {
+                    if (FirebaseApp.getApps(context).isNotEmpty()) {
+                        FirebaseMessaging.getInstance().deleteToken()
+                    }
+                }.onFailure { Log.w(TAG, "Could not delete the FCM token", it) }
             }.start()
         }
         if (token != null) prefs.edit().remove("push_token").apply()
