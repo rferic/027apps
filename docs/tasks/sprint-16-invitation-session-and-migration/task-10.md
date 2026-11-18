@@ -74,8 +74,13 @@ el código: el viejo lo muestra, el nuevo lo escanea, entra y expulsa al viejo.
   las sesiones del usuario salvo la que llama (el id sale del claim `session_id` del JWT). Tras
   repetir la prueba: refresh viejo → **400** y una sola sesión en `auth.sessions`.
 
-Pendiente: la revocación de push en una instancia con FCM y la prueba con dos móviles reales a la
-vez (P4).
+**Estado de la aceptación (2026-11-18)**
+- Flujo completo verificado con un móvil y un QR servido: entra, y la sesión vieja se revoca en el
+  servidor (refresh → 400, una sola sesión). La confirmación de host al escanear y la pantalla de
+  progreso salieron de esta prueba.
+- Queda como comprobación **de producción**: la revocación de **push** en el móvil viejo y el
+  escaneo entre dos dispositivos reales a la vez (P4). Requiere un segundo Android con FCM y montar
+  un evento que genere push; se hará con cuentas temporales.
 
 **Punto de partida**
 - La app tiene sesión cifrada, `signOut` y registro FCM; `FcmRegistrar` guarda el `device_id`.
