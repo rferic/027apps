@@ -445,12 +445,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
-                val api = client ?: apiFor(link.instance)
-                // A session from another instance is never reused or switched silently.
+                // Always the link's instance: `client` may belong to another one
+                // after the person changed instances, and signing in there would
+                // report a perfectly good password as wrong.
                 if (instanceStore.current() != link.instance) {
                     sessionStore.clear()
                     supabase = null
                 }
+                val api = apiFor(link.instance)
 
                 if (preview.accountExists) {
                     val supabaseClient = try {
