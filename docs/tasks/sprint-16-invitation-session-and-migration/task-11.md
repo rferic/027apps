@@ -32,10 +32,17 @@ gates mecánicos, evidencia real y auditoría de seguridad. Sin esto ninguna tar
 - Auditorías de seguridad y de UX hechas por agentes distintos del autor: informe completo y
   resolución de cada hallazgo en [`task-11-audits.md`](task-11-audits.md). Catorce de seguridad y
   dieciocho de UX corregidos con tests; cinco de UX diferidos con motivo escrito.
-- Pendiente: `docs/flows/cicd.md` con la parte de `/migrate/` (va con la tarea 05, que es quien
-  añade el App Link al manifest de release), el release firmado (tag sobre `main`, lo firma CI con
-  el keystore en secrets: puerta del propietario, posterior al merge) y la prueba con dos móviles
-  reales.
+- `docs/flows/cicd.md`: App Links de `/invite/` **y** `/migrate/`, cómo sacar la huella del
+  certificado y por qué hace falta redeploy; `docs/flows/local-development.md`: reset con copia,
+  restauración y tripwire.
+- PR #124 con el resumen del sprint, la evidencia de los gates, las migraciones y las puertas del
+  propietario (P3/P4 y orden de merge/tag), reescrito en inglés para GitHub.
+- Landing pública sin cambios de copy en este sprint: los módulos y su catálogo no cambian; queda
+  constancia aquí en vez de tocar `docs/ai/landing.md`.
+- Revisión de estilo por un agente distinto del autor: en curso; sus hallazgos se aplican antes de
+  cerrar.
+- Pendiente: el release firmado (tag sobre `main`, lo firma CI con el keystore en secrets: puerta
+  del propietario, posterior al merge) y la prueba con dos móviles reales.
 
 **Punto de partida**: las tareas 03–10 implementadas y aceptadas por sus criterios.
 
