@@ -108,9 +108,31 @@ fallidos y limpieza.
 
 Los secretos son `MODULE_JOBS_URL_STAGING` + `CRON_SECRET_STAGING` y `MODULE_JOBS_URL_PRODUCTION` + `CRON_SECRET_PRODUCTION`; sin ellos el workflow no hace nada (igual que `migrations.yml`). Los workflows programados solo se ejecutan desde la rama por defecto, así que el tick empieza a funcionar cuando el fichero está en `main`; en staging se puede lanzar a mano con `workflow_dispatch` o un `curl` puntual.
 
-## App Links (invitaciones en la app)
+## App Links (invitaciones y migración en la app)
 
-`GET /.well-known/assetlinks.json` verifica que los enlaces `https://<instancia>/invite/<token>` los abre la app Android. Se publica solo con huellas **públicas** del certificado: `ANDROID_APP_SHA256` en Vercel (lista separada por comas, la del keystore de release y, si quieres probar en debug, la del keystore de debug). Sin la variable responde `[]`, que significa «ningún enlace verificado», no un error. El keystore y su contraseña nunca se publican.
+`GET /.well-known/assetlinks.json` verifica que los enlaces `https://<instancia>/invite/<token>` y
+`https://<instancia>/migrate/<token>` los abre la app Android. El manifest de **release** declara
+los dos `pathPrefix` en el mismo `intent-filter` con `autoVerify`; el de debug no verifica https y
+usa el esquema propio (`zero27apps-dev://invite/…`, `zero27apps-dev://migrate/…`).
+
+Se publica solo con huellas **públicas** del certificado: `ANDROID_APP_SHA256` en Vercel (lista
+separada por comas, la del keystore de release y, si quieres probar en debug, la del keystore de
+debug). Sin la variable responde `[]`, que significa «ningún enlace verificado», no un error. El
+keystore y su contraseña nunca se publican.
+
+Cómo obtener la huella (la imprime el propio release de CI, o el APK instalado):
+
+```bash
+# del APK firmado que publica el workflow `release`
+apksigner verify --print-certs 027apps-v0.19.0.apk | grep SHA-256
+# o del keystore, si lo tienes en local
+keytool -list -v -keystore release.jks -alias <alias> | grep SHA256
+```
+
+Después: cargar el valor en Vercel (Production, y Preview si se prueba allí) y **redeploy**; el
+JSON se lee en cada petición, pero un deployment en marcha no ve la variable nueva. Android cachea
+la verificación: `adb shell pm verify-app-links --re-verify com.rferic.zero27apps` y
+`pm get-app-links` muestran el estado real.
 
 ## Migraciones Supabase
 

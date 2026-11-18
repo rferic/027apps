@@ -2,7 +2,7 @@
 id: sprint-16-task-05
 titulo: App Links — fingerprint, redeploy y verificación en dispositivo
 area: infra + app
-estado: pendiente
+estado: en curso
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 adrs: [0010]
@@ -18,6 +18,27 @@ dispositivo Android real. Sin esto, el requisito app-first no se ve aunque el c�
   comas; sin variable, `[]`.
 - Fingerprint del APK v0.18.1:
   `00:6A:22:FA:7A:A4:76:A5:5D:B7:C4:62:2E:FF:19:3F:76:4F:66:10:A3:6D:9C:D1:DF:CE:C8:03:AE:A1:39:C6`.
+
+**Hecho (2026-11-17, sin cerrar)**
+- `pathPrefix="/migrate/"` añadido al mismo `intent-filter` con `autoVerify` del manifest de
+  release; el de debug mantiene `zero27apps-dev://invite` y añade `zero27apps-dev://migrate`.
+- `/migrate/:token` envía `Referrer-Policy: no-referrer` y `X-Robots-Tag: noindex` (junto con
+  `/auth/confirm`, `/forgot-password`, `/reset-password` y `/welcome`).
+- `docs/flows/cicd.md` documenta los dos enlaces y cómo sacar la huella.
+
+**P3 pendiente (propietario)**
+1. Cargar en Vercel → Settings → Environment Variables, entorno **Production**:
+   `ANDROID_APP_SHA256=00:6A:22:FA:7A:A4:76:A5:5D:B7:C4:62:2E:FF:19:3F:76:4F:66:10:A3:6D:9C:D1:DF:CE:C8:03:AE:A1:39:C6`
+   (huella **verificada** con `apksigner verify --print-certs` sobre el APK publicado v0.18.2: el
+   keystore es el mismo con el que saldrá 0.19.0. El formato es el de Android, con dos puntos y en
+   mayúsculas; la ruta la copia tal cual a `sha256_cert_fingerprints`).
+2. **Redeploy** de producción: una variable nueva no llega a un deployment ya construido. El JSON
+   se sirve con `cache-control: public, max-age=3600`, así que tras el redeploy puede tardar hasta
+   una hora en verse desde fuera (o se fuerza recarga con otro `curl` y espera).
+3. `curl -s https://027apps.ericrf.com/.well-known/assetlinks.json` debe devolver el objeto con
+   `package_name` y la huella, no `[]`.
+4. En el móvil: `adb shell pm get-app-links com.rferic.zero27apps` → `verified`, y abrir un enlace
+   `https://027apps.ericrf.com/invite/<token>` con la app instalada (release).
 
 **Alcance**
 - Dentro:
