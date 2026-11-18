@@ -80,7 +80,7 @@ export interface RedeemInput {
   email: string;
   /** Required for a new account; never sent for an existing one (D21). */
   password?: string;
-  /** Obsolete: the name always comes from the invitation (A5). */
+  /** Obsolete: the name always comes from the invitation. */
   display_name?: string;
 }
 
@@ -335,7 +335,7 @@ export async function createInvitation(
   if (input.user_category_id) await assertCategory(deps.db, input.user_category_id);
 
   // An email that already has an account can be invited: the redeem flow then
-  // requires that account's session (A7). The panel explains `account_exists`.
+  // requires that account's session. The panel explains `account_exists`.
   const existingUser = await deps.auth.findUserByEmail(email);
   const accountExists = existingUser !== null;
 
@@ -513,7 +513,7 @@ async function instanceContext(db: QueryClient): Promise<{
 }
 
 /**
- * Public preview by token (A2, spec §6.2). Revoked and unknown tokens are the
+ * Public preview by token (spec §6.2). Revoked and unknown tokens are the
  * same 404 on purpose: the caller already holds the token, so `used` and
  * `expired` are explained with 200 because it is the same invitation.
  *
@@ -643,7 +643,7 @@ export interface RenewedInvitation {
 }
 
 /**
- * Renews an expired invitation (A3, spec §6.5): rotates the token, restores the
+ * Renews an expired invitation (spec §6.5): rotates the token, restores the
  * duration it was created with and clears the last email attempt so the route
  * can send it again. A used invitation is `invitation_used`, a pending one is
  * `invitation_not_expired` and a revoked one stays indistinguishable from a
@@ -775,7 +775,7 @@ export async function redeemInvitation(
   if (!pre) throw new DomainError("not_found");
   assertRedeemable(pre, email, now());
 
-  // The name always comes from the invitation (A5); `display_name` is obsolete
+  // The name always comes from the invitation; `display_name` is obsolete
   // and deliberately ignored.
   const displayName = String(pre.name).slice(0, 80);
   let userId: string;

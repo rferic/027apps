@@ -405,7 +405,7 @@ function InvitationFields({
 interface InvitationCreateFormProps {
   categories: { id: string; name: string }[];
   modules: ModuleChoice[];
-  /** Only a super_admin can invite an admin (A6/C7); the Core enforces it too. */
+  /** Only a super_admin can invite an admin; the Core enforces it too. */
   canInviteAdmin: boolean;
   /** The category or module reads failed: creation still works without them. */
   optionsUnavailable?: boolean;

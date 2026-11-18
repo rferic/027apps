@@ -197,7 +197,7 @@ export function invitationRoute(deps: InvitationsRouteDeps) {
 }
 
 /**
- * Public preview by token (A2). Anonymous by design: the token is the only
+ * Public preview by token. Anonymous by design: the token is the only
  * credential, it is validated at the edge and a revoked/unknown one is a 404.
  */
 export function invitationPreviewRoute(deps: InvitationsRouteDeps) {

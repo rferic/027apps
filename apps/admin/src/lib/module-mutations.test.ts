@@ -17,7 +17,7 @@ function call(fetcher: ReturnType<typeof vi.fn>): [string, RequestInit] {
 }
 
 describe("activateModule", () => {
-  it("POSTs the activate endpoint with the session cookie", async () => {
+  it("reactivates through the activate endpoint with the session cookie", async () => {
     const fetcher = vi.fn(async () => json({ module: { key: "inventory" } }));
 
     await expect(activateModule("inventory", fetcher)).resolves.toEqual({ ok: true });
@@ -155,7 +155,7 @@ describe("uninstallModule", () => {
 });
 
 describe("setModulePublic", () => {
-  it("PATCHes the module with the new visibility and the session cookie", async () => {
+  it("making a module public saves it with the session cookie", async () => {
     const fetcher = vi.fn(async () => json({ module: { key: "owe-no" } }));
 
     await expect(setModulePublic("owe-no", true, fetcher)).resolves.toEqual({ ok: true });

@@ -22,7 +22,7 @@ export interface EmailCopy {
   existingCta: string;
   /** Shown in the note box for an existing account (D16). */
   passwordNote: string;
-  /** Shown in the note box when the invitation grants an admin role (A6). */
+  /** Shown in the note box when the invitation grants an admin role. */
   adminNote: string;
   fallback: string;
   expiry: string;

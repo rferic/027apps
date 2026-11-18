@@ -28,7 +28,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 
 /**
  * The invitation as a read-only card: the form never asks for data the token
- * already carries (A5), and disabled inputs are not a substitute for a card.
+ * already carries, and disabled inputs are not a substitute for a card.
  */
 export function InviteDetails({
   view,

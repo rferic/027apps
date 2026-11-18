@@ -115,6 +115,9 @@ function sessionClient(request: NextRequest) {
 
 type SessionClient = ReturnType<typeof sessionClient>["supabase"];
 
+/** What one refresh pass leaves for the request: a verdict, and whether a user was seen. */
+type SessionRefresh = { outcome: SessionRefreshOutcome; hasSession: boolean };
+
 /**
  * One verification per request:
  * - `/api/v1`: the door verifies the JWT; the proxy only forwards (and
@@ -123,7 +126,6 @@ type SessionClient = ReturnType<typeof sessionClient>["supabase"];
  * - any other page: the panel layout verifies it; the proxy only refreshes the
  *   cookie when the token is about to expire.
  */
-type SessionRefresh = { outcome: SessionRefreshOutcome; hasSession: boolean };
 
 async function refreshSession(
   supabase: SessionClient,
@@ -150,7 +152,7 @@ async function refreshSession(
 
 /** Copies the session token onto the upstream request for `/api/v1` calls. */
 async function forwardSessionToken(
-  supabase: ReturnType<typeof sessionClient>["supabase"],
+  supabase: SessionClient,
   headers: Headers,
 ): Promise<void> {
   const { data, error } = await supabase.auth.getSession();

@@ -23,7 +23,7 @@ export interface InvitationConflict {
 /**
  * Invitation create conflicts the email field can name: the same address
  * already holds a pending invitation. An existing account is no longer a
- * conflict (A7); it is explained in the success panel instead. Keyed on the
+ * conflict; it is explained in the success panel instead. Keyed on the
  * public `details.code` (the envelope never carries the custom message), so an
  * unrelated `conflict` keeps the generic label.
  */

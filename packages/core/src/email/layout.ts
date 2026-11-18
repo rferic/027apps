@@ -2,6 +2,11 @@
  * Shared shell of every transactional email: 600 px, one column, table layout,
  * inline light styles and a dark palette applied by `prefers-color-scheme`.
  *
+ * The colours are literals on purpose: a mail client does not resolve CSS
+ * variables or read the panel's tokens, so the brand green (`#09795f`), the
+ * two greys and the card palette are copied here from the design tokens. They
+ * are the only place outside the panel where literals are correct.
+ *
  * Class names are part of the contract with the templates:
  * `email-bg`, `email-card`, `email-text`, `email-muted`, `email-cta`,
  * `email-link`, `email-note`, `email-hr`, `logo-light`, `logo-dark`.

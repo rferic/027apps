@@ -3,7 +3,7 @@ import {
   previewInvitation,
   type InvitationPreview,
 } from "@027apps/core/invitations/service.js";
-import { invitationServiceDeps } from "./invitation-service-deps";
+import { invitationServiceDeps } from "@/lib/invitation-service-deps";
 
 /**
  * Public preview for the invitation page and the redemption action. A revoked

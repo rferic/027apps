@@ -343,7 +343,7 @@ export const redeemResultSchema = component(
     .strict() satisfies z.ZodType<RedeemResult>,
 );
 
-/** Public preview of an invitation (A2, spec §6.2). */
+/** Public preview of an invitation (spec §6.2). */
 export const invitationPreviewSchema = component(
   "InvitationPreview",
   z

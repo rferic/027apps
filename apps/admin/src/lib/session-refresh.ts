@@ -1,6 +1,6 @@
 /**
  * Classifies a Supabase session-refresh failure so the proxy never confuses a
- * network problem with a revoked session (sprint 16, task 03).
+ * network problem with a revoked session.
  *
  * - `invalid`: the refresh token is gone, expired or revoked. The session is
  *   over; the proxy may clear the cookies and the entry gate sends the user to

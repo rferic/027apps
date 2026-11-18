@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { invitationConflictError, panelErrorCodeLabel, slugConflictError } from "./panel-errors";
 
 describe("invitationConflictError", () => {
-  it("leaves an existing account out: it is not a conflict anymore (A7)", () => {
+  it("leaves an existing account out: it is not a conflict anymore", () => {
     expect(
       invitationConflictError({ code: "conflict", details: { code: "email_registered" } }, {}),
     ).toBeUndefined();

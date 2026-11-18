@@ -1,10 +1,6 @@
 package com.rferic.zero27apps.ui.i18n
 
 /**
- * The app copy in the nine locales the product supports. The device language
- * picks one at launch; anything else falls back to English.
- */
-/**
  * Every UI string in one immutable holder. A plain class, not a `data class`:
  * with ~200 fields the generated `equals`/`hashCode`/`toString` grow past the
  * JVM method size limit and the class fails to load on CI.
@@ -52,6 +48,7 @@ class Strings(private val values: Map<String, String>) {
     val migrationQrCaption: String get() = values.getValue("migrationQrCaption")
     val migrationSettingsNote: String get() = values.getValue("migrationSettingsNote")
     val migrationScreenSecure: String get() = values.getValue("migrationScreenSecure")
+    val migrationQrDescription: String get() = values.getValue("migrationQrDescription")
     val migrationOpenSettings: String get() = values.getValue("migrationOpenSettings")
     val migrationFromOther: String get() = values.getValue("migrationFromOther")
     val inviteTitle: String get() = values.getValue("inviteTitle")
@@ -336,6 +333,7 @@ object AppStrings {
         "migrationQrCaption" to "Show this code to the new phone. This phone will be signed out.",
         "migrationSettingsNote" to "Show a code to move this account to another phone.",
         "migrationScreenSecure" to "For security this screen can't be captured. The code renews itself.",
+        "migrationQrDescription" to "QR code to move this account to the new phone",
         "migrationOpenSettings" to "Open settings",
         "migrationFromOther" to "Move from another phone",
         "inviteTitle" to "You're invited",
@@ -609,6 +607,7 @@ object AppStrings {
         "migrationQrCaption" to "Enseña este código al móvil nuevo. Este teléfono se cerrará.",
         "migrationSettingsNote" to "Muestra un código para pasar esta cuenta a otro móvil.",
         "migrationScreenSecure" to "Por seguridad, esta pantalla no se puede capturar. El código se renueva solo.",
+        "migrationQrDescription" to "Código QR para mover esta cuenta al móvil nuevo",
         "migrationOpenSettings" to "Abrir ajustes",
         "migrationFromOther" to "Mover desde otro teléfono",
         "inviteTitle" to "Te han invitado",
@@ -882,6 +881,7 @@ object AppStrings {
         "migrationQrCaption" to "Ensenya aquest codi al mòbil nou. Aquest telèfon es tancarà.",
         "migrationSettingsNote" to "Mostra un codi per passar aquest compte a un altre mòbil.",
         "migrationScreenSecure" to "Per seguretat, aquesta pantalla no es pot capturar. El codi es renova sol.",
+        "migrationQrDescription" to "Codi QR per moure aquest compte al mòbil nou",
         "migrationOpenSettings" to "Obre els ajustos",
         "migrationFromOther" to "Mou des d'un altre telèfon",
         "inviteTitle" to "T'han convidat",
@@ -1155,6 +1155,7 @@ object AppStrings {
         "migrationQrCaption" to "Mostra questo codice al telefono nuovo. Questo telefono verrà disconnesso.",
         "migrationSettingsNote" to "Mostra un codice per spostare questo account su un altro telefono.",
         "migrationScreenSecure" to "Per sicurezza questa schermata non può essere catturata. Il codice si rinnova da solo.",
+        "migrationQrDescription" to "Codice QR per spostare questo account sul nuovo telefono",
         "migrationOpenSettings" to "Apri impostazioni",
         "migrationFromOther" to "Sposta da un altro telefono",
         "inviteTitle" to "Sei invitato",
@@ -1428,6 +1429,7 @@ object AppStrings {
         "migrationQrCaption" to "Montrez ce code au nouveau téléphone. Celui-ci sera déconnecté.",
         "migrationSettingsNote" to "Affichez un code pour déplacer ce compte vers un autre téléphone.",
         "migrationScreenSecure" to "Pour des raisons de sécurité, cet écran ne peut pas être capturé. Le code se renouvelle tout seul.",
+        "migrationQrDescription" to "Code QR pour déplacer ce compte vers le nouveau téléphone",
         "migrationOpenSettings" to "Ouvrir les réglages",
         "migrationFromOther" to "Déplacer depuis un autre téléphone",
         "inviteTitle" to "Vous êtes invité",
@@ -1701,6 +1703,7 @@ object AppStrings {
         "migrationQrCaption" to "Zeige diesen Code dem neuen Telefon. Dieses Telefon wird abgemeldet.",
         "migrationSettingsNote" to "Zeige einen Code, um dieses Konto auf ein anderes Telefon umzuziehen.",
         "migrationScreenSecure" to "Aus Sicherheitsgründen kann dieser Bildschirm nicht aufgenommen werden. Der Code erneuert sich selbst.",
+        "migrationQrDescription" to "QR-Code, um dieses Konto auf das neue Telefon umzuziehen",
         "migrationOpenSettings" to "Einstellungen öffnen",
         "migrationFromOther" to "Von einem anderen Telefon umziehen",
         "inviteTitle" to "Du bist eingeladen",
@@ -1974,6 +1977,7 @@ object AppStrings {
         "migrationQrCaption" to "Mostra este código ao telemóvel novo. Este telemóvel será encerrado.",
         "migrationSettingsNote" to "Mostra um código para passar esta conta para outro telemóvel.",
         "migrationScreenSecure" to "Por segurança, este ecrã não pode ser capturado. O código renova-se sozinho.",
+        "migrationQrDescription" to "Código QR para mover esta conta para o telemóvel novo",
         "migrationOpenSettings" to "Abrir definições",
         "migrationFromOther" to "Mover de outro telemóvel",
         "inviteTitle" to "Foste convidado",
@@ -2247,6 +2251,7 @@ object AppStrings {
         "migrationQrCaption" to "Amosa este código ao móbil novo. Este teléfono pecharase.",
         "migrationSettingsNote" to "Amosa un código para pasar esta conta a outro móbil.",
         "migrationScreenSecure" to "Por seguridade, esta pantalla non se pode capturar. O código renovase só.",
+        "migrationQrDescription" to "Código QR para mover esta conta ao móbil novo",
         "migrationOpenSettings" to "Abrir axustes",
         "migrationFromOther" to "Mover desde outro teléfono",
         "inviteTitle" to "Convidáronte",
@@ -2520,6 +2525,7 @@ object AppStrings {
         "migrationQrCaption" to "Erakutsi kode hau telefono berriari. Telefono hau itxiko da.",
         "migrationSettingsNote" to "Erakutsi kode bat kontu hau beste telefono batera mugitzeko.",
         "migrationScreenSecure" to "Segurtasunagatik, pantaila hau ezin da harrapatu. Kodea berez berritzen da.",
+        "migrationQrDescription" to "Kode QR kontu hau telefono berrira mugitzeko",
         "migrationOpenSettings" to "Ireki ezarpenak",
         "migrationFromOther" to "Mugitu beste telefono batetik",
         "inviteTitle" to "Gonbidatu zaituzte",

@@ -5,7 +5,7 @@
  * edge, this is UX only.
  *
  * The email is never a field: the token carries it and the form shows it as a
- * read-only card (A5). An existing account only asks for its current password;
+ * read-only card. An existing account only asks for its current password;
  * a new one asks for a password and its confirmation.
  */
 export const MIN_PASSWORD = 12;

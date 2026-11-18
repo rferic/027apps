@@ -503,9 +503,9 @@ de producto.
 ### 10.1 Modelo y API
 
 - [ ] `supabase/migrations/0036_device_transfers.sql` (spec §5.2).
-- [ ] `packages/core/src/device-transfers/service.ts`: create/status/exchange (TTL 60 s, hash,
+- [ ] `packages/core/src/devices/transfers.ts`: create/status/exchange (TTL 60 s, hash,
       single-use, perfil activo, magic link, limpieza oportunista).
-- [ ] `packages/core/src/device-transfers/api.ts`: rutas de §6.6 y schemas zod.
+- [ ] `packages/core/src/devices/api.ts`: rutas de §6.6 y schemas zod.
 - [ ] `packages/core/src/devices/service.ts`: `revokeOtherDevices` (solo `devices`, no
       `auth.sessions`) + ruta `POST /me/devices/revoke-others`.
 - [ ] `packages/core/src/auth` / adaptador: `createMagicLink(email)` con Supabase Admin

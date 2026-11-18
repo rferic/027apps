@@ -47,12 +47,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.BinaryBitmap
-import com.google.zxing.DecodeHintType
-import com.google.zxing.MultiFormatReader
-import com.google.zxing.PlanarYUVLuminanceSource
-import com.google.zxing.common.HybridBinarizer
 import com.rferic.zero27apps.auth.MigrationLink
 import com.rferic.zero27apps.ui.MigrationError
 import com.rferic.zero27apps.ui.MigrationState
@@ -226,7 +220,9 @@ fun MigrationQrScreen(
                     ) {
                         Image(
                             bitmap = bitmap.asImageBitmap(),
-                            contentDescription = strings.migrationTitle,
+                            // A screen reader announces what the code is for, not
+                            // the screen title it is already reading.
+                            contentDescription = strings.migrationQrDescription,
                             modifier = Modifier.size(260.dp),
                         )
                     }
