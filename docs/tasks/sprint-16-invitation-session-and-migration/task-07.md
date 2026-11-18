@@ -2,7 +2,7 @@
 id: sprint-16-task-07
 titulo: Wizard web, aviso Android 8+ y auto-login A1
 area: web
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 mockup: docs/mockups/invitation-flow/index.html
@@ -133,3 +133,5 @@ redirija en bucle (solo tras clic); que A1 deje una cookie a un `user` sin panel
 **Auditoría de seguridad**: obligatoria antes de `finalizada` (A01, A03, A04, A05, A07, A10):
 token en URL, `no-store`, QR sin servicio externo, CSRF de la action, open redirects y
 `public_url` para enlaces.
+
+**Aceptación real (2026-11-18)**: el propietario recorrió el asistente web en un Android real y canjeó una invitación de cuenta nueva en el navegador. La variante Android del wizard y el canje web quedan verificados; la revisión/QA y la auditoría están en `task-11-audits.md`.

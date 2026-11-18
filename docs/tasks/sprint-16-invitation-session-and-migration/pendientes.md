@@ -31,15 +31,15 @@ solo, se puede hacer todo menos el escaneo del QR.
 
 | # | Qué | Cómo se comprueba |
 |---|---|---|
-| 1 | **Aceptar invitación en la app** (cuenta nueva y cuenta existente) | Abrir el enlace del correo; la app debe abrirlo, no el navegador (requiere el punto 2). Elegir contraseña, entrar, ver `/welcome` o `/panel` |
+| 1 | ~~Aceptar invitación en la app (cuenta nueva y existente)~~ | **Hecho 2026-11-18** en el móvil del propietario, con la cámara; falta solo el App Link https (punto 2) |
 | 2 | **App Link https** (tarea 05) | Tras P3 y el release: `adb shell pm get-app-links com.rferic.zero27apps` → `verified`; abrir `https://027apps.ericrf.com/invite/<token>` desde Gmail y desde la cámara |
 | 3 | **Wizard web en un Android real** (tarea 07) | Abrir el enlace en Chrome: aviso Android 8+, descarga del APK, «Abrir en la app», reintento sin bucle y canje en el navegador |
-| 4 | **QR entre dos móviles** (tarea 10, P4) | Viejo: Ajustes → «Mover a otro teléfono». Nuevo: login → «Mover desde otro teléfono» → cámara. El nuevo entra; el viejo queda fuera y **deja de recibir push** |
+| 4 | **QR entre dos móviles** (tarea 10, P4) | El flujo de un móvil + QR servido ya está verificado (entra, la sesión vieja se revoca en servidor). Falta el escaneo entre dos dispositivos y la revocación de **push**, que exige producción |
 | 5 | **Caducidad y renovación del QR** | Dejar pasar 60 s sin escanear: el QR deja de mostrarse como válido y «Generar otro código» funciona; reusar un código da error, no entra |
 | 6 | **`FLAG_SECURE` y captura** | Intentar una captura del QR: debe salir bloqueada; la app explica que se renueva sola |
 | 7 | **Recuperación con email real** (tarea 08, P5) | En staging o producción: `/forgot-password` con una cuenta real, abrir el correo, «Continuar», cambiar contraseña y entrar. Probar también el límite de 3/hora |
 | 8 | **Actualización a la release** (tarea 03/06) | Instalar la release 0.18.x, publicar 0.19.0 y abrir la app: aviso de versión nueva, descarga e instalación, y la sesión sigue dentro |
-| 9 | **Login tras logout con build firmada** | Cerrar sesión en el móvil, volver a entrar, y comprobar que la web local sigue dentro y viceversa |
+| 9 | ~~Login tras logout~~ | **Hecho 2026-11-18**: el logout en la app ya no cierra la app (crash de Firebase corregido) y se vuelve a entrar sin problema |
 | 10 | **Contraste claro/oscuro** (tarea 09) | Capturas a 375 px (web) y 390 px (app) de invitación, bienvenida, recuperación y migración, en claro y oscuro |
 
 El punto 4 es el único que exige **dos** dispositivos. La revocación de push solo se puede probar

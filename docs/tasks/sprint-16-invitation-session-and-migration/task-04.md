@@ -2,7 +2,7 @@
 id: sprint-16-task-04
 titulo: Contrato de invitación — preview (A2), rol (A6) y cuenta existente (A7)
 area: core + bd + panel
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 adrs: [0004, 0007, 0008]
@@ -130,3 +130,5 @@ existente confunda (copy explícito).
 
 **Auditoría de seguridad**: obligatoria antes de `finalizada` (A01, A02, A03, A04, A07): preview
 público, verificación de contraseña, guardrail de rol, single-use y logs.
+
+**Revisión independiente (2026-11-18)**: cubierta por la auditoría de seguridad del sprint (`task-11-audits.md`): preview público, guardrail de rol, sesión primero, single-use y TTL.
