@@ -2,7 +2,7 @@
 id: sprint-16-task-10
 titulo: Migración de teléfono por QR (solo Android)
 area: app + core + bd
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 mockup: docs/mockups/invitation-flow/index.html
@@ -141,3 +141,5 @@ supabase-kt antes de la UI); que `revokeOtherDevices` borre también la sesión 
 
 **Auditoría de seguridad**: obligatoria antes de `finalizada` (A01, A02, A04, A07, A11): QR bearer,
 TTL, single-use, hash, magic link, `FLAG_SECURE`, cámara, logs y expulsión.
+
+**Excepción aceptada por el propietario (2026-11-18)**: la revocación de push en el móvil viejo no se ha verificado con dos dispositivos reales por falta de un segundo Android con FCM. El código revoca el dispositivo y la expulsión de sesión está probada; la comprobación de entrega se traslada al backlog (`docs/tasks/backlog.md`, entrada 6) para la próxima release con un segundo dispositivo. El resto de criterios de la tarea están cumplidos.

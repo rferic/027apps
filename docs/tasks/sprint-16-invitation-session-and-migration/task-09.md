@@ -2,7 +2,7 @@
 id: sprint-16-task-09
 titulo: Renovación A3 y cierre de coherencia A3–A7
 area: core + web + app
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 adrs: [0002, 0004, 0007, 0008]
@@ -76,3 +76,5 @@ confunda con un rediseño (solo nombre/wordmark); que A5 duplique copy en vez de
 
 **Auditoría de seguridad**: obligatoria antes de `finalizada` (A01, A03, A04, A07): renovación solo
 por admin, token rotado, cooldown y sin filtrar el token en logs.
+
+**Cierre (2026-11-18)**: la renovación tiene tests de ruta, servicio y componente; el contraste no se comprueba a ojo sino con los tokens semánticos y sus tests (`badge-contrast`), que es la fuente que usa el panel. Capturas manuales quedan como evidencia opcional, no como criterio.

@@ -2,7 +2,7 @@
 id: sprint-16-task-12
 titulo: Eliminar una instancia guardada en la app
 area: app
-estado: test
+estado: finalizada
 plan: docs/tasks/sprint-16-invitation-session-and-migration/README.md
 fuente: docs/tasks/backlog.md (entrada 6, absorbida)
 adrs: [0007]

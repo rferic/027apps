@@ -2,7 +2,7 @@
 id: sprint-16-task-11
 titulo: Cierre — i18n, docs, gates, auditoría y verificación real
 area: docs + infra
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 adrs: [0002, 0004, 0007, 0008, 0010]
@@ -105,3 +105,5 @@ se toque sin necesidad (solo si cambia el copy).
 de UX cubre los flujos, estados, copy, contraste y accesibilidad. Ambas las hace un agente distinto
 del implementador, con informe escrito y resumen para el propietario, y siempre antes de
 `finalizada`.
+
+**Cierre (2026-11-18)**: sprint cerrado. Salvedad escrita y aceptada por el propietario: la verificación de entrega de push en el móvil viejo con dos dispositivos queda en el backlog; el resto de puertas (gates, auditorías, release firmada, App Links y aceptación real) está cumplido.

@@ -12,6 +12,7 @@ aquí.
 | 3 | El importador crea miembros antes de confirmar | app + servidor | 2026-11-15 | auditoría de seguridad del sprint 15 |
 | 4 | Idempotencia también en el commit del importador | servidor | 2026-11-15 | auditoría de seguridad del sprint 15 |
 | 5 | El importador del panel no parece un sitio donde se sube un fichero | panel | 2026-11-16 | propietario, probando producción |
+| 6 | Verificar la revocación de push tras migrar, con dos dispositivos reales | app + infra | 2026-11-18 | cierre del sprint 16 (excepción aceptada) |
 
 > Las entradas 1–3 y 5 están agrupadas en el **sprint 17**
 > ([`sprint-17-panel-y-notificaciones`](sprint-17-panel-y-notificaciones/README.md)), a la espera de
@@ -96,3 +97,13 @@ explícitamente (o extender la misma tabla `owe_no_idempotency` al import).
 **Decisión.** Se puede cerrar documentando en la spec que el import es idempotente por deducción
 de filas, o extenderlo con clave como los movimientos. Recomendado: documentarlo y no añadir
 maquinaria.
+
+---
+
+## 6. Verificar la revocación de push tras migrar, con dos dispositivos reales
+
+**Qué se quiere.** Repetir la migración de teléfono con dos Android reales con FCM: el viejo muestra el QR, el nuevo lo escanea, y tras un evento del grupo (push) comprobar que el viejo **ya no recibe** y el nuevo sí.
+
+**Por qué.** Fue el único criterio de la tarea 10 que no se pudo probar al cerrar el sprint 16: el propietario tenía un solo dispositivo. La expulsión de sesión y la revocación del dispositivo en servidor sí están verificadas.
+
+**Qué toca.** Solo verificación: no hay código pendiente. Cuentas temporales, nunca la familiar. Al cerrarla, retirar esta entrada.

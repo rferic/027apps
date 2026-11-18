@@ -2,7 +2,7 @@
 id: sprint-16-task-06
 titulo: Aceptación en la app — precarga, bloqueo, confirmación y auto-login
 area: app
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 mockup: docs/mockups/invitation-flow/index.html
@@ -128,3 +128,5 @@ El escáner **de la app** no sirve para invitaciones (solo migración): comporta
 - `FcmRegistrar.revoke()` mataba el proceso al cerrar sesión en una instancia **sin FCM** (Firebase
   sin inicializar, excepción en un hilo). Ahora comprueba `FirebaseApp.getApps()` y captura el
   fallo; afectaba a cualquier logout local.
+
+**App Link https (2026-11-18)**: verificado en producción desde el correo y desde la cámara; el enlace abre la app de release sin pasar por el navegador.
