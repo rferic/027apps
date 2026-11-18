@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { withDoor } from './door';
+import { routeOf, withDoor } from './door';
 import { DomainError, type ErrorEnvelope } from '../errors';
 import type { Caller, DoorDeps, DoorOptions, LogEntry } from './types';
 import type { RateLimitStorage } from './rate-limit-storage';
@@ -213,6 +213,20 @@ describe('withDoor — rate limiting', () => {
     const body = (await res.json()) as ErrorEnvelope;
     expect(body.error.code).toBe('rate_limited');
     expect(storage.calls[0]).toBe('user:u1');
+  });
+
+  it('separates the budget of a route with its own bucket', async () => {
+    const storage = makeStorage(1);
+    const res = await withDoor(
+      new Request(URL_BASE),
+      makeOptions({ rateLimit: { identity: 'user', limit: 5, bucket: 'device-transfers-create' } }),
+      makeDeps({ rateLimitStorage: storage }),
+      async () => ({ ok: true }),
+    );
+
+    expect(res.status).toBe(200);
+    // The polling route spends `user:<id>`; a user action must not inherit it.
+    expect(storage.calls[0]).toBe('device-transfers-create:u1');
   });
 
   it('runs the handler when the request is within the limit', async () => {
@@ -757,5 +771,31 @@ describe('withDoor — 5xx reporting', () => {
 
     expect(res.status).toBe(400);
     expect(captureError).not.toHaveBeenCalled();
+  });
+});
+
+describe('routeOf — token redaction', () => {
+  const token = `027_inv_${'a'.repeat(43)}`;
+
+  it('redacts the invitation token in the preview and redeem paths', () => {
+    expect(routeOf(new Request(`https://api.test/api/v1/invitations/${token}/preview`))).toBe(
+      'GET /api/v1/invitations/:token/preview',
+    );
+    expect(
+      routeOf(
+        new Request(`https://api.test/api/v1/invitations/${token}/redeem`, { method: 'POST' }),
+      ),
+    ).toBe('POST /api/v1/invitations/:token/redeem');
+  });
+
+  it('keeps redacting UUIDs on the admin routes', () => {
+    expect(
+      routeOf(
+        new Request(
+          'https://api.test/api/v1/invitations/123e4567-e89b-12d3-a456-426614174000/renew',
+          { method: 'POST' },
+        ),
+      ),
+    ).toBe('POST /api/v1/invitations/:id/renew');
   });
 });

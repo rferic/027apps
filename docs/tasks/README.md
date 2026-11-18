@@ -20,6 +20,15 @@ estable: no se reutiliza ni se reordena. Este índice es la fuente del orden rea
 | 13 | `sprint-13-staging-prod` | 2026-11-08 | finalizada |
 | 14 | `sprint-14-mejoras` | 2026-11-10 | finalizada |
 | 15 | `sprint-15-app-y-finanzas` | 2026-11-12 | finalizada 2026-11-15 (12 tareas) · PR #97 |
+| 16 | `sprint-16-invitation-session-and-migration` | 2026-11-16 | en curso · 03 aceptada; 04 y 06–10 en test; 11 en cierre y 05 pendiente de P3/P4 |
+| 17 | `sprint-17-panel-y-notificaciones` | 2026-11-16 (renumerado) | pendiente de aprobación (5 tareas) · se ejecutará después del sprint 16 |
+
+> **Renumeración del 16:** el plan de «panel y notificaciones» vivía en `origin/docs/sprint-16` sin
+> aprobar y nunca llegó a `staging`. Al arrancar el flujo de invitación, sesión y migración se le
+> asigna el 16; el plan anterior se conserva **íntegro** como 17 en
+> [`sprint-17-panel-y-notificaciones/`](sprint-17-panel-y-notificaciones/README.md). La rama
+> `origin/docs/sprint-16` no se borra ni se pisa. Si el propietario prefiere el plan anterior en el
+> backlog, se mueve sin tocar sus tareas.
 
 ## Regla
 

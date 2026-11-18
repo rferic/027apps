@@ -8,8 +8,10 @@ import {
   createInvitation,
   getInvitation,
   listInvitations,
+  previewInvitation,
   recordEmailAttempt,
   redeemInvitation,
+  renewInvitation,
   resendCooldownSeconds,
   revokeInvitation,
   rotateInvitationToken,
@@ -32,7 +34,12 @@ export type InvitationDelivery = {
 
 /** Email port; the admin adapter owns Resend and the instance settings. */
 export interface InvitationsMailer {
-  sendInvitation(input: { invitation: InvitationView; token: string }): Promise<InvitationDelivery>;
+  sendInvitation(input: {
+    invitation: InvitationView;
+    token: string;
+    /** The email already belongs to a profile: send the "sign in" variant. */
+    accountExists: boolean;
+  }): Promise<InvitationDelivery>;
 }
 
 export interface InvitationsRouteDeps {
@@ -41,7 +48,7 @@ export interface InvitationsRouteDeps {
   invitations: InvitationsDeps;
   mailer?: InvitationsMailer;
   cors?: CorsOptions;
-  rateLimits?: { read?: number; write?: number; redeem?: number };
+  rateLimits?: { read?: number; write?: number; redeem?: number; preview?: number };
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -50,6 +57,7 @@ export const createInvitationSchema = z
   .object({
     email: z.string().trim().email().max(320),
     name: z.string().trim().min(1).max(80),
+    role: z.enum(["user", "admin"]).optional(),
     user_category_id: z.string().uuid().optional().nullable(),
     modules: z.array(z.string()).max(100).optional(),
     expires_in_days: z.number().int().min(1).max(365).optional(),
@@ -72,7 +80,8 @@ export const invitationListFiltersSchema = z
 export const redeemInvitationSchema = z
   .object({
     email: z.string().trim().email().max(320),
-    password: z.string().min(12).max(200),
+    /** A new account needs it; an existing one signs in first and omits it. */
+    password: z.string().min(12).max(200).optional(),
     display_name: z.string().trim().min(1).max(80).optional(),
   })
   .strict();
@@ -80,6 +89,22 @@ export const redeemInvitationSchema = z
 function uuid(value: string, field: string): string {
   if (!UUID.test(value)) throw new DomainError("validation_failed", `invalid ${field}`);
   return value;
+}
+
+/**
+ * Responses that carry an invitation token or invitee PII must not be stored,
+ * indexed or leaked through the Referer (spec §6.1). The door clones the
+ * Response and adds the request id, so these headers survive.
+ */
+const TOKEN_RESPONSE_HEADERS: Record<string, string> = {
+  "content-type": "application/json",
+  "cache-control": "no-store",
+  "x-robots-tag": "noindex, nofollow",
+  "referrer-policy": "no-referrer",
+};
+
+function tokenResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), { status, headers: TOKEN_RESPONSE_HEADERS });
 }
 
 function options(deps: InvitationsRouteDeps, scopes: string[], schema?: z.ZodType) {
@@ -128,7 +153,9 @@ async function deliver(
   if (mode === "link") return { status: "skipped" };
   if (!deps.mailer) return { status: "skipped", code: "not_configured" };
 
-  const result = await deps.mailer.sendInvitation({ invitation, token });
+  // The email copy is different when the address already has an account (D16).
+  const accountExists = (await deps.invitations.auth.findUserByEmail(invitation.email)) !== null;
+  const result = await deps.mailer.sendInvitation({ invitation, token, accountExists });
   if (result.status !== "skipped") {
     await recordEmailAttempt(deps.invitations, invitation.id, {
       status: result.status,
@@ -148,6 +175,7 @@ export function createInvitationRoute(deps: InvitationsRouteDeps) {
         const input = ctx.body as {
           email: string;
           name: string;
+          role?: "user" | "admin";
           user_category_id?: string | null;
           modules?: string[];
           expires_in_days?: number;
@@ -166,6 +194,25 @@ export function invitationRoute(deps: InvitationsRouteDeps) {
     withDoor(req, readOptions(deps), deps.door, async () => ({
       invitation: await getInvitation(deps.invitations, uuid(rawId, "invitation id")),
     }));
+}
+
+/**
+ * Public preview by token. Anonymous by design: the token is the only
+ * credential, it is validated at the edge and a revoked/unknown one is a 404.
+ */
+export function invitationPreviewRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawToken: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: [],
+        auth: async () => ({ kind: "anon" as const }),
+        cors: deps.cors,
+        rateLimit: { identity: "ip" as const, limit: deps.rateLimits?.preview ?? 60 },
+      },
+      deps.door,
+      async () => tokenResponse({ invitation: await previewInvitation(deps.invitations, rawToken) }),
+    );
 }
 
 export function revokeInvitationRoute(deps: InvitationsRouteDeps) {
@@ -194,6 +241,25 @@ export function resendInvitationRoute(deps: InvitationsRouteDeps) {
     });
 }
 
+/** Renews an expired invitation: rotates the token and sends the email again. */
+export function renewInvitationRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(req, options(deps, ["invitations:write"]), deps.door, async () => {
+      const id = uuid(rawId, "invitation id");
+      const current = await getInvitation(deps.invitations, id);
+      // Check the cooldown before rotating: a 429 must not kill the old link.
+      const wait = resendCooldownSeconds(current, new Date());
+      if (wait > 0) {
+        throw new DomainError("rate_limited", "Wait before renewing this invitation", {
+          retry_after: wait,
+        });
+      }
+      const renewed = await renewInvitation(deps.invitations, id);
+      const email = await deliver(deps, renewed.invitation, renewed.token, "email");
+      return { invitation: renewed.invitation, token: renewed.token, email };
+    });
+}
+
 /** Reissues the token without sending it, for the manual copy fallback. */
 export function invitationLinkRoute(deps: InvitationsRouteDeps) {
   return (req: Request, rawId: string): Promise<Response> =>
@@ -212,19 +278,18 @@ export function redeemInvitationRoute(deps: InvitationsRouteDeps) {
       req,
       {
         scopes: [],
-        auth: async () => ({ kind: "anon" as const }),
+        // The real resolver, not a fixed `anon`: an anonymous caller redeems a
+        // new account, while an existing one must present its own session (D21).
+        auth: deps.auth,
         cors: deps.cors,
         schema: redeemInvitationSchema,
         rateLimit: { identity: "ip" as const, limit: deps.rateLimits?.redeem ?? 30 },
       },
       deps.door,
-      async (ctx: RequestContext) => ({
-        status: 201,
-        body: await redeemInvitation(
-          deps.invitations,
-          token,
-          ctx.body as RedeemInput,
+      async (ctx: RequestContext) =>
+        tokenResponse(
+          await redeemInvitation(deps.invitations, token, ctx.body as RedeemInput, ctx.caller),
+          201,
         ),
-      }),
     );
 }

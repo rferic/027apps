@@ -4,7 +4,6 @@ import { submitOnce } from "./submit-guard";
 
 const VALID = {
   token: "027_inv_abc123",
-  email: "ana@example.com",
   password: "correct horse battery",
   confirmation: "correct horse battery",
 };
@@ -15,33 +14,28 @@ describe("submitOnce", () => {
     const gate = new Promise<void>((resolve) => {
       release = resolve;
     });
-    const fetcher = vi.fn(async () => {
+    const submit = vi.fn(async () => {
       await gate;
-      return new Response("{}", {
-        status: 201,
-        headers: { "content-type": "application/json" },
-      });
+      return { ok: true as const, role: "admin" as const };
     });
     const inFlight = { current: false };
 
-    const first = submitOnce(inFlight, () => submitInvite(VALID, { fetcher }));
-    const second = submitOnce(inFlight, () => submitInvite(VALID, { fetcher }));
+    const first = submitOnce(inFlight, () => submitInvite(VALID, { submit }));
+    const second = submitOnce(inFlight, () => submitInvite(VALID, { submit }));
     release?.();
     await Promise.all([first, second]);
 
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(submit).toHaveBeenCalledTimes(1);
   });
 
   it("releases the lock after a failure so the user can retry", async () => {
-    const fetcher = vi.fn(async () => {
-      throw new TypeError("fetch failed");
-    });
+    const submit = vi.fn(async () => ({ ok: false as const, code: "internal" }));
     const inFlight = { current: false };
 
-    await submitOnce(inFlight, () => submitInvite(VALID, { fetcher }));
+    await submitOnce(inFlight, () => submitInvite(VALID, { submit }));
     expect(inFlight.current).toBe(false);
 
-    await submitOnce(inFlight, () => submitInvite(VALID, { fetcher }));
-    expect(fetcher).toHaveBeenCalledTimes(2);
+    await submitOnce(inFlight, () => submitInvite(VALID, { submit }));
+    expect(submit).toHaveBeenCalledTimes(2);
   });
 });

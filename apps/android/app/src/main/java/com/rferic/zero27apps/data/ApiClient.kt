@@ -10,7 +10,6 @@ import io.ktor.client.request.header
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
-import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
@@ -21,6 +20,8 @@ import io.ktor.serialization.kotlinx.json.json
 import java.io.Closeable
 import java.io.IOException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /**
  * The Core API client. It carries the Supabase access token, retries exactly
@@ -33,8 +34,17 @@ class ApiClient(
     private val baseUrl: String,
     engine: HttpClientEngine,
     private val token: () -> String?,
-    private val refresh: suspend () -> Boolean,
+    private val refresh: suspend () -> RefreshResult,
+    /**
+     * Runs once when the session is definitively gone: the refresh token was
+     * rejected, or the Core still answers 401 after refreshing. The app clears
+     * what it stored and explains it on the login screen. A callback failure
+     * never hides the [ApiException] the caller still gets.
+     */
+    private val onSessionEnded: suspend () -> Unit = {},
 ) : Closeable {
+    /** A screen can have several requests in flight; the app hears it once. */
+    private val sessionEnded = java.util.concurrent.atomic.AtomicBoolean(false)
     private val json = Json {
         ignoreUnknownKeys = true
         explicitNulls = false
@@ -48,6 +58,14 @@ class ApiClient(
 
     /** Absolute URL of a module icon; the request still carries the session. */
     fun moduleIconUrl(key: String): String = "$baseUrl/api/v1/modules/$key/icon"
+
+    /**
+     * Re-arms the revoked-session signal. The client outlives a logout, so a
+     * new sign-in must be able to report a second revocation.
+     */
+    fun resetSessionState() {
+        sessionEnded.set(false)
+    }
 
     suspend fun instance(): InstanceResponse = read(request(HttpMethod.Get, "/api/v1/instance"))
 
@@ -227,8 +245,56 @@ class ApiClient(
     suspend fun androidApp(): AndroidReleaseDto = read(request(HttpMethod.Get, "/api/v1/app/android"))
 
     /** Public invitation redemption; the token travels in the path, never logged. */
+    /** Public invitation preview; the token travels in the path only. */
+    suspend fun invitationPreview(token: String): InvitationPreviewDto =
+        read<InvitationPreviewResponse>(
+            request(HttpMethod.Get, "/api/v1/invitations/$token/preview"),
+        ).invitation
+
     suspend fun redeemInvitation(token: String, request: RedeemRequest): RedeemResponse =
         read(request(HttpMethod.Post, "/api/v1/invitations/$token/redeem", request))
+
+    /** Old phone: mint a 60-second migration code; the token is returned once. */
+    suspend fun createDeviceTransfer(): DeviceTransferCreatedDto =
+        read(request(HttpMethod.Post, "/api/v1/me/device-transfers"))
+
+    /** Old phone: state of the code while the QR is on screen. */
+    suspend fun deviceTransferStatus(id: String): DeviceTransferStatusDto =
+        read<DeviceTransferStatusResponse>(
+            request(HttpMethod.Get, "/api/v1/me/device-transfers/$id"),
+        ).transfer
+
+    /** New phone: exchange the code for a Supabase magic-link hash (public). */
+    suspend fun exchangeDeviceTransfer(token: String): DeviceTransferExchangeDto =
+        read(request(HttpMethod.Post, "/api/v1/device-transfers/$token/exchange"))
+
+    /** New phone: revoke every other push device, keeping this one. */
+    /**
+     * `keepDeviceId` null revokes every device: the new phone has no push
+     * device to keep. Built as a JSON object because the serializer drops null
+     * fields and the endpoint requires the key.
+     */
+    suspend fun revokeOtherDevices(keepDeviceId: String?): RevokeOthersResponse =
+        read(
+            request(
+                HttpMethod.Post,
+                "/api/v1/me/devices/revoke-others",
+                buildJsonObject { put("keep_device_id", keepDeviceId) },
+            ),
+        )
+
+    /**
+     * Ends every other session of this account, keeping the one whose id is
+     * sent. Used after phone migration: the old phone must stop refreshing.
+     */
+    suspend fun revokeOtherSessions(keepSessionId: String): RevokeOthersResponse =
+        read(
+            request(
+                HttpMethod.Post,
+                "/api/v1/me/sessions/revoke-others",
+                RevokeOtherSessionsRequest(keepSessionId),
+            ),
+        )
 
     suspend fun patchMe(patch: PatchMeRequest): UserDto =
         read<MeResponse>(request(HttpMethod.Patch, "/api/v1/me", patch)).user
@@ -241,10 +307,34 @@ class ApiClient(
     ): HttpResponse {
         val first = send(method, path, body)
         if (first.status != HttpStatusCode.Unauthorized) return first
-        if (!refresh()) throw ApiException("unauthorized", 401)
-        val second = send(method, path, body)
-        if (second.status == HttpStatusCode.Unauthorized) throw ApiException("unauthorized", 401)
-        return second
+        return when (refresh()) {
+            RefreshResult.Refreshed -> {
+                val second = send(method, path, body)
+                if (second.status == HttpStatusCode.Unauthorized) sessionRevoked()
+                second
+            }
+            RefreshResult.NoSession -> sessionRevoked()
+            RefreshResult.Network ->
+                throw ApiException.networkFailure(IOException("network while refreshing the session"))
+        }
+    }
+
+    /**
+     * Ends the session in the app, then fails the request. The two are
+     * separate: the app must learn the session is gone even if the screen that
+     * made the call only knows how to show an error.
+     */
+    private suspend fun sessionRevoked(): Nothing {
+        if (sessionEnded.compareAndSet(false, true)) {
+            try {
+                onSessionEnded()
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                // Clearing the session must not depend on the callback's health.
+            }
+        }
+        throw ApiException("unauthorized", 401, "Session revoked")
     }
 
     private suspend fun send(method: HttpMethod, path: String, body: Any?): HttpResponse =
@@ -261,6 +351,22 @@ class ApiClient(
             throw ApiException.networkFailure(error)
         }
 
+    /**
+     * The path as it may be logged: UUIDs and bearer tokens (invitations
+     * `027_inv_`, migrations `027_mig_`, anything long and opaque) become
+     * placeholders, so a debug log never carries a credential.
+     */
+    internal fun redactPath(encodedPath: String): String =
+        encodedPath
+            .replace(
+                Regex("/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"),
+                "/:id",
+            )
+            // 24+ characters is the server's own rule; the two token prefixes
+            // are listed so a shorter code still never reaches the log.
+            .replace(Regex("/027_(?:inv|mig)_[A-Za-z0-9_-]+"), "/:token")
+            .replace(Regex("/[A-Za-z0-9_-]{24,}"), "/:token")
+
     private suspend fun expectSuccess(response: HttpResponse) {
         if (!response.status.isSuccess()) throw errorOf(response)
     }
@@ -275,11 +381,7 @@ class ApiClient(
         if (BuildConfig.DEBUG) {
             // Status and a path with ids redacted; never the body (it can carry a token).
             runCatching {
-                val path = response.call.request.url.encodedPath.replace(
-                    Regex("/[0-9a-f-]{16,}"),
-                    "/:id",
-                )
-                android.util.Log.w("027api", "HTTP $status $path")
+                android.util.Log.w("027api", "HTTP $status ${redactPath(response.call.request.url.encodedPath)}")
             }
         }
         val envelope = runCatching { response.body<ErrorEnvelope>() }.getOrNull()

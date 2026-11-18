@@ -108,9 +108,31 @@ fallidos y limpieza.
 
 Los secretos son `MODULE_JOBS_URL_STAGING` + `CRON_SECRET_STAGING` y `MODULE_JOBS_URL_PRODUCTION` + `CRON_SECRET_PRODUCTION`; sin ellos el workflow no hace nada (igual que `migrations.yml`). Los workflows programados solo se ejecutan desde la rama por defecto, así que el tick empieza a funcionar cuando el fichero está en `main`; en staging se puede lanzar a mano con `workflow_dispatch` o un `curl` puntual.
 
-## App Links (invitaciones en la app)
+## App Links (invitaciones y migración en la app)
 
-`GET /.well-known/assetlinks.json` verifica que los enlaces `https://<instancia>/invite/<token>` los abre la app Android. Se publica solo con huellas **públicas** del certificado: `ANDROID_APP_SHA256` en Vercel (lista separada por comas, la del keystore de release y, si quieres probar en debug, la del keystore de debug). Sin la variable responde `[]`, que significa «ningún enlace verificado», no un error. El keystore y su contraseña nunca se publican.
+`GET /.well-known/assetlinks.json` verifica que los enlaces `https://<instancia>/invite/<token>` y
+`https://<instancia>/migrate/<token>` los abre la app Android. El manifest de **release** declara
+los dos `pathPrefix` en el mismo `intent-filter` con `autoVerify`; el de debug no verifica https y
+usa el esquema propio (`zero27apps-dev://invite/…`, `zero27apps-dev://migrate/…`).
+
+Se publica solo con huellas **públicas** del certificado: `ANDROID_APP_SHA256` en Vercel (lista
+separada por comas, la del keystore de release y, si quieres probar en debug, la del keystore de
+debug). Sin la variable responde `[]`, que significa «ningún enlace verificado», no un error. El
+keystore y su contraseña nunca se publican.
+
+Cómo obtener la huella (la imprime el propio release de CI, o el APK instalado):
+
+```bash
+# del APK firmado que publica el workflow `release`
+apksigner verify --print-certs 027apps-v0.19.0.apk | grep SHA-256
+# o del keystore, si lo tienes en local
+keytool -list -v -keystore release.jks -alias <alias> | grep SHA256
+```
+
+Después: cargar el valor en Vercel (Production, y Preview si se prueba allí) y **redeploy**; el
+JSON se lee en cada petición, pero un deployment en marcha no ve la variable nueva. Android cachea
+la verificación: `adb shell pm verify-app-links --re-verify com.rferic.zero27apps` y
+`pm get-app-links` muestran el estado real.
 
 ## Migraciones Supabase
 
@@ -124,6 +146,17 @@ Hay migraciones `0001`–`0019` en `supabase/migrations/`. Cada entorno aplica l
 6. **Antes de una migración destructiva** (borra o transforma datos): verificar el nivel de migraciones y lanzar un backup manual (`workflow_dispatch` de `backup.yml`).
 7. **Antes del keep-alive**: el keep-alive diario solo valida salud tras migrar; si la migración falla el job queda en rojo y el siguiente ping no enmascara el problema.
 8. Las migraciones deben ser compatibles hacia atrás con la versión anterior del admin (expand → migrate → contract): el admin nuevo ya está desplegado cuando se aplica la migración y un rollback de código debe seguir funcionando.
+
+### `db reset` es local y `db reset --remote` está prohibido
+
+El CLI de Supabase **sí puede limpiar un proyecto remoto**: desde 2.x, `supabase db reset --remote[=<ref>]` borra el esquema del proyecto enlazado (o del que se nombre) y reaplica las migraciones. En local es la herramienta correcta; contra `027apps-prod` sería una pérdida de datos. Por eso:
+
+- **La automatización no puede hacerlo.** `scripts/check-destructive-db.sh` (job `guard-secrets` de CI y `pnpm check:destructive-db`) falla si un workflow, un script o un `package.json` contiene `db reset` con `--remote`/`--linked`/`--db-url`, o `db push`/`db pull`/`migration up` con `--db-url`. Producción cambia solo con `migrations.yml` (`db push --linked`, Environment `production` con revisor).
+- **La credencial no está en los portátiles.** La contraseña de `027apps-prod` y el `SUPABASE_ACCESS_TOKEN` viven en el Environment `production` (dos reglas de protección); en local no hay `~/.supabase/access-token` ni `SUPABASE_DB_URL` remoto en `.env.local`. El proyecto enlazado en un checkout es `027apps-dev`. Sin esas dos cosas, `--remote` no tiene con qué autenticarse.
+- **La restauración pide permiso.** `scripts/backup/restore.sh` limpia el esquema destino: se niega a tocar un host que no sea loopback/LAN salvo `--yes`.
+- **Si aun así pasara**, hay backup lógico diario (`backup.yml`, verde) y simulacro trimestral (`restore-drill.yml`); el runbook está en [`docs/infrastructure.md`](../infrastructure.md#4-backups).
+
+Regla para cualquier persona o agente: **`supabase db reset` solo en local y avisando** (borra los datos de desarrollo); contra un proyecto enlazado, nunca.
 
 ## Backups
 

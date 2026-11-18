@@ -32,6 +32,8 @@ const INVITATION = {
   id: "i1",
   email: "ana@example.com",
   name: "Ana",
+  role: "user",
+  expires_in_days: 7,
   user_category_id: "c1",
   modules: ["expenses"],
   status: "pending",

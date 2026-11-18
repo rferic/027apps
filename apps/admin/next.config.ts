@@ -80,11 +80,47 @@ const nextConfig: NextConfig = {
         // rule because Next applies the last matching entry: with
         // `no-referrer` the token never leaves the URL. `X-Robots-Tag` mirrors
         // `metadata.robots` for crawlers that ignore the meta tag.
+        //
+        // The same applies to every page whose URL carries a credential or a
+        // recovery token, and to the phone-migration link in the path.
         source: "/invite/:token",
         headers: [
           { key: "Referrer-Policy", value: "no-referrer" },
           { key: "X-Robots-Tag", value: "noindex, nofollow" },
         ],
+      },
+      {
+        source: "/migrate/:token",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
+      {
+        // The recovery token travels in the query string of this one.
+        source: "/auth/confirm",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
+      {
+        source: "/forgot-password",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
+      {
+        source: "/reset-password",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
+      {
+        source: "/welcome",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
     ];
   },

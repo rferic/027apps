@@ -119,7 +119,21 @@ export async function listDevices(
   return rows.map(toView);
 }
 
-export async function revokeDevice(deps: DevicesDeps, caller: Caller, id: string): Promise<void> {
+export interface RevokeDeviceOptions {
+  /**
+   * `false` is the owner's own logout: unregister the push device but keep the
+   * other sessions (web and other phones) alive. Admins revoking someone
+   * else's device always revoke all sessions, even if they pass `false`.
+   */
+  revokeSessions?: boolean;
+}
+
+export async function revokeDevice(
+  deps: DevicesDeps,
+  caller: Caller,
+  id: string,
+  options: RevokeDeviceOptions = {},
+): Promise<void> {
   const { rows } = await deps.db.query(
     `select ${VIEW_COLUMNS} from public.devices where id = $1`,
     [id],
@@ -127,7 +141,10 @@ export async function revokeDevice(deps: DevicesDeps, caller: Caller, id: string
   const row = rows[0];
   if (!row) throw new DomainError("not_found");
   const owner = String(row.user_id);
-  if (caller.kind === "service" || (!isAdmin(caller) && actorUserId(caller) !== owner)) {
+  const callerUserId =
+    caller.kind === "session" || caller.kind === "delegated" ? caller.userId : null;
+  const ownerRevokes = callerUserId === owner;
+  if (caller.kind === "service" || (!isAdmin(caller) && !ownerRevokes)) {
     throw new DomainError("not_found");
   }
 
@@ -139,8 +156,49 @@ export async function revokeDevice(deps: DevicesDeps, caller: Caller, id: string
   }
 
   // Best effort: the soft revoke already stands; the access JWT is bounded by
-  // its 15-minute lifetime even if the session cleanup fails.
-  if (deps.revokeSessions) {
+  // its 15-minute lifetime even if the session cleanup fails. The owner's
+  // `local` logout never deletes the other devices' sessions.
+  const revokeAll = !ownerRevokes || options.revokeSessions !== false;
+  if (revokeAll && deps.revokeSessions) {
     await deps.revokeSessions(owner).catch(() => undefined);
   }
+}
+
+/**
+ * Revokes every other push device of the caller, keeping the one the new phone
+ * just registered. It does **not** touch `auth.sessions`: the client signs the
+ * old phone out with `signOut({ scope: "OTHERS" })`, so the server cannot
+ * accidentally revoke the session it just created.
+ */
+export async function revokeOtherDevices(
+  deps: DevicesDeps,
+  caller: Caller,
+  keepDeviceId: string | null,
+): Promise<{ revoked: number }> {
+  const userId = actorUserId(caller);
+  if (keepDeviceId === null) {
+    // The new phone has no push device to keep (no Play Services or FCM off):
+    // the old phone still has to stop receiving notifications.
+    const { rows } = await deps.db.query(
+      `update public.devices set revoked_at = now()
+        where user_id = $1 and revoked_at is null
+        returning id`,
+      [userId],
+    );
+    return { revoked: rows.length };
+  }
+
+  const { rows: keep } = await deps.db.query(
+    "select id from public.devices where id = $1 and user_id = $2",
+    [keepDeviceId, userId],
+  );
+  if (!keep[0]) throw new DomainError("not_found");
+
+  const { rows } = await deps.db.query(
+    `update public.devices set revoked_at = now()
+      where user_id = $1 and id <> $2 and revoked_at is null
+      returning id`,
+    [userId, keepDeviceId],
+  );
+  return { revoked: rows.length };
 }

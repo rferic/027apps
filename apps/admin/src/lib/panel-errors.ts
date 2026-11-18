@@ -21,8 +21,9 @@ export interface InvitationConflict {
 }
 
 /**
- * Invitation create conflicts the email field can name: the same address is
- * already a member, or it already holds a pending invitation. Keyed on the
+ * Invitation create conflicts the email field can name: the same address
+ * already holds a pending invitation. An existing account is no longer a
+ * conflict; it is explained in the success panel instead. Keyed on the
  * public `details.code` (the envelope never carries the custom message), so an
  * unrelated `conflict` keeps the generic label.
  */
@@ -32,8 +33,6 @@ export function invitationConflictError(
 ): string | undefined {
   if (error?.code !== "conflict") return undefined;
   switch (error.details?.code) {
-    case "email_registered":
-      return t("That email already belongs to a member.", messages);
     case "pending_invitation":
       return t("That email already has a pending invitation.", messages);
     default:

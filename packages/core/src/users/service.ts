@@ -27,6 +27,12 @@ export interface UsersDeps {
   db: QueryClient;
   /** Runs the invariants + write in one transaction (injected by the app). */
   withTransaction?: <T>(fn: (db: QueryClient) => Promise<T>) => Promise<T>;
+  /**
+   * Drops the user's Auth sessions after a deactivation commits. The profile
+   * check already blocks the API, so this is best effort cleanup and a signal
+   * for the mobile apps; a failure never reverts the deactivation.
+   */
+  onDeactivated?: (userId: string) => Promise<void>;
 }
 
 export type UserCategory = { id: string; name: string };
@@ -410,7 +416,7 @@ export async function deactivateUser(
   if (caller.kind !== "session" || caller.role !== "super_admin") {
     throw new DomainError("insufficient_scope");
   }
-  return withRoleLock(deps, async (db) => {
+  const view = await withRoleLock(deps, async (db) => {
     const current = await getUserFrom(db, id);
     // Before the root check: self-deactivation is forbidden for everyone,
     // including the root, so the API never answers "the root…" to its own
@@ -447,6 +453,12 @@ export async function deactivateUser(
     });
     return view;
   });
+
+  // After the commit: the profile check is already the enforcement; this drops
+  // the refresh sessions so the app stops retrying. A failure is logged by the
+  // adapter and never reverts the deactivation.
+  await deps.onDeactivated?.(id).catch(() => undefined);
+  return view;
 }
 
 /**

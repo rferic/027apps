@@ -23,6 +23,40 @@ async function post(
   return readMutation(res);
 }
 
+async function patch(
+  path: string,
+  body: Record<string, unknown>,
+  fetcher: typeof fetch,
+): Promise<MutationResult> {
+  let res: Response;
+  try {
+    res = await fetcher(path, {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    return { ok: false };
+  }
+  return readMutation(res);
+}
+
+/**
+ * PATCH /api/v1/modules/{key} — who can use the module.
+ *
+ * `is_public: true` puts it in every active user's app (and its widgets and
+ * scopes) without individual grants; the setting survives an upgrade, and only
+ * a reinstall takes the manifest's value again.
+ */
+export async function setModulePublic(
+  key: string,
+  isPublic: boolean,
+  fetcher: typeof fetch = fetch,
+): Promise<MutationResult> {
+  return patch(`/api/v1/modules/${encodeURIComponent(key)}`, { is_public: isPublic }, fetcher);
+}
+
 /** POST /api/v1/modules/{key}/activate — installed or disabled to active. */
 export async function activateModule(
   key: string,

@@ -1,3 +1,4 @@
+import { DomainError } from "@027apps/core/errors.js";
 import type { InvitationsAuth } from "@027apps/core/invitations/service.js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -29,10 +30,12 @@ export function createInvitationsAuth(db: Db): InvitationsAuth {
       });
       if (!created.error && created.data.user) return { id: created.data.user.id, created: true };
 
-      // A concurrent redemption may have created the same email already.
+      // The address was already registered. The caller is anonymous (this is
+      // the new-account path), so handing back that user id would let a second
+      // request redeem the invitation and swallow the account the first one
+      // just created. It must sign in instead (D21).
       if (created.error && /already been registered/i.test(created.error.message)) {
-        const existing = await findUserByEmail(email);
-        if (existing) return { id: existing.id, created: false };
+        throw new DomainError("existing_account_signin_required");
       }
       throw new Error("createUser failed");
     },

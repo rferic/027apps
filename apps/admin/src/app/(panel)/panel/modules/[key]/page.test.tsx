@@ -325,6 +325,46 @@ describe("ModuleDetailPage", () => {
     expect(same).not.toContain("v2.0.0");
   });
 
+  it("offers the public switch and explains what it changes", async () => {
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("Who can use it");
+    expect(html).toContain("Every user (public module)");
+    expect(html).toContain("without individual grants");
+  });
+
+  it("says the grants no longer decide access while the module is public", async () => {
+    loadModuleDetailMock.mockResolvedValue({ ok: true, module: { ...MODULE, is_public: true } });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("these grants don&#x27;t change who can use it");
+  });
+
+  it("labels the app action key and screen instead of floating them", async () => {
+    loadModuleManifestMock.mockResolvedValue({
+      key: "inventory",
+      version: "1.0.0",
+      branding: { description: "Inventory", icon: "assets/icon.svg", color: "indigo" },
+      admin_pages: [],
+      settings: [],
+      app_actions: [
+        { key: "add_expense", label: "Add expense", icon: "plus", screen: "owe_expense" },
+      ],
+    });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("<th");
+    expect(html).toContain("Action");
+    expect(html).toContain("Key");
+    expect(html).toContain("Screen");
+    expect(html).toContain("Add expense");
+    expect(html).toContain("add_expense");
+    expect(html).toContain("owe_expense");
+    expect(html).toContain("The app sends the key and opens the screen. Read-only.");
+  });
+
   it("explains an empty settings list", async () => {
     loadModuleSettingsMock.mockResolvedValue({ ok: true, settings: [] });
 

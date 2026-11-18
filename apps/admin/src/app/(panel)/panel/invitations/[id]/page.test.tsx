@@ -118,8 +118,9 @@ describe("InvitationDetailPage", () => {
     const html = renderToStaticMarkup(await render());
 
     expect(html).toContain("Ana");
-    // The invitation has no role: redeeming only creates `user` accounts.
-    expect(html).not.toContain("Role");
+    // Every invitation carries its role now; a plain member invitation is `user`.
+    expect(html).toContain("Role");
+    expect(html).toContain("User");
     expect(html).not.toContain("Member");
     expect(html).toContain("Expenses");
     expect(html).toContain("Notes");

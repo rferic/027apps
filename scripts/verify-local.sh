@@ -91,6 +91,23 @@ say "== instance $BASE_URL"
 code="$(curl -s -o /dev/null -w '%{http_code}' "$BASE_URL/login" || true)"
 if [[ "$code" == "200" ]]; then pass "/login answers 200"; else fail "/login answers $code (dev server down?)"; fi
 
+# Pages anyone reaches without a session. They are the ones an invitee or a
+# locked-out person sees first, so an error page there is a broken front door.
+say "== public pages (no session)"
+for path in "/forgot-password" "/migrate/027_mig_verificationtoken123"; do
+  page="$WORK/page.html"
+  code="$(curl -s -o "$page" -w '%{http_code}' "$BASE_URL$path" || true)"
+  if [[ "$code" != "200" ]]; then
+    fail "$path answers $code"
+    continue
+  fi
+  if grep -qiE "Runtime error|Application error|does not exist" "$page"; then
+    fail "$path rendered an error page"
+  else
+    pass "$path answers 200 without errors"
+  fi
+done
+
 say "== installed modules are whole"
 broken=0
 while IFS=$'\t' read -r key state version; do

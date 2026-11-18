@@ -11,7 +11,93 @@ data class ChangelogEntry(
 )
 
 object Changelog {
+    /**
+     * The locales the product ships. A build's own entry must carry all of them:
+     * older entries stay in the two languages they were written in, and the
+     * screen falls back to English for those.
+     */
+    val shippedLocales: List<String> =
+        listOf("en", "es", "ca", "gl", "eu", "pt", "fr", "it", "de")
+
     val entries: List<ChangelogEntry> = listOf(
+        ChangelogEntry(
+            version = "0.19.0",
+            date = "2026-11-17",
+            notes = mapOf(
+                "es" to listOf(
+                    "Acepta una invitación desde la app, también si ya tenías cuenta: entras con tu contraseña y no se crea otra.",
+                    "La invitación dice qué grupo y qué papel te dan, y cuándo caduca; si expira, se renueva desde el panel sin perder el enlace.",
+                    "Recupera tu contraseña desde la pantalla de entrada: te llega un enlace por correo y vuelves a la app.",
+                    "Mueve tu cuenta a un teléfono nuevo con un QR: el viejo lo muestra, el nuevo lo escanea y el viejo queda fuera.",
+                    "La sesión sigue abierta al cerrar la app y te avisa si el administrador la revoca.",
+                    "Todo en los nueve idiomas del producto.",
+                ),
+                "en" to listOf(
+                    "Accept an invitation from the app, even if you already had an account: you sign in with your password and no duplicate is created.",
+                    "The invitation says which group and role it grants, and when it expires; if it does, the panel renews it without losing the link.",
+                    "Recover your password from the sign-in screen: a link arrives by email and brings you back to the app.",
+                    "Move your account to a new phone with a QR: the old one shows it, the new one scans it and the old one is signed out.",
+                    "The session survives closing the app and warns you if an administrator revokes it.",
+                    "All of it in the nine languages the product supports.",
+                ),
+                "ca" to listOf(
+                    "Accepta una invitació des de l'app, també si ja tenies compte: hi entres amb la teva contrasenya i no se'n crea cap altra.",
+                    "La invitació diu quin grup i quin paper et donen, i quan caduca; si expira, es renova des del panell sense perdre l'enllaç.",
+                    "Recupera la contrasenya des de la pantalla d'entrada: et arriba un enllaç per correu i tornes a l'app.",
+                    "Mou el compte a un telèfon nou amb un QR: el vell el mostra, el nou l'escaneja i el vell queda fora.",
+                    "La sessió continua oberta en tancar l'app i t'avisa si l'administrador la revoca.",
+                    "Tot en els nou idiomes del producte.",
+                ),
+                "gl" to listOf(
+                    "Acepta unha invitación desde a app, tamén se xa tiñas conta: entras coa túa contrasinal e non se crea outra.",
+                    "A invitación di que grupo e que papel che dan, e cando caduca; se expira, renovase desde o panel sen perder a ligazón.",
+                    "Recupera o teu contrasinal desde a pantalla de entrada: chégache unha ligazón por correo e volves á app.",
+                    "Move a túa conta a un teléfono novo cun QR: o vello móstrano, o novo escanéao e o vello queda fóra.",
+                    "A sesión segue aberta ao pechar a app e avísache se o administrador a revoga.",
+                    "Todo nos nove idiomas do produto.",
+                ),
+                "eu" to listOf(
+                    "Onartu gonbidapena appetik, kontua bazenuen ere: zure pasahitzarekin sartzen zara eta ez da beste bat sortzen.",
+                    "Gonbidapenak esaten du zein talde eta zein rol ematen dizkizuten, eta noiz iraungitzen den; iraungitzen bada, paneletik berritzen da esteka galdu gabe.",
+                    "Berreskuratu pasahitza sarrerako pantailatik: esteka bat iristen zaizu posta elektronikoz eta appera itzultzen zara.",
+                    "Mugitu kontua telefono berri batera QR batekin: zaharrak erakusten du, berriak eskaneatzen du eta zaharra kanpora geratzen da.",
+                    "Saioa irekita jarraitzen du appa ixten duzunean, eta administratzaileak baliogabetzen badu abisatzen dizu.",
+                    "Guztia produktuaren bederatzi hizkuntzetan.",
+                ),
+                "pt" to listOf(
+                    "Aceita um convite a partir da app, mesmo que já tivesses conta: entras com a tua palavra-passe e não se cria outra.",
+                    "O convite diz que grupo e que papel te dão, e quando expira; se expirar, renova-se no painel sem perder a ligação.",
+                    "Recupera a palavra-passe no ecrã de entrada: recebes uma ligação por email e voltas à app.",
+                    "Move a conta para um telemóvel novo com um QR: o antigo mostra-o, o novo digitaliza-o e o antigo fica de fora.",
+                    "A sessão continua aberta ao fechar a app e avisa-te se o administrador a revogar.",
+                    "Tudo nos nove idiomas do produto.",
+                ),
+                "fr" to listOf(
+                    "Acceptez une invitation depuis l'app, même si vous aviez déjà un compte : vous entrez avec votre mot de passe et aucun doublon n'est créé.",
+                    "L'invitation indique le groupe et le rôle accordés, et sa date d'expiration ; si elle expire, le panneau la renouvelle sans perdre le lien.",
+                    "Récupérez votre mot de passe depuis l'écran de connexion : un lien arrive par courriel et vous ramène dans l'app.",
+                    "Déplacez votre compte vers un nouveau téléphone avec un QR : l'ancien l'affiche, le nouveau le scanne et l'ancien est déconnecté.",
+                    "La session reste ouverte quand vous fermez l'app et vous prévient si un administrateur la révoque.",
+                    "Le tout dans les neuf langues du produit.",
+                ),
+                "it" to listOf(
+                    "Accetta un invito dall'app, anche se avevi già un account: entri con la tua password e non ne viene creato un altro.",
+                    "L'invito dice quale gruppo e quale ruolo ti danno, e quando scade; se scade, il pannello lo rinnova senza perdere il link.",
+                    "Recupera la password dalla schermata di accesso: ricevi un link via email e torni all'app.",
+                    "Sposta l'account su un telefono nuovo con un QR: il vecchio lo mostra, il nuovo lo scansiona e il vecchio resta fuori.",
+                    "La sessione resta aperta quando chiudi l'app e ti avvisa se un amministratore la revoca.",
+                    "Tutto nelle nove lingue del prodotto.",
+                ),
+                "de" to listOf(
+                    "Nimm eine Einladung direkt in der App an, auch wenn du schon ein Konto hattest: du meldest dich mit deinem Passwort an und es wird kein zweites angelegt.",
+                    "Die Einladung nennt Gruppe und Rolle und wann sie abläuft; läuft sie ab, verlängert das Panel sie, ohne den Link zu verlieren.",
+                    "Setze dein Passwort über den Anmeldebildschirm zurück: Du bekommst einen Link per E-Mail und landest wieder in der App.",
+                    "Zieh dein Konto mit einem QR-Code auf ein neues Telefon um: das alte zeigt ihn, das neue scannt ihn und das alte wird abgemeldet.",
+                    "Die Sitzung bleibt beim Schließen der App bestehen und meldet sich, wenn ein Administrator sie entzieht.",
+                    "Alles in den neun Sprachen des Produkts.",
+                ),
+            ),
+        ),
         ChangelogEntry(
             version = "0.18.2",
             date = "2026-11-16",

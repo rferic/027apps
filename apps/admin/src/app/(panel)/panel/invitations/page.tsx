@@ -162,6 +162,9 @@ function InvitationsTable({
               {t("Name", messages)}
             </th>
             <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
+              {t("Role", messages)}
+            </th>
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Status", messages)}
             </th>
             <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
@@ -184,6 +187,11 @@ function InvitationsTable({
                 </RowLink>
               </td>
               <td className="border-b border-border py-2 pr-3">{row.name}</td>
+              <td className="border-b border-border py-2 pr-3">
+                <Badge variant="neutral">
+                  {row.role === "admin" ? t("Admin", messages) : t("User", messages)}
+                </Badge>
+              </td>
               <td className="border-b border-border py-2 pr-3">
                 <Badge variant={statusVariant(row.status)}>{statusLabel(row.status, messages)}</Badge>
               </td>
@@ -226,6 +234,8 @@ function InvitationsCards({
             <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
               <dt className="text-muted-foreground">{t("Name", messages)}</dt>
               <dd>{row.name}</dd>
+              <dt className="text-muted-foreground">{t("Role", messages)}</dt>
+              <dd>{row.role === "admin" ? t("Admin", messages) : t("User", messages)}</dd>
               <dt className="text-muted-foreground">{t("Category", messages)}</dt>
               <dd>{categoryName(row, categories, categoriesOk, messages)}</dd>
               <dt className="text-muted-foreground">{t("Modules", messages)}</dt>

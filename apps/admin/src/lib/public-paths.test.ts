@@ -15,6 +15,10 @@ describe("isPublicPath", () => {
     "/help/firebase/",
     "/invite/027_inv_abc123",
     "/invite/027_inv_abc123/",
+    "/migrate/027_mig_abc123",
+    "/migrate/027_mig_abc123/",
+    "/forgot-password",
+    "/auth/confirm",
   ])("allows %s", (pathname) => {
     expect(isPublicPath(pathname)).toBe(true);
   });
@@ -32,6 +36,10 @@ describe("isPublicPath", () => {
     "/invites/x",
     "/invite/..",
     "/invite/../panel/members",
+    "/migrate",
+    "/migrate/",
+    "/migrate/a/b",
+    "/migrate/..",
   ])("does not expose %s", (pathname) => {
     expect(isPublicPath(pathname)).toBe(false);
   });

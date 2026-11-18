@@ -28,8 +28,8 @@ android {
         targetSdk = 37
         // major*10000 + minor*100 + patch; the Core derives the same number from
         // the release tag, so the updater compares plain integers.
-        versionCode = 1802
-        versionName = "0.18.2"
+        versionCode = 1900
+        versionName = "0.19.0"
         resValue("string", "app_name", "027Apps")
 
         // The shell opens against one instance without asking for a URL; a
@@ -101,6 +101,11 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.svg)
     implementation(libs.vico.compose.m3)
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.zxing.core)
 
     testImplementation(libs.junit)
     testImplementation(libs.ktor.client.mock)

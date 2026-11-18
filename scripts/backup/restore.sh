@@ -12,12 +12,14 @@ umask 077
 
 usage() {
   cat <<'EOF'
-Usage: restore.sh --target <postgres-url> [--snapshot <id|latest>] [--schema <name|all>]
+Usage: restore.sh --target <postgres-url> [--snapshot <id|latest>] [--schema <name|all>] [--yes]
 
   --target    connection string of the database to restore into (it must exist)
   --snapshot  restic snapshot ID (default: latest)
   --schema    schema(s) to restore (default: public); comma-separated (e.g.
               `public,auth`) or `all` for the whole dump
+  --yes       required when the target is not a local database: restoring
+              cleans the schema, so a remote host needs this flag on purpose
 
 `public` is the normal recovery path for a fresh Supabase project: it is cleaned
 and recreated in the target database. `all` is the disaster dump (includes
@@ -29,12 +31,14 @@ EOF
 target=""
 snapshot="latest"
 schema="public"
+confirmed=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --target) target="${2:-}"; shift 2 ;;
     --snapshot) snapshot="${2:-}"; shift 2 ;;
     --schema) schema="${2:-}"; shift 2 ;;
+    --yes) confirmed=1; shift ;;
     -h | --help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -44,6 +48,21 @@ if [ -z "$target" ]; then
   usage >&2
   exit 2
 fi
+
+# Restoring cleans the target schema. A local address is the daily drill; any
+# other host is production or staging and must be named deliberately.
+host_port="$(printf '%s' "$target" | sed -E 's#^[a-z]+://([^@]*@)?([^/?]+).*#\2#')"
+case "$host_port" in
+  localhost*|127.0.0.1*|\[::1\]*|192.168.*|10.*)
+    ;;
+  *)
+    if [ "$confirmed" != "1" ]; then
+      echo "Refusing to restore into a non-local database: ${host_port}" >&2
+      echo "This deletes the target schema. Re-run with --yes if that is what you want." >&2
+      exit 2
+    fi
+    ;;
+esac
 # The snapshot comes from user input in the drill: only IDs and `latest`.
 case "$snapshot" in
   latest) ;;

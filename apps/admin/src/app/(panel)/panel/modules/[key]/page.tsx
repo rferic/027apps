@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { ModuleActions } from "@/components/module-actions";
+import { ModuleAccess } from "@/components/module-access";
 import { ModuleDemoCard } from "@/components/module-demo-card";
 import { ModuleJobRunButton } from "@/components/module-job-run-button";
 import { PanelError } from "@/components/panel-error";
@@ -309,7 +310,15 @@ function ModuleSettings({
 const grantLinkClasses =
   "inline-flex min-h-7 items-center rounded-full border border-border bg-muted px-2.5 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
-function ModuleGrants({ grants, messages }: { grants: ModuleGrants; messages: TranslationMap }) {
+function ModuleGrants({
+  grants,
+  isPublic,
+  messages,
+}: {
+  grants: ModuleGrants;
+  isPublic: boolean;
+  messages: TranslationMap;
+}) {
   const empty = grants.users.length === 0 && grants.categories.length === 0;
   return (
     <section
@@ -319,6 +328,16 @@ function ModuleGrants({ grants, messages }: { grants: ModuleGrants; messages: Tr
       <h2 id="module-grants-title" className="text-sm font-semibold">
         {t("Grants", messages)}
       </h2>
+      {isPublic && (
+        // Public already opens the module to everyone: saying it here keeps the
+        // section from reading like the thing that grants the access.
+        <p className="text-xs text-muted-foreground">
+          {t(
+            "While the module is public, these grants don't change who can use it: they are kept for when it becomes private again, and for invitations that preselect them.",
+            messages,
+          )}
+        </p>
+      )}
       {empty ? (
         <p className="text-xs text-muted-foreground">{t("No access has been granted yet.", messages)}</p>
       ) : (
@@ -514,26 +533,60 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
           <h2 id="module-app-actions-title" className="text-sm font-semibold">
             {t("App actions", messages)}
           </h2>
-          <ul className="flex flex-col gap-2 text-xs">
-            {manifest.app_actions.map((action) => (
-              <li
-                key={action.key}
-                className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 last:border-b-0 last:pb-0"
-              >
-                <span className="font-semibold">{action.label}</span>
-                <code className="font-mono text-[11px] text-muted-foreground">{action.key}</code>
-                <code className="text-[11px] text-muted-foreground">{action.screen}</code>
-              </li>
-            ))}
-          </ul>
+          {/* Three labelled columns instead of three floating values: the key
+              and the screen are what the app sends and opens, and "owe_expense"
+              on its own read as a second, unexplained action. */}
+          <table className="w-full text-xs">
+            <caption className="sr-only">{t("App actions", messages)}</caption>
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                <th scope="col" className="pb-1 pr-3 font-medium">
+                  {t("Action", messages)}
+                </th>
+                <th scope="col" className="pb-1 pr-3 font-medium">
+                  {t("Key", messages)}
+                </th>
+                <th scope="col" className="pb-1 font-medium">
+                  {t("Screen", messages)}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {manifest.app_actions.map((action) => (
+                <tr key={action.key} className="border-t border-border align-top">
+                  <td className="py-2 pr-3 font-semibold">{action.label}</td>
+                  <td className="py-2 pr-3">
+                    <code className="font-mono text-[11px] text-muted-foreground">
+                      {action.key}
+                    </code>
+                  </td>
+                  <td className="py-2">
+                    <code className="font-mono text-[11px] text-muted-foreground">
+                      {action.screen}
+                    </code>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
           <p className="text-xs text-muted-foreground">
-            {t("Read-only: the app composes its add button from these actions.", messages)}
+            {t("The app sends the key and opens the screen. Read-only.", messages)}
           </p>
         </section>
       ) : null}
 
+      <ModuleAccess
+        moduleKey={installedModule.key}
+        isPublic={installedModule.is_public}
+        messages={messages}
+      />
+
       {grants.ok ? (
-        <ModuleGrants grants={grants.grants} messages={messages} />
+        <ModuleGrants
+          grants={grants.grants}
+          isPublic={installedModule.is_public}
+          messages={messages}
+        />
       ) : (
         <PanelError
           error={grants}

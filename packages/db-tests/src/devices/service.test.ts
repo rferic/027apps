@@ -118,6 +118,41 @@ describe("devices service", () => {
     });
   });
 
+  it("keeps the other sessions when the owner logs out with sessions=local", async () => {
+    await inRollback(async (c) => {
+      const owner = await session(c, "user");
+      const revokeSessions = vi.fn(async () => undefined);
+      const device = await registerDevice(deps(c), owner, {
+        platform: "android",
+        push_token: "fcm-local-owner",
+      });
+
+      await revokeDevice(deps(c, revokeSessions), owner, device.id, { revokeSessions: false });
+
+      const { rows } = await query(c, "select revoked_at from public.devices where id = $1", [
+        device.id,
+      ]);
+      expect(rows[0]!.revoked_at).not.toBeNull();
+      expect(revokeSessions).not.toHaveBeenCalled();
+    });
+  });
+
+  it("forces all sessions when an admin revokes another user even with sessions=local", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      const owner = await session(c, "user");
+      const revokeSessions = vi.fn(async () => undefined);
+      const device = await registerDevice(deps(c), owner, {
+        platform: "android",
+        push_token: "fcm-local-admin",
+      });
+
+      await revokeDevice(deps(c, revokeSessions), admin, device.id, { revokeSessions: false });
+
+      expect(revokeSessions).toHaveBeenCalledWith(owner.userId);
+    });
+  });
+
   it("refuses device writes from a service key", async () => {
     await inRollback(async (c) => {
       const service: Caller = {

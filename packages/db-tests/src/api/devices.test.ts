@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ClientBase } from "pg";
 import { createTestUser, query, withClient } from "../pg.js";
 import {
@@ -11,7 +11,11 @@ import type { Caller, DoorDeps } from "@027apps/core/api/types.js";
 
 const email = (name: string) => `dev-api-${name}-${Date.now()}-${Math.random()}@test.local`;
 
-function deps(c: ClientBase, who: Caller): DevicesRouteDeps {
+function deps(
+  c: ClientBase,
+  who: Caller,
+  revokeSessions?: (userId: string) => Promise<void>,
+): DevicesRouteDeps {
   const door: DoorDeps = {
     rateLimitStorage: { increment: async () => ({ count: 1 }) },
     logger: () => {},
@@ -19,7 +23,21 @@ function deps(c: ClientBase, who: Caller): DevicesRouteDeps {
   return {
     door,
     auth: async () => who,
-    devices: { db: { query: (sql: string, params: unknown[] = []) => query(c, sql, params) } },
+    devices: {
+      db: { query: (sql: string, params: unknown[] = []) => query(c, sql, params) },
+      ...(revokeSessions ? { revokeSessions } : {}),
+    },
+    transfers: {
+      db: { query: (sql: string, params: unknown[] = []) => query(c, sql, params) },
+      auth: {
+        async getUserEmail() {
+          return null;
+        },
+        async createMagicLink() {
+          return { tokenHash: "magic-hash" };
+        },
+      },
+    },
   };
 }
 
@@ -99,6 +117,30 @@ describe("devices API", () => {
         body.device.id,
       ]);
       expect(rows[0]!.revoked_at).not.toBeNull();
+    });
+  });
+
+  it("maps sessions=local to a push-only unregister", async () => {
+    await inRollback(async (c) => {
+      const owner = await caller(c, "user");
+      const revokeSessions = vi.fn(async () => undefined);
+      const created = await registerDeviceRoute(deps(c, owner))(
+        new Request(
+          "http://local/api/v1/devices",
+          post({ platform: "android", push_token: "fcm-api-local" }),
+        ),
+      );
+      const body = (await created.json()) as { device: { id: string } };
+
+      const response = await revokeDeviceRoute(deps(c, owner, revokeSessions))(
+        new Request(`http://local/api/v1/devices/${body.device.id}?sessions=local`, {
+          method: "DELETE",
+        }),
+        body.device.id,
+      );
+
+      expect(response.status).toBe(204);
+      expect(revokeSessions).not.toHaveBeenCalled();
     });
   });
 

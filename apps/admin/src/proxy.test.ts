@@ -11,11 +11,13 @@ vi.mock("@/lib/instance-gate", () => ({ entryGate: vi.fn() }));
 vi.mock("@/lib/instance-state", () => ({ readInstanceState: vi.fn() }));
 
 import { proxy } from "./proxy";
+import { entryGate } from "@/lib/instance-gate";
 import { readInstanceState } from "@/lib/instance-state";
 
 afterEach(() => {
   vi.unstubAllEnvs();
   createServerClientMock.mockReset();
+  vi.mocked(entryGate).mockReset();
   vi.mocked(readInstanceState).mockReset();
 });
 
@@ -147,6 +149,47 @@ describe("proxy API session", () => {
     // The entry gate decides with `hasSession`, so this page needs the check.
     expect(getUser).toHaveBeenCalledTimes(1);
     expect(getSession).not.toHaveBeenCalled();
+  });
+
+  it("returns a retryable 503 without clearing cookies on a network failure", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-key");
+    createServerClientMock.mockReturnValue({
+      auth: {
+        getUser: vi.fn(async () => {
+          throw new TypeError("fetch failed");
+        }),
+        getSession: vi.fn(async () => ({ data: { session: null } })),
+      },
+    });
+
+    const response = await proxy(new NextRequest("http://localhost/login"));
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("retry-after")).toBe("30");
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(entryGate).not.toHaveBeenCalled();
+  });
+
+  it("keeps the session classification when the refresh token is invalid", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-key");
+    vi.mocked(readInstanceState).mockResolvedValue({ installed: true, setupIncomplete: false });
+    createServerClientMock.mockReturnValue({
+      auth: {
+        getUser: vi.fn(async () => {
+          throw { code: "invalid_grant", status: 400 };
+        }),
+        getSession: vi.fn(async () => ({ data: { session: null } })),
+      },
+    });
+
+    await proxy(new NextRequest("http://localhost/login"));
+
+    expect(entryGate).toHaveBeenCalledWith(
+      "/login",
+      expect.objectContaining({ hasSession: false }),
+    );
   });
 
   it("sends no Authorization header when the cookie has no session", async () => {

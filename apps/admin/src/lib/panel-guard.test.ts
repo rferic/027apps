@@ -23,7 +23,13 @@ vi.mock("@/lib/api/door", () => ({
   getInfra: async () => ({ settingsDeps: { db: { query: queryMock } } }),
 }));
 
-import { hasPanelRole, loadPanelUser, requirePanel, type PanelUser } from "./panel-guard";
+import {
+  hasPanelRole,
+  loadPanelIdentity,
+  loadPanelUser,
+  requirePanel,
+  type PanelUser,
+} from "./panel-guard";
 
 const ADMIN: PanelUser = {
   id: "u-1",
@@ -55,6 +61,13 @@ describe("loadPanelUser", () => {
 
     await expect(loadPanelUser()).resolves.toBeNull();
     expect(queryMock).toHaveBeenCalledWith(expect.stringContaining("deactivated_at is null"), ["u-1"]);
+  });
+
+  it("distinguishes a session without a usable profile from no session", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "u-1", email: "a@b.co" } } });
+    queryMock.mockResolvedValue({ rows: [] });
+
+    await expect(loadPanelIdentity()).resolves.toEqual({ kind: "unusable" });
   });
 
   it("reads display name, role and appearance in a single profile query", async () => {
@@ -119,12 +132,14 @@ describe("requirePanel", () => {
     expect(redirectMock).toHaveBeenCalledWith("/login");
   });
 
-  it("redirects to /login when the profile is deactivated", async () => {
+  it("clears a deactivated session through /logout instead of looping to /login", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "u-1", email: "a@b.co" } } });
     queryMock.mockResolvedValue({ rows: [] });
 
-    await expect(requirePanel("admin")).rejects.toThrow("NEXT_REDIRECT:/login");
-    expect(redirectMock).toHaveBeenCalledWith("/login");
+    await expect(requirePanel("admin")).rejects.toThrow(
+      "NEXT_REDIRECT:/logout?reason=access_revoked",
+    );
+    expect(redirectMock).toHaveBeenCalledWith("/logout?reason=access_revoked");
   });
 
   it("denies a user role below the minimum", async () => {

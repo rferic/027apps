@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createInvitation,
   regenerateInvitationLink,
+  renewInvitation,
   resendInvitationEmail,
   revokeInvitation,
 } from "./invitation-mutations";
@@ -96,7 +97,7 @@ describe("createInvitation", () => {
             code: "conflict",
             message: "State conflict",
             request_id: "req-409",
-            details: { code: "email_registered" },
+            details: { code: "pending_invitation" },
           },
         },
         409,
@@ -108,7 +109,7 @@ describe("createInvitation", () => {
         ok: false,
         code: "conflict",
         requestId: "req-409",
-        details: { code: "email_registered" },
+        details: { code: "pending_invitation" },
       },
     );
   });
@@ -205,6 +206,32 @@ describe("regenerateInvitationLink", () => {
     await expect(regenerateInvitationLink("i1", fetcher)).resolves.toMatchObject({
       ok: false,
       code: "invitation_expired",
+    });
+  });
+});
+
+describe("renewInvitation", () => {
+  it("POSTs to the renew endpoint and returns the one-time token", async () => {
+    const fetcher = vi.fn(async () =>
+      json({ token: "027_inv_new", invitation: { id: "i1" }, email: { status: "sent" } }),
+    );
+
+    const result = await renewInvitation("i1", fetcher);
+
+    expect(result).toEqual({ ok: true, token: "027_inv_new", email: { status: "sent" } });
+    const [url, init] = call(fetcher);
+    expect(url).toBe("/api/v1/invitations/i1/renew");
+    expect(init.method).toBe("POST");
+  });
+
+  it("returns the conflict code when the invitation is not expired", async () => {
+    const fetcher = vi.fn(async () =>
+      json({ error: { code: "invitation_not_expired" } }, 409),
+    );
+
+    await expect(renewInvitation("i1", fetcher)).resolves.toEqual({
+      ok: false,
+      code: "invitation_not_expired",
     });
   });
 });

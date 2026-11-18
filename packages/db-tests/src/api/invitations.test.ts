@@ -3,6 +3,7 @@ import type { ClientBase } from "pg";
 import { createTestModule, createTestUser, query, withClient } from "../pg.js";
 import {
   createInvitationRoute,
+  invitationPreviewRoute,
   invitationsRoute,
   redeemInvitationRoute,
   revokeInvitationRoute,
@@ -41,7 +42,11 @@ function authPort(c: ClientBase): InvitationsAuth {
   const users = new Map<string, string>();
   return {
     async findUserByEmail(value) {
-      return users.has(value) ? { id: users.get(value)! } : null;
+      if (users.has(value)) return { id: users.get(value)! };
+      // The real adapter reads auth.users; the fake must not hide a test user
+      // that was created directly with `createTestUser`.
+      const { rows } = await query(c, "select id from auth.users where email = $1 limit 1", [value]);
+      return rows[0] ? { id: String(rows[0].id) } : null;
     },
     async createUser({ email: value }) {
       const id = await createAuthUserOnly(c, value);
@@ -173,10 +178,14 @@ describe("invitations API", () => {
         token,
       );
       expect(redeemed.status).toBe(201);
+      expect(redeemed.headers.get("cache-control")).toBe("no-store");
+      expect(redeemed.headers.get("referrer-policy")).toBe("no-referrer");
       const redeemedBody = (await redeemed.json()) as {
-        user: { id: string; display_name: string };
+        user: { id: string; display_name: string; role: string };
       };
-      expect(redeemedBody.user.display_name).toBe("Redeem Real");
+      // The invitation's name wins; `display_name` is obsolete (A5).
+      expect(redeemedBody.user.display_name).toBe("Redeem");
+      expect(redeemedBody.user.role).toBe("user");
 
       const again = await redeemInvitationRoute(route)(
         new Request(`http://local/api/v1/invitations/${token}/redeem`, post({
@@ -232,6 +241,94 @@ describe("invitations API", () => {
       expect(((await late.json()) as { error: { code: string } }).error.code).toBe(
         "invitation_expired",
       );
+    });
+  });
+
+  it("previews a token publicly and hides an unknown one", async () => {
+    await inRollback(async (c) => {
+      const who = await adminCaller(c);
+      const route = deps(c, who);
+      const inviteEmail = email("preview");
+
+      const created = await createInvitationRoute(route)(
+        new Request("http://local/api/v1/invitations", post({ email: inviteEmail, name: "Preview" })),
+      );
+      const createdBody = (await created.json()) as { token: string; account_exists: boolean };
+      expect(createdBody.account_exists).toBe(false);
+
+      // The route is public: its resolver is fixed to anon whatever the deps say.
+      const preview = await invitationPreviewRoute(route)(
+        new Request(`http://local/api/v1/invitations/${createdBody.token}/preview`),
+        createdBody.token,
+      );
+      expect(preview.status).toBe(200);
+      expect(preview.headers.get("cache-control")).toBe("no-store");
+      expect(preview.headers.get("x-robots-tag")).toContain("noindex");
+      expect(preview.headers.get("referrer-policy")).toBe("no-referrer");
+      const previewBody = (await preview.json()) as {
+        invitation: { state: string; email: string; role_applies: boolean };
+      };
+      expect(previewBody.invitation).toMatchObject({
+        state: "pending",
+        email: inviteEmail,
+        role_applies: true,
+      });
+
+      const unknown = await invitationPreviewRoute(route)(
+        new Request("http://local/api/v1/invitations/027_inv_missing/preview"),
+        "027_inv_missing",
+      );
+      expect(unknown.status).toBe(404);
+    });
+  });
+
+  it("refuses an admin invitation from an admin and allows it from a super_admin", async () => {
+    await inRollback(async (c) => {
+      const { id } = await createTestUser(c, { email: email("api-admin"), role: "admin" });
+      const plainAdmin: Caller = { kind: "session", userId: id, role: "admin" };
+      const refused = await createInvitationRoute(deps(c, plainAdmin))(
+        new Request(
+          "http://local/api/v1/invitations",
+          post({ email: email("escalate"), name: "Escalate", role: "admin" }),
+        ),
+      );
+      expect(refused.status).toBe(403);
+
+      const who = await adminCaller(c);
+      const allowed = await createInvitationRoute(deps(c, who))(
+        new Request(
+          "http://local/api/v1/invitations",
+          post({ email: email("root-invites"), name: "Root", role: "admin" }),
+        ),
+      );
+      expect(allowed.status).toBe(201);
+      const body = (await allowed.json()) as { invitation: { role: string } };
+      expect(body.invitation.role).toBe("admin");
+
+      // `super_admin` is never a valid invitation role: 400 before the service.
+      const escalated = await createInvitationRoute(deps(c, who))(
+        new Request(
+          "http://local/api/v1/invitations",
+          post({ email: email("root-escalates"), name: "Root", role: "super_admin" }),
+        ),
+      );
+      expect(escalated.status).toBe(400);
+    });
+  });
+
+  it("reports account_exists for an email that already has an account", async () => {
+    await inRollback(async (c) => {
+      const who = await adminCaller(c);
+      const existingEmail = email("already");
+      await createTestUser(c, { email: existingEmail });
+
+      const created = await createInvitationRoute(deps(c, who))(
+        new Request("http://local/api/v1/invitations", post({ email: existingEmail, name: "Already" })),
+      );
+
+      expect(created.status).toBe(201);
+      const body = (await created.json()) as { account_exists: boolean };
+      expect(body.account_exists).toBe(true);
     });
   });
 });
