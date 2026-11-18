@@ -70,6 +70,7 @@ fun SettingsScreen(
     user: UserDto,
     onRememberInstance: (String) -> String?,
     onChangeInstance: (String) -> Boolean,
+    onForgetInstance: (String) -> Unit,
     update: UpdateState,
     pushStatus: String? = null,
     onRetryPush: () -> Unit = {},
@@ -96,6 +97,7 @@ fun SettingsScreen(
                 showPicker = false
                 onChangeInstance(url)
             },
+            onRemove = onForgetInstance,
             onDismiss = { showPicker = false },
         )
     }

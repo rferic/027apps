@@ -695,6 +695,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         return normalized
     }
 
+    /**
+     * Forgets a saved instance. The active one cannot be removed: the picker
+     * hides the action for it, and the store would silently fall back.
+     */
+    fun forgetInstance(url: String): Boolean {
+        if (url == instanceStore.current()) return false
+        instanceStore.forget(url)
+        _instances.value = instanceStore.known()
+        return true
+    }
+
     /** Points the app at another instance and starts signed out. */
     fun changeInstance(raw: String): Boolean {
         val normalized = ServerUrl.normalize(raw, requireHttps = !BuildConfig.DEBUG) ?: return false

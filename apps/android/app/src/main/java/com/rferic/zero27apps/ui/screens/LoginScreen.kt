@@ -113,6 +113,7 @@ fun LoginScreen(
     onScanMigration: () -> Unit,
     onRememberInstance: (String) -> String?,
     onChangeInstance: (String) -> Boolean,
+    onForgetInstance: (String) -> Unit,
     onInstallUpdate: () -> Unit,
 ) {
     var email by rememberSaveable { mutableStateOf("") }
@@ -133,6 +134,7 @@ fun LoginScreen(
                 showPicker = false
                 onChangeInstance(url)
             },
+            onRemove = onForgetInstance,
             onDismiss = { showPicker = false },
         )
     }

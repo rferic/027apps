@@ -154,6 +154,7 @@ fun AppRoot(
                             onScanMigration = { scanningMigration = true },
                             onRememberInstance = viewModel::rememberInstance,
                             onChangeInstance = viewModel::changeInstance,
+                            onForgetInstance = viewModel::forgetInstance,
                             onInstallUpdate = viewModel::installUpdate,
                         )
                     }
@@ -190,6 +191,7 @@ fun AppRoot(
                         currentInstance = viewModel.currentInstance(),
                         onRememberInstance = viewModel::rememberInstance,
                         onChangeInstance = viewModel::changeInstance,
+                        onForgetInstance = viewModel::forgetInstance,
                         onRetry = viewModel::refresh,
                     )
                 }
@@ -297,6 +299,7 @@ private fun FailureScreen(
     currentInstance: String,
     onRememberInstance: (String) -> String?,
     onChangeInstance: (String) -> Boolean,
+    onForgetInstance: (String) -> Unit,
     onRetry: () -> Unit,
 ) {
     var showPicker by rememberSaveable { mutableStateOf(false) }
@@ -310,6 +313,7 @@ private fun FailureScreen(
                 showPicker = false
                 onChangeInstance(url)
             },
+            onRemove = onForgetInstance,
             onDismiss = { showPicker = false },
         )
     }
@@ -528,6 +532,7 @@ private fun Shell(
                     user = state.user,
                     onRememberInstance = viewModel::rememberInstance,
                     onChangeInstance = viewModel::changeInstance,
+                    onForgetInstance = viewModel::forgetInstance,
                     update = update,
                     pushStatus = pushStatus,
                     onRetryPush = viewModel::retryPush,

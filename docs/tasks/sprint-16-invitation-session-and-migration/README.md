@@ -24,7 +24,7 @@ cierra también la sesión del móvil; y un miembro desactivado queda atrapado e
 `/login`. Además no hay recuperación de contraseña ni forma de mover la cuenta a un teléfono
 nuevo. El sprint cierra esos cuatro frentes con A1–A7.
 
-## Alcance: 11 tareas
+## Alcance: 12 tareas
 
 | # | Tarea | Tipo | Depende de | Por qué |
 |---|---|---|---|---|
@@ -39,6 +39,7 @@ nuevo. El sprint cierra esos cuatro frentes con A1–A7.
 | 09 | [Renovación A3 + cierre A3–A7](task-09.md) | feature | 04, 06, 07 | Renovar caducadas y dejar A4/A5/A6/A7 coherentes. |
 | 10 | [Migración por QR](task-10.md) | feature | 02, 03, 05, 06 | Dos móviles reales; el nuevo entra y el viejo queda fuera. |
 | 11 | [Cierre](task-11.md) | docs + infra | todas | i18n, flujos, gates, auditorías de seguridad y UX, y verificación real. |
+| 12 | [Eliminar una instancia guardada](task-12.md) | app | 03 | Añadida el 2026-11-18: el selector no dejaba quitar una instancia que ya no se usa. |
 
 ### Mapa con el orden recomendado del propietario
 
