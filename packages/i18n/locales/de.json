@@ -1035,5 +1035,6 @@
   "We couldn't save that change.": "Die Änderung konnte nicht gespeichert werden.",
   "Action": "Aktion",
   "Screen": "Bildschirm",
-  "The app sends the key and opens the screen. Read-only.": "Die App sendet den Schlüssel und öffnet den Bildschirm. Nur Lesen."
+  "The app sends the key and opens the screen. Read-only.": "Die App sendet den Schlüssel und öffnet den Bildschirm. Nur Lesen.",
+  "While the module is public, these grants don't change who can use it: they are kept for when it becomes private again, and for invitations that preselect them.": "Solange das Modul öffentlich ist, ändern diese Freigaben nicht, wer es nutzen kann: sie bleiben für den Fall, dass es wieder privat wird, und für Einladungen, die sie vorauswählen."
 }

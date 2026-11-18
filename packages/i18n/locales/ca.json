@@ -1035,5 +1035,6 @@
   "We couldn't save that change.": "No hem pogut desar aquest canvi.",
   "Action": "Acció",
   "Screen": "Pantalla",
-  "The app sends the key and opens the screen. Read-only.": "L'app envia la clau i obre la pantalla. Només lectura."
+  "The app sends the key and opens the screen. Read-only.": "L'app envia la clau i obre la pantalla. Només lectura.",
+  "While the module is public, these grants don't change who can use it: they are kept for when it becomes private again, and for invitations that preselect them.": "Mentre el mòdul és públic, aquestes concessions no canvien qui el pot fer servir: es conserven per quan torni a ser privat i per a les invitacions que les preseleccionen."
 }

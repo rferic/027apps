@@ -1035,5 +1035,6 @@
   "We couldn't save that change.": "Ezin izan genuen aldaketa hori gorde.",
   "Action": "Ekintza",
   "Screen": "Pantaila",
-  "The app sends the key and opens the screen. Read-only.": "Appak klabea bidaltzen du eta pantaila irekitzen du. Irakurtzeko soilik."
+  "The app sends the key and opens the screen. Read-only.": "Appak klabea bidaltzen du eta pantaila irekitzen du. Irakurtzeko soilik.",
+  "While the module is public, these grants don't change who can use it: they are kept for when it becomes private again, and for invitations that preselect them.": "Modulua publikoa den bitartean, baimen hauek ez dute aldatzen nork erabil dezakeen: gordeta geratzen dira berriz pribatua denean eta horiek aurrez hautatzen dituzten gonbidapenentzat."
 }

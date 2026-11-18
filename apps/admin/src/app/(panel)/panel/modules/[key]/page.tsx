@@ -310,7 +310,15 @@ function ModuleSettings({
 const grantLinkClasses =
   "inline-flex min-h-7 items-center rounded-full border border-border bg-muted px-2.5 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
-function ModuleGrants({ grants, messages }: { grants: ModuleGrants; messages: TranslationMap }) {
+function ModuleGrants({
+  grants,
+  isPublic,
+  messages,
+}: {
+  grants: ModuleGrants;
+  isPublic: boolean;
+  messages: TranslationMap;
+}) {
   const empty = grants.users.length === 0 && grants.categories.length === 0;
   return (
     <section
@@ -320,6 +328,16 @@ function ModuleGrants({ grants, messages }: { grants: ModuleGrants; messages: Tr
       <h2 id="module-grants-title" className="text-sm font-semibold">
         {t("Grants", messages)}
       </h2>
+      {isPublic && (
+        // Public already opens the module to everyone: saying it here keeps the
+        // section from reading like the thing that grants the access.
+        <p className="text-xs text-muted-foreground">
+          {t(
+            "While the module is public, these grants don't change who can use it: they are kept for when it becomes private again, and for invitations that preselect them.",
+            messages,
+          )}
+        </p>
+      )}
       {empty ? (
         <p className="text-xs text-muted-foreground">{t("No access has been granted yet.", messages)}</p>
       ) : (
@@ -564,7 +582,11 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
       />
 
       {grants.ok ? (
-        <ModuleGrants grants={grants.grants} messages={messages} />
+        <ModuleGrants
+          grants={grants.grants}
+          isPublic={installedModule.is_public}
+          messages={messages}
+        />
       ) : (
         <PanelError
           error={grants}

@@ -333,6 +333,14 @@ describe("ModuleDetailPage", () => {
     expect(html).toContain("without individual grants");
   });
 
+  it("says the grants no longer decide access while the module is public", async () => {
+    loadModuleDetailMock.mockResolvedValue({ ok: true, module: { ...MODULE, is_public: true } });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("these grants don&#x27;t change who can use it");
+  });
+
   it("labels the app action key and screen instead of floating them", async () => {
     loadModuleManifestMock.mockResolvedValue({
       key: "inventory",

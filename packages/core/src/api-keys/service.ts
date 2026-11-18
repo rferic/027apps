@@ -153,7 +153,12 @@ async function assertActiveOwner(db: QueryClient, ownerId: string): Promise<void
   if (!rows[0]) throw new DomainError("not_found");
 }
 
-/** Module scopes the owner actually holds, read live from `user_modules`. */
+/**
+ * Module scopes the owner actually holds: a live `user_modules` grant **or** an
+ * active public module, which every user can already use without one. Without
+ * the second half a public module's scopes could not be delegated, while the
+ * same scopes worked with the owner's own session.
+ */
 async function grantedModuleScopes(
   db: QueryClient,
   ownerId: string,
@@ -163,7 +168,10 @@ async function grantedModuleScopes(
   if (keys.length === 0) return [];
   const { rows } = await db.query(
     `select module_key from public.user_modules
-      where user_id = $1 and module_key = any($2::text[]) and revoked_at is null`,
+      where user_id = $1 and module_key = any($2::text[]) and revoked_at is null
+     union
+     select key as module_key from public.module_registry
+      where key = any($2::text[]) and state = 'active' and is_public = true`,
     [ownerId, keys],
   );
   const granted = new Set(rows.map((row) => String(row.module_key)));

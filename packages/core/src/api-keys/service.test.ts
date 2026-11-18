@@ -48,6 +48,8 @@ interface StoredKey {
 function apiKeyTable(profiles: Profile[] = []) {
   const rows: StoredKey[] = [];
   const grants = new Map<string, Set<string>>();
+  // Active public modules: the real query treats them as held without a grant.
+  const publicModules = new Set<string>();
   const chains = new Map<string, Promise<void>>();
   let seq = 0;
 
@@ -92,7 +94,7 @@ function apiKeyTable(profiles: Profile[] = []) {
           const granted = grants.get(userId) ?? new Set<string>();
           return {
             rows: keys
-              .filter((key) => granted.has(key))
+              .filter((key) => granted.has(key) || publicModules.has(key))
               .map((key) => ({ module_key: key })),
           };
         }
@@ -199,6 +201,7 @@ function apiKeyTable(profiles: Profile[] = []) {
   return {
     rows,
     grants,
+    publicModules,
     db,
     deps: {
       db,
@@ -300,6 +303,18 @@ describe("createApiKey — delegated allowlist", () => {
     });
 
     expect(api_key.scopes).toEqual(["expenses:read", "profile:read"]);
+  });
+
+  it("lets a public module's scopes through without a grant", async () => {
+    table.publicModules.add("owe-no");
+
+    const { api_key } = await createApiKey(table.deps, session("user", "user"), {
+      kind: "delegated",
+      name: "Tool",
+      scopes: ["owe-no:read", "invoices:read"],
+    });
+
+    expect(api_key.scopes).toEqual(["owe-no:read"]);
   });
 
   it("refuses role_cap on a delegated key", async () => {

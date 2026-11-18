@@ -160,6 +160,10 @@ Ejemplo completo:
   uno privado necesita una concesión a un miembro o a una categoría. El valor del panel sobrevive a
   una actualización (`upgrade` no lo toca); una **reinstalación** vuelve a tomar el `is_public` del
   manifest, así que un módulo que nace público lo declara ahí.
+- Mientras un módulo es **público**, las concesiones no cambian quién puede usarlo: se conservan
+  para cuando vuelva a ser privado y porque las invitaciones las preseleccionan (el panel lo dice
+  en la propia sección). Una **clave delegada** sí respeta la publicidad: sus scopes de módulo se
+  validan contra las concesiones **o** contra los módulos activos públicos, igual que la sesión.
 - `requires`: lista de `{ key, version }`; la versión es un **mínimo** (`1.2.0`, no rangos).
   Instalar exige que la dependencia esté **instalada** (y con versión suficiente); activar, que
   esté **activa**. Desactivar o desinstalar se niega mientras otro módulo instalado la requiera.
