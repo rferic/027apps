@@ -2,7 +2,7 @@
 id: sprint-16-task-05
 titulo: App Links — fingerprint, redeploy y verificación en dispositivo
 area: infra + app
-estado: en curso
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 adrs: [0010]
@@ -26,7 +26,15 @@ dispositivo Android real. Sin esto, el requisito app-first no se ve aunque el c�
   `/auth/confirm`, `/forgot-password`, `/reset-password` y `/welcome`).
 - `docs/flows/cicd.md` documenta los dos enlaces y cómo sacar la huella.
 
-**P3 pendiente (propietario)**
+**Verificado en producción (2026-11-18)**
+- `ANDROID_APP_SHA256` cargada en Vercel Production y redeploy del deployment de main: el JSON de
+  `/.well-known/assetlinks.json` devuelve `package_name` y la huella (no `[]`).
+- APK firmado 0.19.0 descargado del release: huella `006a22…39c6` (coincide), versión `1900`, y el
+  manifest de release declara `autoVerify` con `/invite/` **y** `/migrate/`.
+- En el móvil del propietario: un enlace `https://027apps.ericrf.com/invite/<token>` abierto desde el
+  correo **abre la app** de release, no el navegador.
+
+**P3 (propietario) — hecho**
 1. Cargar en Vercel → Settings → Environment Variables, entorno **Production**:
    `ANDROID_APP_SHA256=00:6A:22:FA:7A:A4:76:A5:5D:B7:C4:62:2E:FF:19:3F:76:4F:66:10:A3:6D:9C:D1:DF:CE:C8:03:AE:A1:39:C6`
    (huella **verificada** con `apksigner verify --print-certs` sobre el APK publicado v0.18.2: el

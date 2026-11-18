@@ -32,7 +32,7 @@ solo, se puede hacer todo menos el escaneo del QR.
 | # | Qué | Cómo se comprueba |
 |---|---|---|
 | 1 | ~~Aceptar invitación en la app (cuenta nueva y existente)~~ | **Hecho 2026-11-18** en el móvil del propietario, con la cámara; falta solo el App Link https (punto 2) |
-| 2 | **App Link https** (tarea 05) | Tras P3 y el release: `adb shell pm get-app-links com.rferic.zero27apps` → `verified`; abrir `https://027apps.ericrf.com/invite/<token>` desde Gmail y desde la cámara |
+| 2 | ~~App Link https~~ | **Hecho 2026-11-18**: P3 aplicado y un enlace de producción abre la app de release desde el correo |
 | 3 | **Wizard web en un Android real** (tarea 07) | Abrir el enlace en Chrome: aviso Android 8+, descarga del APK, «Abrir en la app», reintento sin bucle y canje en el navegador |
 | 4 | **QR entre dos móviles** (tarea 10, P4) | El flujo de un móvil + QR servido ya está verificado (entra, la sesión vieja se revoca en servidor). Falta el escaneo entre dos dispositivos y la revocación de **push**, que exige producción |
 | 5 | **Caducidad y renovación del QR** | Dejar pasar 60 s sin escanear: el QR deja de mostrarse como válido y «Generar otro código» funciona; reusar un código da error, no entra |
