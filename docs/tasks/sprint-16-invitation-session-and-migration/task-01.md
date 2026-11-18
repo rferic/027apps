@@ -2,7 +2,7 @@
 id: sprint-16-task-01
 titulo: Documentación del sprint (spec, plan y tareas)
 area: docs
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 adrs: [0004, 0007, 0008, 0010]
