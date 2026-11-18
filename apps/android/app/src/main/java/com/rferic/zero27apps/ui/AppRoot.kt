@@ -205,26 +205,32 @@ fun AppRoot(
                 // not replace that session silently.
                 val inviteSwitch = invite.confirmSwitch
                 if (inviteSwitch != null) {
+                    // The invitation's language, not the app's: the person just
+                    // came from a form written in it and the app follows the
+                    // device while signed out.
+                    val inviteStrings = remember(invite.preview?.locale) {
+                        invite.preview?.locale?.let { AppStrings.forLanguage(it) } ?: strings
+                    }
                     AppAlertDialog(
                         onDismissRequest = viewModel::cancelInvite,
-                        title = { Text(strings.inviteTitle) },
+                        title = { Text(inviteStrings.inviteTitle) },
                         text = {
                             Text(
                                 if (inviteSwitch.isEmpty()) {
-                                    strings.inviteSwitchStored
+                                    inviteStrings.inviteSwitchStored
                                 } else {
-                                    strings.inviteSwitchAccount.replace("{account}", inviteSwitch)
+                                    inviteStrings.inviteSwitchAccount.replace("{account}", inviteSwitch)
                                 },
                             )
                         },
                         confirmButton = {
                             TextButton(onClick = viewModel::confirmInviteSwitch) {
-                                Text(strings.inviteSignOutAndContinue)
+                                Text(inviteStrings.inviteSignOutAndContinue)
                             }
                         },
                         dismissButton = {
                             TextButton(onClick = viewModel::cancelInvite) {
-                                Text(strings.cancel)
+                                Text(inviteStrings.cancel)
                             }
                         },
                     )

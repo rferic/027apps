@@ -171,14 +171,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val current = _state.value
         if (hasStoredSession()) {
             // Accepting would replace this session behind the person's back: ask
-            // first. On a cold start the state is Loading and the email is not
-            // known yet, so the dialog falls back to "a saved session".
+            // first. The preview is fetched before the dialog so the question is
+            // written in the invitation's language, like the form behind it.
+            // On a cold start the email is unknown; the dialog says "a session".
             pendingLink = link
-            _invite.value = InviteState(
-                confirmSwitch = supabase?.auth?.currentUserOrNull()?.email
-                    ?: (current as? AppState.SignedIn)?.user?.displayName
-                    ?: "",
-            )
+            val account = supabase?.auth?.currentUserOrNull()?.email
+                ?: (current as? AppState.SignedIn)?.user?.displayName
+                ?: ""
+            viewModelScope.launch {
+                val preview = runCatching {
+                    apiFor(link.instance).invitationPreview(link.token)
+                }.getOrNull()
+                _invite.value = InviteState(confirmSwitch = account, preview = preview)
+            }
             return
         }
         openInvite(link)
