@@ -12,6 +12,7 @@ aquí.
 | 3 | El importador crea miembros antes de confirmar | app + servidor | 2026-11-15 | auditoría de seguridad del sprint 15 |
 | 4 | Idempotencia también en el commit del importador | servidor | 2026-11-15 | auditoría de seguridad del sprint 15 |
 | 5 | El importador del panel no parece un sitio donde se sube un fichero | panel | 2026-11-16 | propietario, probando producción |
+| 6 | Eliminar una instancia guardada en la app | app | 2026-11-18 | propietario, probando la migración por QR |
 
 > Las entradas 1–3 y 5 están agrupadas en el **sprint 17**
 > ([`sprint-17-panel-y-notificaciones`](sprint-17-panel-y-notificaciones/README.md)), a la espera de
@@ -96,3 +97,28 @@ explícitamente (o extender la misma tabla `owe_no_idempotency` al import).
 **Decisión.** Se puede cerrar documentando en la spec que el import es idempotente por deducción
 de filas, o extenderlo con clave como los movimientos. Recomendado: documentarlo y no añadir
 maquinaria.
+
+---
+
+## 6. Eliminar una instancia guardada en la app
+
+**Qué se quiere.** Desde el selector de instancia de la app («Cambiar instancia») poder **quitar**
+una instancia que ya no se usa. Hoy solo se pueden añadir y elegir; una instancia equivocada se
+queda en la lista para siempre.
+
+**Por qué.** Aparece al probar la migración: tras cambiar de instancia para una prueba, la de
+producción y la local conviven en la lista sin forma de limpiar la que sobra.
+
+**Decisiones pendientes.**
+- Gesto: botón «Quitar» en cada fila del selector (no en la instancia activa) frente a pulsación
+  larga. Un botón explícito es más descubrible y accesible.
+- Qué pasa si es la activa: no se puede quitar sin cambiar antes; el selector lo explica.
+- Si la instancia tiene sesión guardada, cerrarla al quitarla (no dejar restos cifrados).
+
+**Qué toca.**
+- `InstanceStore` (`apps/android/.../InstanceStore.kt`): `remove(url)` que no borre la última ni la
+  activa, y limpie la sesión si esa instancia era la dueña.
+- `LoginScreen`/selector de instancia: acción «Quitar» con confirmación y aviso si es la activa.
+- Textos en los 9 idiomas (`Strings.kt`) y tests del store (quitar la activa se rechaza; quitar una
+  inactiva la elimina; la sesión de otra instancia no se toca).
+- `docs/ai/landing.md` no cambia: es una pantalla de la app, no del producto público.
