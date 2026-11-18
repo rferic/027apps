@@ -37,7 +37,7 @@ solo, se puede hacer todo menos el escaneo del QR.
 | 4 | **QR entre dos móviles** (tarea 10, P4) | El flujo de un móvil + QR servido ya está verificado (entra, la sesión vieja se revoca en servidor). Falta el escaneo entre dos dispositivos y la revocación de **push**, que exige producción |
 | 5 | **Caducidad y renovación del QR** | Dejar pasar 60 s sin escanear: el QR deja de mostrarse como válido y «Generar otro código» funciona; reusar un código da error, no entra |
 | 6 | **`FLAG_SECURE` y captura** | Intentar una captura del QR: debe salir bloqueada; la app explica que se renueva sola |
-| 7 | **Recuperación con email real** (tarea 08, P5) | En staging o producción: `/forgot-password` con una cuenta real, abrir el correo, «Continuar», cambiar contraseña y entrar. Probar también el límite de 3/hora |
+| 7 | ~~Recuperación con email real~~ | **Hecho 2026-11-18** en producción: correo real, confirmación que no consume en GET, contraseña nueva y entrada |
 | 8 | **Actualización a la release** (tarea 03/06) | Instalar la release 0.18.x, publicar 0.19.0 y abrir la app: aviso de versión nueva, descarga e instalación, y la sesión sigue dentro |
 | 9 | ~~Login tras logout~~ | **Hecho 2026-11-18**: el logout en la app ya no cierra la app (crash de Firebase corregido) y se vuelve a entrar sin problema |
 | 10 | **Contraste claro/oscuro** (tarea 09) | Capturas a 375 px (web) y 390 px (app) de invitación, bienvenida, recuperación y migración, en claro y oscuro |
