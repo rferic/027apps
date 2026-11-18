@@ -113,3 +113,16 @@ existente aplique la validación de 12 caracteres (solo para cuentas nuevas).
 
 **Auditoría de seguridad**: obligatoria antes de `finalizada` (A02, A07, A11): token no visible ni
 en logs, Keystore, `allowBackup=false`, formulario bloqueado, sin reenvío del canje.
+
+**Aceptación real (2026-11-18, móvil)**: invitación nueva para `invitado.demo@example.test`; el
+escáner de Android abrió la app (esquema de debug), se eligió contraseña y la invitación quedó
+`used`, el perfil se creó con rol `user` y el idioma de la invitación (`es`), y el módulo incluido
+(`owe-no`) quedó concedido. El escáner **de la app** no sirve para invitaciones (solo migración): es
+el comportamiento diseñado.
+
+**Correcciones de la aceptación**:
+- Con otra sesión abierta (o guardada en arranque en frío) la invitación ahora pide confirmación y
+  ofrece «Cerrar sesión y aceptar» en vez de cambiar de cuenta en silencio.
+- `FcmRegistrar.revoke()` mataba el proceso al cerrar sesión en una instancia **sin FCM** (Firebase
+  sin inicializar, excepción en un hilo). Ahora comprueba `FirebaseApp.getApps()` y captura el
+  fallo; afectaba a cualquier logout local.

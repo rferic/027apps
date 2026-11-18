@@ -93,7 +93,14 @@ class FcmRegistrar(private val context: Context) {
                         request("DELETE", "$baseUrl/api/v1/devices/$deviceId?sessions=local", jwt, null)
                     }
                 }.onFailure { Log.w(TAG, "Could not revoke this device", it) }
-                FirebaseMessaging.getInstance().deleteToken()
+                // A local instance has no FCM config, so Firebase is never
+                // initialised here: calling it anyway killed the process (an
+                // uncaught exception in a plain thread) on every local logout.
+                runCatching {
+                    if (FirebaseApp.getApps(context).isNotEmpty()) {
+                        FirebaseMessaging.getInstance().deleteToken()
+                    }
+                }.onFailure { Log.w(TAG, "Could not delete the FCM token", it) }
             }.start()
         }
         if (token != null) prefs.edit().remove("push_token").apply()

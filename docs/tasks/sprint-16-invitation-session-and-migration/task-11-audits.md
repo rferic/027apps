@@ -43,6 +43,7 @@ barrera del rol (CHECK + Zod + servicio), recuperación sin oráculo de cuentas 
 | M8 | Media | Campos a 14 px: iOS hacía zoom al enfocar | Corregido: 16 px en móvil, 14 px desde `sm` |
 | M9 | Media | QR de escritorio con 2 módulos de margen sobre superficie oscura | Corregido: `margin: 4` y sin fondo de tarjeta |
 | M10 | Media | `/migrate` no avisaba de que es solo Android ni de los 60 s | Corregido con el aviso y la caducidad |
+| M12 | Media | Aceptar una invitación con otra sesión abierta cambiaba de cuenta en silencio | Corregido: diálogo con la cuenta abierta (o «hay una sesión guardada» en arranque en frío) y «Cerrar sesión y aceptar». Encontrado en la aceptación real con un móvil |
 | M13 | Media | Los fallos de migración decían «No pudimos aceptar la invitación» | Corregido: mensajes propios de crear código y de mover cuenta |
 | M15 | Media | Los formularios de recuperación no tenían estado pendiente | Corregido: botón con `useFormStatus` y etiqueta traducida en los tres |
 | M16 | Media | Un fallo de red al aceptar dejaba el botón en «Accepting…» | Corregido: `try/catch` con reintento |

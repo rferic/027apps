@@ -168,6 +168,32 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val link = InvitationLink.parse(raw) ?: return
         // The link wins over a boot that is still resolving the session.
         bootJob?.cancel()
+        val current = _state.value
+        if (hasStoredSession()) {
+            // Accepting would replace this session behind the person's back: ask
+            // first. On a cold start the state is Loading and the email is not
+            // known yet, so the dialog falls back to "a saved session".
+            pendingLink = link
+            _invite.value = InviteState(
+                confirmSwitch = supabase?.auth?.currentUserOrNull()?.email
+                    ?: (current as? AppState.SignedIn)?.user?.displayName
+                    ?: "",
+            )
+            return
+        }
+        openInvite(link)
+    }
+
+    /** The confirmation dialog: sign the open session out and continue. */
+    fun confirmInviteSwitch() {
+        val link = pendingLink ?: return
+        viewModelScope.launch {
+            endSession(revoked = false)
+            openInvite(link)
+        }
+    }
+
+    private fun openInvite(link: InvitationLink) {
         pendingLink = link
         _invite.value = InviteState(loading = true)
         _state.value = AppState.NeedsInvite(link)

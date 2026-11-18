@@ -201,6 +201,35 @@ fun AppRoot(
                     )
                 }
 
+                // An invitation opened while another account is signed in must
+                // not replace that session silently.
+                val inviteSwitch = invite.confirmSwitch
+                if (inviteSwitch != null) {
+                    AppAlertDialog(
+                        onDismissRequest = viewModel::cancelInvite,
+                        title = { Text(strings.inviteTitle) },
+                        text = {
+                            Text(
+                                if (inviteSwitch.isEmpty()) {
+                                    strings.inviteSwitchStored
+                                } else {
+                                    strings.inviteSwitchAccount.replace("{account}", inviteSwitch)
+                                },
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(onClick = viewModel::confirmInviteSwitch) {
+                                Text(strings.inviteSignOutAndContinue)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = viewModel::cancelInvite) {
+                                Text(strings.cancel)
+                            }
+                        },
+                    )
+                }
+
                 // A link from a browser may name any host: when it is not the
                 // instance this install uses, the person confirms first.
                 val confirmInstance = migration.confirmInstance

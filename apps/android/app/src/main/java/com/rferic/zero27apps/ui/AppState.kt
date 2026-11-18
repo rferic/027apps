@@ -64,6 +64,8 @@ data class InviteState(
     /** A redemption is in flight. */
     val pending: Boolean = false,
     val error: InviteError? = null,
+    /** Signed in as this account: accepting needs a sign-out the person confirms. */
+    val confirmSwitch: String? = null,
 )
 
 /** Old<->new phone migration (QR); the screens render from this one value. */
