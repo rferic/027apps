@@ -21,6 +21,8 @@ en su fichero `task-NN.md`.
 - Módulo `owe-no` instalado y activo; datos de demo (3 personas, grupo, gasto, saldos); la cuenta
   demo ve el módulo en la app.
 - Gates mecánicos, auditorías de seguridad y UX, y revisión de estilo (ver `task-11-audits.md`).
+- Quitar una instancia guardada desde el selector (tarea 12), con confirmación y persistencia tras
+  reiniciar; verificado en emulador.
 
 ## 1. Requiere un móvil Android real
 

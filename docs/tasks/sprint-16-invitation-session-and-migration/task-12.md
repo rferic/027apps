@@ -39,6 +39,14 @@ instancia de producción y la local sin forma de limpiar la que sobraba.
 - Los nueve idiomas tienen los textos y `AppStringsTest` lo comprueba.
 - `./gradlew :app:testDebugUnitTest :app:assembleDebug` en verde.
 
+**Hecho y verificado (2026-11-18, emulador)**
+- El selector muestra «Quitar» solo en la instancia que no es la activa ni el build por defecto; al
+  pulsarlo aparece «¿Quitar la instancia?» con la dirección dentro y, al confirmar, la fila
+  desaparece y sigue fuera tras reiniciar la app.
+- La instancia activa y la de producción no ofrecen la acción.
+- Tests del store: quitar una inactiva deja la activa; el build por defecto no se puede quitar.
+  `:app:testDebugUnitTest` y `:app:assembleDebug` en verde (InstanceStore 9/9).
+
 **Riesgos**: que el selector quede con una selección que ya no existe (se corrige al confirmar: la
 selección vuelve a la activa); que se confunda con «cerrar sesión» (el diálogo dice que solo se
 olvida la dirección y que se puede volver a añadir).
