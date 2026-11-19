@@ -30,7 +30,7 @@ vi.mock("@027apps/core/users/api.js", () => ({
   userRoute: () => userHandlerMock,
 }));
 
-import { loadMember, loadMembers } from "./panel-members";
+import { loadMember, loadMemberInviter, loadMembers } from "./panel-members";
 
 const USERS = [
   {
@@ -315,5 +315,35 @@ describe("loadMember", () => {
     userHandlerMock.mockResolvedValue(json({ user: { id: "u1", display_name: "Ana" } }));
 
     await expect(loadMember("u1")).resolves.toEqual({ ok: false });
+  });
+});
+
+describe("loadMemberInviter", () => {
+  it("answers ok with null for a member that genuinely has no parent", async () => {
+    queryMock.mockResolvedValue({ rows: [{ invited_by: null }] });
+
+    await expect(loadMemberInviter("u1")).resolves.toEqual({ ok: true, inviter: null });
+    expect(queryMock).toHaveBeenCalledWith(
+      "select invited_by from public.profiles where id = $1",
+      ["u1"],
+    );
+  });
+
+  it("answers ok with the inviter id when the member has one", async () => {
+    queryMock.mockResolvedValue({ rows: [{ invited_by: "u0" }] });
+
+    await expect(loadMemberInviter("u1")).resolves.toEqual({ ok: true, inviter: "u0" });
+  });
+
+  it("answers ok:false for an empty result instead of guessing no parent", async () => {
+    queryMock.mockResolvedValue({ rows: [] });
+
+    await expect(loadMemberInviter("u1")).resolves.toEqual({ ok: false });
+  });
+
+  it("answers ok:false when the read throws", async () => {
+    queryMock.mockRejectedValue(new Error("database down"));
+
+    await expect(loadMemberInviter("u1")).resolves.toEqual({ ok: false });
   });
 });

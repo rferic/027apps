@@ -231,11 +231,14 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
 
   const member = result.member;
   const isSelf = gate.user.id === member.id;
-  const [invitation, invitees, invitedBy] = await Promise.all([
+  const [invitation, invitees, inviter] = await Promise.all([
     loadMemberInvitation(member.id),
     loadInvitees(member.id),
     loadMemberInviter(member.id),
   ]);
+  // Only a successful read that genuinely found no parent marks an orphan; a
+  // failed read keeps the member page rendering without the false note.
+  const isOrphan = member.role === "user" && inviter.ok && inviter.inviter === null;
   return (
     <section className="flex flex-col gap-5">
       <MemberBreadcrumb name={memberName(member)} messages={messages} />
@@ -258,11 +261,7 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
           messages={messages}
         />
       )}
-      <MemberTree
-        invitees={invitees}
-        isOrphan={member.role === "user" && invitedBy === null}
-        messages={messages}
-      />
+      <MemberTree invitees={invitees} isOrphan={isOrphan} messages={messages} />
       <MemberProfileForm
         member={member}
         viewerRole={gate.user.role}

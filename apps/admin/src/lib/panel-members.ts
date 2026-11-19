@@ -327,20 +327,30 @@ export async function loadInvitees(id: string): Promise<MemberList> {
 
 /**
  * The member's inviter, read from `public.profiles` through the service pool
- * (`GET /users/{id}` deliberately does not expose `invited_by`). `null` means
- * the member has no parent: an administrator root, or an orphan whose inviter
- * was purged. A failed read answers null so the note is never shown wrongly.
+ * (`GET /users/{id}` deliberately does not expose `invited_by`). A successful
+ * read answers `{ ok: true, inviter }` where `inviter` is `null` when the
+ * member genuinely has no parent (an administrator root, or an orphan whose
+ * inviter was purged). A failed read answers `{ ok: false }` so the caller can
+ * distinguish "no inviter" from "we could not tell" and never show the orphan
+ * note on a transient error.
  */
-export async function loadMemberInviter(id: string): Promise<string | null> {
+export async function loadMemberInviter(
+  id: string,
+): Promise<{ ok: true; inviter: string | null } | { ok: false }> {
   try {
     const { settingsDeps } = await getInfra();
     const { rows } = await settingsDeps.db.query(
       "select invited_by from public.profiles where id = $1",
       [id],
     );
-    const invitedBy = rows[0]?.invited_by;
-    return invitedBy === null || invitedBy === undefined ? null : String(invitedBy);
+    const row = rows[0];
+    // No row means the profile is gone (raced with a purge): "no parent" is not
+    // something we can honestly report, so it reads as a failure, not an orphan.
+    if (!row) return { ok: false };
+    const invitedBy = row.invited_by;
+    const inviter = invitedBy === null || invitedBy === undefined ? null : String(invitedBy);
+    return { ok: true, inviter };
   } catch {
-    return null;
+    return { ok: false };
   }
 }

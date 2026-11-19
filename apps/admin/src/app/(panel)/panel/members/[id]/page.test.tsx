@@ -93,7 +93,7 @@ beforeEach(() => {
   loadInviteesMock.mockReset();
   loadInviteesMock.mockResolvedValue({ ok: true, users: [], total: 0, activeTotal: 0 });
   loadMemberInviterMock.mockReset();
-  loadMemberInviterMock.mockResolvedValue("u0");
+  loadMemberInviterMock.mockResolvedValue({ ok: true, inviter: "u0" });
   notFoundMock.mockClear();
 });
 
@@ -291,12 +291,26 @@ describe("MemberPage", () => {
       ok: true,
       member: { ...MEMBER, role: "user" as const, invitation_level: 2 },
     });
-    loadMemberInviterMock.mockResolvedValue(null);
+    loadMemberInviterMock.mockResolvedValue({ ok: true, inviter: null });
 
     const html = renderToStaticMarkup(await render());
 
     expect(html).toContain("People they have brought");
     expect(html).toContain("Their inviter was removed, so their invitees no longer count against anyone.");
+    expect(html).toContain("No one yet.");
+  });
+
+  it("never shows the orphan note when the inviter read failed", async () => {
+    loadMemberMock.mockResolvedValue({
+      ok: true,
+      member: { ...MEMBER, role: "user" as const, invitation_level: 2 },
+    });
+    loadMemberInviterMock.mockResolvedValue({ ok: false });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("People they have brought");
+    expect(html).not.toContain("Their inviter was removed, so their invitees no longer count against anyone.");
     expect(html).toContain("No one yet.");
   });
 });
