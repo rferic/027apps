@@ -193,3 +193,114 @@ data class RevokeOtherSessionsRequest(@SerialName("keep_session_id") val keepSes
 
 @Serializable
 data class RevokeOthersResponse(val revoked: Int = 0)
+
+// --- Invitations (sprint 18: club quota, QR and requests) ------------------
+
+/** The caller's live quota (spec §6.2): seats from the level plus grants. */
+@Serializable
+data class InvitationQuotaDto(
+    val level: Int? = null,
+    val base: Int = 0,
+    val granted: Int = 0,
+    val used: Int = 0,
+    val reserved: Int = 0,
+    val remaining: Int = 0,
+    val unlimited: Boolean = false,
+    @SerialName("pending_request") val pendingRequest: PendingInvitationRequestDto? = null,
+)
+
+@Serializable
+data class PendingInvitationRequestDto(
+    val id: String = "",
+    val amount: Int = 0,
+    @SerialName("created_at") val createdAt: String = "",
+)
+
+/** A pending member/QR link; the token is never listed, so there is no path. */
+@Serializable
+data class MemberInvitationDto(
+    val id: String = "",
+    val state: String = "pending",
+    val source: String = "member",
+    @SerialName("expires_at") val expiresAt: String = "",
+    val path: String? = null,
+    @SerialName("created_at") val createdAt: String = "",
+)
+
+@Serializable
+data class InviteeDto(
+    val id: String = "",
+    @SerialName("display_name") val displayName: String = "",
+    val level: Int? = null,
+    val state: String = "active",
+    @SerialName("joined_at") val joinedAt: String = "",
+)
+
+/** One of the caller's recent quota requests, resolved or not. */
+@Serializable
+data class InvitationRequestDto(
+    val id: String = "",
+    val amount: Int = 0,
+    val reason: String? = null,
+    val state: String = "pending",
+    @SerialName("granted_amount") val grantedAmount: Int? = null,
+    @SerialName("resolution_reason") val resolutionReason: String? = null,
+    @SerialName("resolved_at") val resolvedAt: String? = null,
+    @SerialName("created_at") val createdAt: String = "",
+)
+
+@Serializable
+data class MeInvitationsResponse(
+    val quota: InvitationQuotaDto = InvitationQuotaDto(),
+    val invitations: List<MemberInvitationDto> = emptyList(),
+    val invitees: List<InviteeDto> = emptyList(),
+    val requests: List<InvitationRequestDto> = emptyList(),
+)
+
+/** `POST /me/invitations`: the token is returned exactly once, in the path. */
+@Serializable
+data class CreatedInvitationResponse(
+    val token: String = "",
+    val path: String = "",
+)
+
+/** `POST /me/join-codes`: a 90-second rotating code for the QR. */
+@Serializable
+data class JoinCodeDto(
+    val id: String = "",
+    val code: String = "",
+    @SerialName("expires_at") val expiresAt: String = "",
+    val path: String = "",
+)
+
+@Serializable
+data class RequestInvitationQuotaBody(
+    val amount: Int,
+    val reason: String? = null,
+)
+
+@Serializable
+data class InvitationRequestResponse(val request: InvitationRequestDto)
+
+/** One admin read-only request row (`GET /invitation-requests`). */
+@Serializable
+data class AdminInvitationRequestDto(
+    val id: String = "",
+    val requester: RequestRequesterDto = RequestRequesterDto(),
+    val amount: Int = 0,
+    val reason: String? = null,
+    val state: String = "pending",
+    @SerialName("created_at") val createdAt: String = "",
+)
+
+@Serializable
+data class RequestRequesterDto(
+    val id: String = "",
+    @SerialName("display_name") val displayName: String = "",
+    val level: Int? = null,
+)
+
+@Serializable
+data class AdminInvitationRequestsResponse(
+    val requests: List<AdminInvitationRequestDto> = emptyList(),
+)

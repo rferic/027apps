@@ -1,6 +1,7 @@
 package com.rferic.zero27apps.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -57,6 +59,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rferic.zero27apps.ui.components.AppAlertDialog
 import com.rferic.zero27apps.ui.components.BrandWordmark
 import com.rferic.zero27apps.ui.components.GridIcon
+import com.rferic.zero27apps.data.InvitationQuotaDto
 import com.rferic.zero27apps.ui.i18n.AppStrings
 import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.migration.MigrationProgressScreen
@@ -64,7 +67,9 @@ import com.rferic.zero27apps.ui.migration.MigrationQrScreen
 import com.rferic.zero27apps.ui.migration.MigrationScanScreen
 import com.rferic.zero27apps.ui.screens.HomeScreen
 import com.rferic.zero27apps.ui.screens.InviteScreen
+import com.rferic.zero27apps.ui.screens.InviteMembersScreen
 import com.rferic.zero27apps.ui.screens.LoginScreen
+import com.rferic.zero27apps.ui.screens.quotaFraction
 import com.rferic.zero27apps.ui.screens.OweNoScreen
 import com.rferic.zero27apps.ui.screens.ModulesScreen
 import com.rferic.zero27apps.ui.screens.SettingsScreen
@@ -97,8 +102,12 @@ fun AppRoot(
     val privacyMasked by viewModel.privacyMasked.collectAsStateWithLifecycle()
     val update by viewModel.update.collectAsStateWithLifecycle()
     val migration by viewModel.migration.collectAsStateWithLifecycle()
+    val inviteMembers by viewModel.inviteMembers.collectAsStateWithLifecycle()
+    val joinCode by viewModel.joinCode.collectAsStateWithLifecycle()
+    val createdLink by viewModel.createdLink.collectAsStateWithLifecycle()
     var scanningMigration by rememberSaveable { mutableStateOf(false) }
     var showingMigrationQr by rememberSaveable { mutableStateOf(false) }
+    var showingInviteMembers by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(deepLink) {
         val link = deepLink ?: return@LaunchedEffect
@@ -170,7 +179,24 @@ fun AppRoot(
                         onRetry = viewModel::retryInvitePreview,
                         onCancel = viewModel::cancelInvite,
                     )
-                    is AppState.SignedIn -> if (showingMigrationQr) {
+                    is AppState.SignedIn -> if (showingInviteMembers) {
+                        InviteMembersScreen(
+                            instance = current.instance,
+                            user = current.user,
+                            state = inviteMembers,
+                            joinCode = joinCode,
+                            createdLink = createdLink,
+                            onBack = { showingInviteMembers = false },
+                            onRefresh = viewModel::loadInvitations,
+                            onCreateLink = viewModel::createInviteLink,
+                            onConsumeCreatedLink = viewModel::consumeCreatedLink,
+                            onRevoke = viewModel::revokeInvitation,
+                            onRequest = viewModel::requestQuota,
+                            onCancelRequest = viewModel::cancelRequest,
+                            onMintQr = viewModel::createJoinCode,
+                            onStopQr = viewModel::stopJoinCode,
+                        )
+                    } else if (showingMigrationQr) {
                         MigrationQrScreen(
                             instance = current.instance,
                             email = viewModel.currentEmail() ?: current.user.displayName,
@@ -188,6 +214,7 @@ fun AppRoot(
                             startAction,
                             startGroup,
                             onMigrate = { showingMigrationQr = true },
+                            onOpenInviteMembers = { showingInviteMembers = true },
                         )
                     }
                     is AppState.Failure -> FailureScreen(
@@ -395,8 +422,11 @@ private fun Shell(
     initialAction: String? = null,
     initialGroup: String? = null,
     onMigrate: () -> Unit,
+    onOpenInviteMembers: () -> Unit,
 ) {
     val pushStatus by viewModel.pushStatus.collectAsStateWithLifecycle()
+    val inviteMembers by viewModel.inviteMembers.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { viewModel.loadInvitations() }
     // D18: the shell restores the last place, but a module always opens at its root.
     val saved = viewModel.lastLocation()
     val savedModule = saved?.takeIf { it.startsWith("module:") }?.removePrefix("module:")
@@ -583,6 +613,14 @@ private fun Shell(
                     onLocale = { viewModel.updateProfile(locale = it) },
                     onMigrate = onMigrate,
                     onSignOut = viewModel::signOut,
+                    clubRow = {
+                        InviteSettingsRow(
+                            quota = inviteMembers.quota,
+                            adminPending = inviteMembers.adminRequests.size,
+                            isAdmin = state.user.role == "admin" || state.user.role == "super_admin",
+                            onOpen = onOpenInviteMembers,
+                        )
+                    },
                 )
                 else -> HomeScreen(
                     user = state.user,
@@ -601,6 +639,14 @@ private fun Shell(
                     onAddExpense = {
                         startAction = "expense"
                         openModule = "owe-no"
+                    },
+                    clubCard = {
+                        InviteClubCard(
+                            quota = inviteMembers.quota,
+                            adminPending = inviteMembers.adminRequests.size,
+                            isAdmin = state.user.role == "admin" || state.user.role == "super_admin",
+                            onOpen = onOpenInviteMembers,
+                        )
                     },
                 )
             }
@@ -664,4 +710,173 @@ private fun actionLabel(
 ): String = when (action.key) {
     "add_expense" -> strings.addExpense
     else -> action.label
+}
+
+/**
+ * Inicio's club card, always present for members: the quota bar plus the
+ * Invite/Ask action. An administrator sees the pending-request count instead,
+ * since the panel is where those are resolved.
+ */
+@Composable
+private fun InviteClubCard(
+    quota: InvitationQuotaDto?,
+    adminPending: Int,
+    isAdmin: Boolean,
+    onOpen: () -> Unit,
+) {
+    val palette = LocalPalette.current
+    val strings = LocalStrings.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen)
+            .background(palette.surface, RoundedCornerShape(16.dp))
+            .border(1.dp, palette.accent, RoundedCornerShape(16.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                strings.inviteClub,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = palette.accentForeground,
+                modifier = Modifier
+                    .background(palette.accent, RoundedCornerShape(999.dp))
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
+            )
+            Spacer(Modifier.weight(1f))
+            Text("›", fontSize = 18.sp, color = palette.mutedForeground)
+        }
+        if (isAdmin) {
+            Text(
+                strings.inviteAdminPending.replace("{count}", "$adminPending"),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp,
+            )
+        } else if (quota == null) {
+            Text(strings.inviteClub, color = palette.mutedForeground, fontSize = 13.sp)
+        } else {
+            val used = quota.used + quota.reserved
+            val total = quota.base + quota.granted
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (quota.remaining > 0) {
+                            strings.inviteFreeSeats.replace("{count}", "${quota.remaining}")
+                        } else {
+                            strings.inviteNoSeats
+                        },
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                    )
+                    Text(
+                        strings.inviteHomeNote
+                            .replace("{used}", "${quota.used}")
+                            .replace("{pending}", "${quota.reserved}"),
+                        fontSize = 12.sp,
+                        color = palette.mutedForeground,
+                    )
+                }
+                Text(
+                    if (quota.remaining > 0) strings.inviteInviteButton else strings.inviteAskButton,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.accent,
+                    modifier = Modifier
+                        .background(palette.accent.copy(alpha = 0.12f), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+            }
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .background(palette.muted, RoundedCornerShape(999.dp)),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(quotaFraction(quota))
+                        .background(
+                            if (quota.remaining > 0) palette.accent else palette.destructive,
+                            RoundedCornerShape(999.dp),
+                        ),
+                )
+            }
+            Text(
+                strings.inviteSeatsOf.replace("{used}", "$used").replace("{total}", "$total"),
+                fontSize = 11.sp,
+                color = palette.mutedForeground,
+            )
+        }
+    }
+}
+
+/** Ajustes' club row: the same quota bar, always visible, opening the screen. */
+@Composable
+private fun InviteSettingsRow(
+    quota: InvitationQuotaDto?,
+    adminPending: Int,
+    isAdmin: Boolean,
+    onOpen: () -> Unit,
+) {
+    val palette = LocalPalette.current
+    val strings = LocalStrings.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen)
+            .background(palette.surface, RoundedCornerShape(16.dp))
+            .border(1.dp, palette.border, RoundedCornerShape(16.dp))
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(strings.invitations, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                if (isAdmin) {
+                    Text(
+                        strings.inviteAdminPending.replace("{count}", "$adminPending"),
+                        fontSize = 11.sp,
+                        color = palette.mutedForeground,
+                    )
+                } else if (quota != null) {
+                    Text(
+                        strings.inviteSeatsOf
+                            .replace("{used}", "${quota.used + quota.reserved}")
+                            .replace("{total}", "${quota.base + quota.granted}"),
+                        fontSize = 11.sp,
+                        color = palette.mutedForeground,
+                    )
+                }
+            }
+            if (quota != null) {
+                Text(
+                    strings.inviteSettingsNote
+                        .replace("{free}", "${quota.remaining}")
+                        .replace("{pending}", "${quota.reserved}"),
+                    fontSize = 12.sp,
+                    color = palette.mutedForeground,
+                )
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .background(palette.muted, RoundedCornerShape(999.dp)),
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(quotaFraction(quota))
+                            .background(
+                                if (quota.remaining > 0) palette.accent else palette.destructive,
+                                RoundedCornerShape(999.dp),
+                            ),
+                    )
+                }
+            }
+        }
+        Text("›", fontSize = 18.sp, color = palette.mutedForeground)
+    }
 }

@@ -299,6 +299,46 @@ class ApiClient(
     suspend fun patchMe(patch: PatchMeRequest): UserDto =
         read<MeResponse>(request(HttpMethod.Patch, "/api/v1/me", patch)).user
 
+    // --- Invitations (sprint 18) --------------------------------------------
+
+    /** The caller's quota, their invitations, direct invitees and recent requests. */
+    suspend fun myInvitations(): MeInvitationsResponse =
+        read(request(HttpMethod.Get, "/api/v1/me/invitations"))
+
+    /** Mints a 48-hour anonymous link; the token is returned once, in the path. */
+    suspend fun createMemberInvitation(): CreatedInvitationResponse =
+        read(request(HttpMethod.Post, "/api/v1/me/invitations"))
+
+    /** Revokes one of the caller's own pending invitations. */
+    suspend fun revokeMemberInvitation(id: String) {
+        expectSuccess(request(HttpMethod.Delete, "/api/v1/me/invitations/$id"))
+    }
+
+    /** Mints a 90-second rotating join code for the QR. */
+    suspend fun createJoinCode(): JoinCodeDto =
+        read(request(HttpMethod.Post, "/api/v1/me/join-codes"))
+
+    /** Asks an administrator for more seats (only when none are left). */
+    suspend fun requestInvitationQuota(amount: Int, reason: String?): InvitationRequestDto =
+        read<InvitationRequestResponse>(
+            request(
+                HttpMethod.Post,
+                "/api/v1/me/invitation-requests",
+                RequestInvitationQuotaBody(amount, reason),
+            ),
+        ).request
+
+    /** Withdraws one of the caller's own pending requests. */
+    suspend fun cancelInvitationRequest(id: String) {
+        expectSuccess(request(HttpMethod.Post, "/api/v1/me/invitation-requests/$id/cancel"))
+    }
+
+    /** Read-only list of quota requests for an administrator. */
+    suspend fun adminInvitationRequests(state: String = "pending"): List<AdminInvitationRequestDto> =
+        read<AdminInvitationRequestsResponse>(
+            request(HttpMethod.Get, "/api/v1/invitation-requests?state=$state"),
+        ).requests
+
     /** Runs a request; a 401 refreshes the session and retries once. */
     private suspend fun request(
         method: HttpMethod,

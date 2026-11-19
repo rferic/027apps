@@ -42,6 +42,22 @@ fun migrationQrContent(instance: String, token: String): String {
 }
 
 /**
+ * What the invitation QR encodes: the full `/join/<code>` link on an https
+ * instance, and the debug-only scheme for a local http one. `code` is the raw
+ * join token the API returns once; the path is never re-encoded on its own, so
+ * the link the scanner opens is the one the app can read back.
+ */
+fun joinCodeQrContent(instance: String, code: String): String {
+    val base = instance.trimEnd('/')
+    val joinPath = "join/$code"
+    return if (base.startsWith("https://")) {
+        "$base/$joinPath"
+    } else {
+        "zero27apps-dev://$joinPath?instance=${java.net.URLEncoder.encode(base, "UTF-8")}"
+    }
+}
+
+/**
  * Reads a QR from the luma plane of a frame. `rowStride` is usually larger than
  * `width` (the camera pads each row), hence the copy row by row.
  */

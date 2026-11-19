@@ -86,3 +86,34 @@ data class MigrationState(
     val state: String = "pending",
     val error: MigrationError? = null,
 )
+
+/** Why loading the invitation screen failed; mapped to localised copy. */
+enum class InviteMembersError { NETWORK, RATE_LIMITED, GENERIC }
+
+/**
+ * The invitation screen's data, loaded from `GET /me/invitations` and the admin
+ * list when the caller is an administrator. The quota drives the bar and the
+ * Invite/Ask decision; the rest is the direct invitees, the pending links and
+ * the caller's own recent requests.
+ */
+data class InviteMembersState(
+    val loading: Boolean = false,
+    val quota: com.rferic.zero27apps.data.InvitationQuotaDto? = null,
+    val invitations: List<com.rferic.zero27apps.data.MemberInvitationDto> = emptyList(),
+    val invitees: List<com.rferic.zero27apps.data.InviteeDto> = emptyList(),
+    val requests: List<com.rferic.zero27apps.data.InvitationRequestDto> = emptyList(),
+    /** Read-only list for an administrator; empty for everyone else. */
+    val adminRequests: List<com.rferic.zero27apps.data.AdminInvitationRequestDto> = emptyList(),
+    val error: InviteMembersError? = null,
+)
+
+/** The rotating QR join code, minted and renewed by the view model. */
+enum class InviteJoinError { NETWORK, QUOTA_EXHAUSTED, RATE_LIMITED, GENERIC }
+
+data class JoinCodeState(
+    val loading: Boolean = false,
+    val code: String? = null,
+    val path: String? = null,
+    val expiresAt: String? = null,
+    val error: InviteJoinError? = null,
+)

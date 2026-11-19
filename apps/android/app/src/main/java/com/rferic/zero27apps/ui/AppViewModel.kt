@@ -86,6 +86,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _migration = MutableStateFlow(MigrationState())
     val migration: StateFlow<MigrationState> = _migration.asStateFlow()
 
+    private val _inviteMembers = MutableStateFlow(InviteMembersState())
+    val inviteMembers: StateFlow<InviteMembersState> = _inviteMembers.asStateFlow()
+
+    private val _joinCode = MutableStateFlow(JoinCodeState())
+    val joinCode: StateFlow<JoinCodeState> = _joinCode.asStateFlow()
+
+    /** The full link to copy after `POST /me/invitations`; consumed by the screen. */
+    private val _createdLink = MutableStateFlow<String?>(null)
+    val createdLink: StateFlow<String?> = _createdLink.asStateFlow()
+
     private var pendingLink: InvitationLink? = null
     /** The boot in flight; a deep link cancels it so it cannot overwrite the invite. */
     private var bootJob: Job? = null
@@ -728,6 +738,151 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 // Keep the old value: the picker re-renders from the state.
             }
         }
+    }
+
+    // --- Invitations (sprint 18: quota, QR and requests) ---------------------
+
+    /** Loads the invitation screen: quota, invitations, invitees and requests. */
+    fun loadInvitations() {
+        val api = client ?: return
+        val current = _state.value as? AppState.SignedIn ?: return
+        _inviteMembers.value = _inviteMembers.value.copy(loading = true, error = null)
+        viewModelScope.launch {
+            try {
+                fetchInvitations(api, current)
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                _inviteMembers.value = InviteMembersState(error = inviteMembersError(error))
+            }
+        }
+    }
+
+    private suspend fun fetchInvitations(api: ApiClient, current: AppState.SignedIn) {
+        val data = api.myInvitations()
+        val isAdmin = current.user.role == "admin" || current.user.role == "super_admin"
+        val adminRequests = if (isAdmin) {
+            runCatching { api.adminInvitationRequests() }.getOrDefault(emptyList())
+        } else {
+            emptyList()
+        }
+        _inviteMembers.value = InviteMembersState(
+            quota = data.quota,
+            invitations = data.invitations,
+            invitees = data.invitees,
+            requests = data.requests,
+            adminRequests = adminRequests,
+        )
+    }
+
+    /** Silently refreshes the invitation state after a change, keeping data on failure. */
+    private fun reloadInvitations() {
+        val api = client ?: return
+        val current = _state.value as? AppState.SignedIn ?: return
+        viewModelScope.launch {
+            runCatching { fetchInvitations(api, current) }
+        }
+    }
+
+    /** `POST /me/invitations`: mints a link and hands its full URL to the screen to copy. */
+    fun createInviteLink() {
+        val api = client ?: return
+        viewModelScope.launch {
+            try {
+                val created = api.createMemberInvitation()
+                _createdLink.value = instanceStore.current().trimEnd('/') + created.path
+                reloadInvitations()
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                _inviteMembers.value = _inviteMembers.value.copy(error = inviteMembersError(error))
+            }
+        }
+    }
+
+    /** Consumes the link the screen copied, so a re-open does not copy it twice. */
+    fun consumeCreatedLink() {
+        _createdLink.value = null
+    }
+
+    /** `DELETE /me/invitations/{id}`: revokes one of the caller's pending invitations. */
+    fun revokeInvitation(id: String) {
+        val api = client ?: return
+        viewModelScope.launch {
+            try {
+                api.revokeMemberInvitation(id)
+                reloadInvitations()
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                _inviteMembers.value = _inviteMembers.value.copy(error = inviteMembersError(error))
+            }
+        }
+    }
+
+    /** `POST /me/invitation-requests`: ask the administrator for more seats. */
+    fun requestQuota(amount: Int, reason: String?) {
+        val api = client ?: return
+        viewModelScope.launch {
+            try {
+                api.requestInvitationQuota(amount, reason)
+                reloadInvitations()
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                _inviteMembers.value = _inviteMembers.value.copy(error = inviteMembersError(error))
+            }
+        }
+    }
+
+    /** `POST /me/invitation-requests/{id}/cancel`: withdraw a pending request. */
+    fun cancelRequest(id: String) {
+        val api = client ?: return
+        viewModelScope.launch {
+            try {
+                api.cancelInvitationRequest(id)
+                reloadInvitations()
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                _inviteMembers.value = _inviteMembers.value.copy(error = inviteMembersError(error))
+            }
+        }
+    }
+
+    /** `POST /me/join-codes`: mints a 90-second QR code; the screen renews it. */
+    fun createJoinCode() {
+        val api = client ?: return
+        if (_state.value !is AppState.SignedIn) return
+        // Keep the current code on screen while a renewal is in flight: the old
+        // one stays valid until its own TTL, so nothing needs to be hidden.
+        _joinCode.value = _joinCode.value.copy(loading = true, error = null)
+        viewModelScope.launch {
+            try {
+                val created = api.createJoinCode()
+                _joinCode.value = JoinCodeState(
+                    code = created.code,
+                    path = created.path,
+                    expiresAt = created.expiresAt,
+                )
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                _joinCode.value = JoinCodeState(error = joinCodeError(error))
+            }
+        }
+    }
+
+    /** Leaving the QR screen forgets the code; the token is never persisted. */
+    fun stopJoinCode() {
+        _joinCode.value = JoinCodeState()
+    }
+
+    private fun inviteMembersError(error: Exception): InviteMembersError = when {
+        error.isNetworkFailure() -> InviteMembersError.NETWORK
+        (error as? ApiException)?.code == "rate_limited" -> InviteMembersError.RATE_LIMITED
+        else -> InviteMembersError.GENERIC
+    }
+
+    private fun joinCodeError(error: Exception): InviteJoinError = when {
+        error.isNetworkFailure() -> InviteJoinError.NETWORK
+        (error as? ApiException)?.code == "invitation_quota_exhausted" -> InviteJoinError.QUOTA_EXHAUSTED
+        (error as? ApiException)?.code == "rate_limited" -> InviteJoinError.RATE_LIMITED
+        else -> InviteJoinError.GENERIC
     }
 
     /**
