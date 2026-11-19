@@ -16,7 +16,7 @@ import { loadMemberInvitation } from "@/lib/invitation-grants";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { loadPanelTimeZone } from "@/lib/panel-settings";
 import { requirePanel } from "@/lib/panel-guard";
-import { loadMember, type MemberDetail } from "@/lib/panel-members";
+import { loadInvitees, loadMember, loadMemberInviter, type MemberDetail } from "@/lib/panel-members";
 
 /**
  * The page reads the session and the member while rendering; the layout's
@@ -130,6 +130,73 @@ function MemberCategories({
   );
 }
 
+function MemberTree({
+  invitees,
+  isOrphan,
+  messages,
+}: {
+  invitees: Awaited<ReturnType<typeof loadInvitees>>;
+  isOrphan: boolean;
+  messages: TranslationMap;
+}) {
+  if (!invitees.ok) {
+    return (
+      <PanelError
+        error={invitees}
+        heading={t("We couldn't load this member's invitees.", messages)}
+        retryHref="/panel/members"
+        messages={messages}
+      />
+    );
+  }
+
+  return (
+    <section
+      aria-labelledby="member-tree-title"
+      className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4"
+    >
+      <h2 id="member-tree-title" className="text-sm font-semibold">
+        {t("People they have brought", messages)}
+      </h2>
+      {isOrphan && (
+        <p role="status" className="text-xs font-semibold text-warning">
+          {t(
+            "Their inviter was removed, so their invitees no longer count against anyone.",
+            messages,
+          )}
+        </p>
+      )}
+      {invitees.users.length === 0 ? (
+        <p className="text-xs text-muted-foreground">{t("No one yet.", messages)}</p>
+      ) : (
+        <ul className="flex flex-col gap-1">
+          {invitees.users.map((invitee) => (
+            <li
+              key={invitee.id}
+              className="flex flex-wrap items-center gap-2 border-b border-border py-2 last:border-b-0"
+            >
+              <Link
+                href={`/panel/members/${invitee.id}`}
+                className="text-sm font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                {invitee.display_name || invitee.email || invitee.id}
+              </Link>
+              <Badge variant={invitee.deactivated_at === null ? "success" : "destructive"}>
+                {invitee.deactivated_at === null ? t("Active", messages) : t("Deactivated", messages)}
+              </Badge>
+              {invitee.invitation_level !== null && (
+                <span className="text-xs text-muted-foreground">
+                  {t("Level {level}", messages, { level: invitee.invitation_level })}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export default async function MemberPage({ params }: { params: Promise<{ id: string }> }) {
   const gate = await requirePanel("admin");
 
@@ -164,7 +231,11 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
 
   const member = result.member;
   const isSelf = gate.user.id === member.id;
-  const invitation = await loadMemberInvitation(member.id);
+  const [invitation, invitees, invitedBy] = await Promise.all([
+    loadMemberInvitation(member.id),
+    loadInvitees(member.id),
+    loadMemberInviter(member.id),
+  ]);
   return (
     <section className="flex flex-col gap-5">
       <MemberBreadcrumb name={memberName(member)} messages={messages} />
@@ -187,6 +258,11 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
           messages={messages}
         />
       )}
+      <MemberTree
+        invitees={invitees}
+        isOrphan={member.role === "user" && invitedBy === null}
+        messages={messages}
+      />
       <MemberProfileForm
         member={member}
         viewerRole={gate.user.role}

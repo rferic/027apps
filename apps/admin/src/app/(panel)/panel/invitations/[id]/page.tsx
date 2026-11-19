@@ -64,6 +64,11 @@ function emailModeLabel(mode: InvitationEmailMode, messages: TranslationMap): st
   return t("Not sent by email", messages);
 }
 
+/** An anonymous invitation carries no address: the invitee fills it later. */
+function invitationTitle(invitation: InvitationDetail, messages: TranslationMap): string {
+  return invitation.email ?? t("Anonymous invitation", messages);
+}
+
 function InvitationBreadcrumb({ email, messages }: { email: string; messages: TranslationMap }) {
   return (
     <nav aria-label={t("Breadcrumb", messages)} className="text-xs text-muted-foreground">
@@ -88,7 +93,7 @@ function InvitationHeader({
 }) {
   return (
     <header className="flex flex-wrap items-center gap-2">
-      <h1 className="text-base font-bold">{invitation.email}</h1>
+      <h1 className="text-base font-bold">{invitationTitle(invitation, messages)}</h1>
       <Badge variant={statusVariant(invitation.status)}>
         {statusLabel(invitation.status, messages)}
       </Badge>
@@ -180,7 +185,7 @@ function InvitationDetails({
         {t("Details", messages)}
       </h2>
       <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <MetaItem label={t("Name", messages)}>{invitation.name}</MetaItem>
+        <MetaItem label={t("Name", messages)}>{invitation.name ?? "—"}</MetaItem>
         <MetaItem label={t("Role", messages)}>
           {invitation.role === "admin" ? t("Admin", messages) : t("User", messages)}
         </MetaItem>
@@ -246,14 +251,24 @@ function InvitationDangerZone({
       <div className="flex flex-wrap items-center gap-2">
         <InvitationRevokeButton
           id={invitation.id}
-          name={invitation.name}
-          email={invitation.email}
+          name={invitation.name ?? invitationTitle(invitation, messages)}
+          email={invitationTitle(invitation, messages)}
           redirectTo="/panel/invitations"
           messages={messages}
         />
       </div>
     </section>
   );
+}
+
+/** Renew only an expired admin invitation; member/QR rows are never renewable. */
+function renewPanel(
+  invitation: InvitationDetail,
+  publicUrl: string | null,
+  messages: TranslationMap,
+) {
+  if (invitation.status !== "expired" || invitation.source !== "admin") return null;
+  return <InvitationRenew id={invitation.id} publicUrl={publicUrl} messages={messages} />;
 }
 
 export default async function InvitationPage({ params }: { params: Promise<{ id: string }> }) {
@@ -299,7 +314,7 @@ export default async function InvitationPage({ params }: { params: Promise<{ id:
 
   return (
     <section className="flex flex-col gap-5">
-      <InvitationBreadcrumb email={invitation.email} messages={messages} />
+      <InvitationBreadcrumb email={invitationTitle(invitation, messages)} messages={messages} />
       <InvitationHeader invitation={invitation} messages={messages} />
       <InvitationDetails
         invitation={invitation}
@@ -310,12 +325,15 @@ export default async function InvitationPage({ params }: { params: Promise<{ id:
         messages={messages}
       />
       {invitation.status === "pending" && (
-        <InvitationActions id={invitation.id} publicUrl={publicUrl} messages={messages} />
+        <InvitationActions
+          id={invitation.id}
+          publicUrl={publicUrl}
+          source={invitation.source}
+          messages={messages}
+        />
       )}
 
-      {invitation.status === "expired" && (
-        <InvitationRenew id={invitation.id} publicUrl={publicUrl} messages={messages} />
-      )}
+      {renewPanel(invitation, publicUrl, messages)}
 
       {invitation.status === "pending" && (
         <InvitationDangerZone invitation={invitation} messages={messages} />

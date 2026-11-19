@@ -112,6 +112,32 @@ function statusLabel(status: InvitationStatus, messages: TranslationMap): string
   }
 }
 
+function sourceVariant(source: InvitationRow["source"]): BadgeVariant {
+  return source === "member" ? "success" : "neutral";
+}
+
+function sourceLabel(source: InvitationRow["source"], messages: TranslationMap): string {
+  switch (source) {
+    case "member":
+      return t("Member", messages);
+    case "qr":
+      return t("QR", messages);
+    default:
+      return t("Admin", messages);
+  }
+}
+
+/** The invitee's address; an anonymous invitation fills it at redemption. */
+function recipientLabel(row: InvitationRow, messages: TranslationMap): string {
+  if (row.email) return row.email;
+  return t("Anonymous · not filled", messages);
+}
+
+/** Who created the invitation; `null` means a service key (the instance). */
+function inviterLabel(row: InvitationRow, messages: TranslationMap): string {
+  return row.created_by ? row.created_by.display_name : t("Instance", messages);
+}
+
 function categoryName(
   row: InvitationRow,
   categories: Map<string, string>,
@@ -165,7 +191,13 @@ function InvitationsTable({
               {t("Role", messages)}
             </th>
             <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
+              {t("Invited by", messages)}
+            </th>
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Status", messages)}
+            </th>
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
+              {t("Source", messages)}
             </th>
             <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Category", messages)}
@@ -183,17 +215,21 @@ function InvitationsTable({
             <tr key={row.id} className={clickableRowClass}>
               <td className="border-b border-border py-2 pr-3 font-semibold">
                 <RowLink href={`/panel/invitations/${encodeURIComponent(row.id)}`} className="text-accent">
-                  {row.email}
+                  {recipientLabel(row, messages)}
                 </RowLink>
               </td>
-              <td className="border-b border-border py-2 pr-3">{row.name}</td>
+              <td className="border-b border-border py-2 pr-3">{row.name ?? "—"}</td>
               <td className="border-b border-border py-2 pr-3">
                 <Badge variant="neutral">
                   {row.role === "admin" ? t("Admin", messages) : t("User", messages)}
                 </Badge>
               </td>
+              <td className="border-b border-border py-2 pr-3">{inviterLabel(row, messages)}</td>
               <td className="border-b border-border py-2 pr-3">
                 <Badge variant={statusVariant(row.status)}>{statusLabel(row.status, messages)}</Badge>
+              </td>
+              <td className="border-b border-border py-2 pr-3">
+                <Badge variant={sourceVariant(row.source)}>{sourceLabel(row.source, messages)}</Badge>
               </td>
               <td className="border-b border-border py-2 pr-3">
                 {categoryName(row, categories, categoriesOk, messages)}
@@ -228,14 +264,17 @@ function InvitationsCards({
             className="flex min-h-11 flex-col gap-1 rounded-card border border-border bg-surface p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <span className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold">{row.email}</span>
+              <span className="text-sm font-semibold">{recipientLabel(row, messages)}</span>
               <Badge variant={statusVariant(row.status)}>{statusLabel(row.status, messages)}</Badge>
+              <Badge variant={sourceVariant(row.source)}>{sourceLabel(row.source, messages)}</Badge>
             </span>
             <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
               <dt className="text-muted-foreground">{t("Name", messages)}</dt>
-              <dd>{row.name}</dd>
+              <dd>{row.name ?? "—"}</dd>
               <dt className="text-muted-foreground">{t("Role", messages)}</dt>
               <dd>{row.role === "admin" ? t("Admin", messages) : t("User", messages)}</dd>
+              <dt className="text-muted-foreground">{t("Invited by", messages)}</dt>
+              <dd>{inviterLabel(row, messages)}</dd>
               <dt className="text-muted-foreground">{t("Category", messages)}</dt>
               <dd>{categoryName(row, categories, categoriesOk, messages)}</dd>
               <dt className="text-muted-foreground">{t("Modules", messages)}</dt>

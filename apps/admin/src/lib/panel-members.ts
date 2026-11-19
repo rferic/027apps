@@ -250,13 +250,15 @@ function withEmail(user: UserFields, lookup: EmailLookup): MemberRow {
   return { ...user, email: lookup.emails.get(user.id) ?? null, emailUnavailable: false };
 }
 
-/** GET /api/v1/users with `q`, `role`, `state`, `category` and an offset; the page size is fixed here. */
+/** GET /api/v1/users with `q`, `role`, `state`, `category`, `invited_by` and an offset. */
 export async function loadMembers(input: {
   q?: string;
   role?: MemberRole;
   state?: MemberStateFilter;
   category?: string;
+  invited_by?: string;
   offset: number;
+  limit?: number;
 }): Promise<MemberList> {
   const token = await sessionToken();
   const params = new URLSearchParams();
@@ -265,11 +267,12 @@ export async function loadMembers(input: {
     ["role", input.role],
     ["state", input.state],
     ["category", input.category],
+    ["invited_by", input.invited_by],
   ];
   for (const [key, value] of optional) {
     if (value) params.set(key, value);
   }
-  params.set("limit", String(MEMBERS_PAGE_SIZE));
+  params.set("limit", String(input.limit ?? MEMBERS_PAGE_SIZE));
   params.set("offset", String(Math.max(0, input.offset)));
 
   const call = await callRoute(
@@ -315,4 +318,29 @@ export async function loadMember(id: string): Promise<MemberDetailResult> {
 
 function requestIdOf(call: RouteSuccess): { requestId?: string } {
   return call.requestId ? { requestId: call.requestId } : {};
+}
+
+/** Direct invitees of a member for the tree: every state, up to the API cap. */
+export async function loadInvitees(id: string): Promise<MemberList> {
+  return loadMembers({ invited_by: id, state: "all", offset: 0, limit: 100 });
+}
+
+/**
+ * The member's inviter, read from `public.profiles` through the service pool
+ * (`GET /users/{id}` deliberately does not expose `invited_by`). `null` means
+ * the member has no parent: an administrator root, or an orphan whose inviter
+ * was purged. A failed read answers null so the note is never shown wrongly.
+ */
+export async function loadMemberInviter(id: string): Promise<string | null> {
+  try {
+    const { settingsDeps } = await getInfra();
+    const { rows } = await settingsDeps.db.query(
+      "select invited_by from public.profiles where id = $1",
+      [id],
+    );
+    const invitedBy = rows[0]?.invited_by;
+    return invitedBy === null || invitedBy === undefined ? null : String(invitedBy);
+  } catch {
+    return null;
+  }
 }

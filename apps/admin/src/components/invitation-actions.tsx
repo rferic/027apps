@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
+import type { InvitationSource } from "@027apps/core/invitations/service.js";
 import { Button } from "@/components/ui/button";
 import { copyText } from "@/lib/clipboard";
 import {
@@ -30,11 +31,27 @@ function failureMessage(code: string | undefined, messages: TranslationMap): str
   }
 }
 
+/** Member/QR invitations are anonymous: they can only be revoked, never resent. */
+function RevokeOnlyNote({ messages }: { messages: TranslationMap }) {
+  return (
+    <section
+      aria-labelledby="invitation-email-title"
+      className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4"
+    >
+      <h2 id="invitation-email-title" className="text-sm font-semibold">
+        {t("Email", messages)}
+      </h2>
+      <p className="text-xs text-muted-foreground">{t("This invitation can only be revoked.", messages)}</p>
+    </section>
+  );
+}
+
 /**
- * Pending-only actions: send the email again or issue a new link. Both rotate
- * the token, so the previous link stops working; the link action asks first.
+ * Pending-only admin actions: send the email again or issue a new link. Both
+ * rotate the token, so the previous link stops working; the link action asks
+ * first.
  */
-export function InvitationActions({
+function AdminInvitationActions({
   id,
   publicUrl,
   messages,
@@ -158,4 +175,24 @@ export function InvitationActions({
       )}
     </section>
   );
+}
+
+/**
+ * The admin actions for an invitation. `admin` invitations can be resent and
+ * rotated; `member` and `qr` invitations are anonymous, so the server rejects
+ * both (`invitation_not_renewable`) and the panel shows only the revoke note.
+ */
+export function InvitationActions({
+  id,
+  publicUrl,
+  source = "admin",
+  messages,
+}: {
+  id: string;
+  publicUrl: string | null;
+  source?: InvitationSource;
+  messages: TranslationMap;
+}) {
+  if (source !== "admin") return <RevokeOnlyNote messages={messages} />;
+  return <AdminInvitationActions id={id} publicUrl={publicUrl} messages={messages} />;
 }

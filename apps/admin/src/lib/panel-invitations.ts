@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { invitationRoute, invitationsRoute } from "@027apps/core/invitations/api.js";
-import type { InvitationStatusFilter } from "@027apps/core/invitations/service.js";
+import type {
+  InvitationSource,
+  InvitationStatusFilter,
+} from "@027apps/core/invitations/service.js";
 import { isEmailLocale, type EmailLocale } from "@027apps/core/email/types.js";
 import { invitationsRouteDeps } from "@/lib/invitations-route-deps";
 import { PANEL_PAGE_SIZE } from "@/lib/panel-pagination";
@@ -15,10 +18,17 @@ export type InvitationEmailMode = "sent" | "failed" | "not_sent";
 
 export interface InvitationRow {
   id: string;
-  email: string;
-  name: string;
+  /** Null on an anonymous invitation: the invitee fills it while redeeming. */
+  email: string | null;
+  /** Null on an anonymous invitation: the invitee fills it while redeeming. */
+  name: string | null;
   role: "user" | "admin";
-  expires_in_days: number;
+  source: InvitationSource;
+  /** Level the redeemed profile gets; 1 for an invitation an admin minted. */
+  depth: number | null;
+  /** No email and no name yet: the invitation is a bare link or a QR code. */
+  anonymous: boolean;
+  expires_in_days: number | null;
   user_category_id: string | null;
   modules: string[];
   status: InvitationStatus;
@@ -30,6 +40,8 @@ export interface InvitationRow {
   email_sent_at: string | null;
   email_failed_at: string | null;
   email_error: string | null;
+  created_by: InvitationCreator | null;
+  redeemed_by: InvitationCreator | null;
   created_at: string;
 }
 
@@ -39,14 +51,14 @@ export type InvitationList =
   | { ok: true; invitations: InvitationRow[]; total: number }
   | InvitationFailure;
 
-/** Who created the invitation; `null` means a key (the instance) did. */
+/** Who created or redeemed the invitation; `null` means a key (the instance) did. */
 export interface InvitationCreator {
   id: string;
   display_name: string;
 }
 
-/** `InvitationDetail` from the Core: the list row plus its creator. */
-export type InvitationDetail = InvitationRow & { created_by: InvitationCreator | null };
+/** `InvitationDetail` from the Core: the list row plus its creator and redeemer. */
+export type InvitationDetail = InvitationRow;
 
 export type InvitationDetailResult =
   | { ok: true; invitation: InvitationDetail }
@@ -70,6 +82,24 @@ function readCount(value: unknown): number | null {
 function readDate(value: unknown): string | null | undefined {
   if (value === null) return null;
   return readString(value);
+}
+
+/** `null`/missing read as null; a non-string reads malformed (undefined). */
+function readNullableString(value: unknown): string | null | undefined {
+  if (value === null || value === undefined) return null;
+  return readString(value);
+}
+
+/** The Core always sets `source`; a missing one is the historical `admin`. */
+function readSource(value: unknown): InvitationSource | null {
+  if (value === undefined) return "admin";
+  return value === "admin" || value === "member" || value === "qr" ? value : null;
+}
+
+/** `depth` is null for a pre-0037 row; a non-integer reads malformed. */
+function readDepth(value: unknown): number | null | undefined {
+  if (value === null || value === undefined) return null;
+  return typeof value === "number" && Number.isInteger(value) ? value : undefined;
 }
 
 function readCategoryId(value: unknown): string | null | undefined {
@@ -160,22 +190,29 @@ async function callRoute(
 
 function readInvitationBase(value: Record<string, unknown>): {
   id: string;
-  email: string;
-  name: string;
+  email: string | null;
+  name: string | null;
+  anonymous: boolean;
   expires_at: string;
   created_at: string;
 } | null {
   const id = readString(value.id);
-  const email = readString(value.email);
-  const name = readString(value.name);
+  const email = readNullableString(value.email);
+  const name = readNullableString(value.name);
   const expiresAt = readString(value.expires_at);
   const createdAt = readString(value.created_at);
   if (!id) return null;
-  if (!email) return null;
-  if (!name) return null;
+  if (email === undefined || name === undefined) return null;
   if (!expiresAt) return null;
   if (!createdAt) return null;
-  return { id, email, name, expires_at: expiresAt, created_at: createdAt };
+  return {
+    id,
+    email,
+    name,
+    anonymous: email === null && name === null,
+    expires_at: expiresAt,
+    created_at: createdAt,
+  };
 }
 
 function readEmailMeta(value: Record<string, unknown>): {
@@ -204,8 +241,31 @@ function readRole(value: unknown): "user" | "admin" {
   return value === "admin" ? "admin" : "user";
 }
 
-function readTtl(value: unknown): number {
-  return typeof value === "number" && Number.isInteger(value) ? value : 7;
+function readTtl(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  return typeof value === "number" && Number.isInteger(value) ? value : null;
+}
+
+/** The club fields (source, depth, creator, redeemer) read together. */
+function readClubMeta(value: Record<string, unknown>): {
+  source: InvitationSource;
+  depth: number | null;
+  created_by: InvitationCreator | null;
+  redeemed_by: InvitationCreator | null;
+} | null {
+  const source = readSource(value.source);
+  const depth = readDepth(value.depth);
+  const createdBy = readCreator(value.created_by);
+  const redeemedBy = readCreator(value.redeemed_by);
+  if (
+    source === null ||
+    depth === undefined ||
+    createdBy === undefined ||
+    redeemedBy === undefined
+  ) {
+    return null;
+  }
+  return { source, depth, created_by: createdBy, redeemed_by: redeemedBy };
 }
 
 function readInvitation(value: unknown): InvitationRow | null {
@@ -218,15 +278,22 @@ function readInvitation(value: unknown): InvitationRow | null {
   const usedAt = readDate(value.used_at);
   const revokedAt = readDate(value.revoked_at);
   const email = readEmailMeta(value);
-  if (categoryId === undefined) return null;
-  if (modules === null) return null;
-  if (status === null) return null;
-  if (usedAt === undefined) return null;
-  if (revokedAt === undefined) return null;
-  if (email === null) return null;
+  const club = readClubMeta(value);
+  if (
+    categoryId === undefined ||
+    modules === null ||
+    status === null ||
+    usedAt === undefined ||
+    revokedAt === undefined ||
+    email === null ||
+    club === null
+  ) {
+    return null;
+  }
   return {
     ...base,
     role: readRole(value.role),
+    ...club,
     expires_in_days: readTtl(value.expires_in_days),
     user_category_id: categoryId,
     modules,
@@ -247,11 +314,7 @@ function readCreator(value: unknown): InvitationCreator | null | undefined {
 }
 
 function readInvitationDetail(value: unknown): InvitationDetail | null {
-  const invitation = readInvitation(value);
-  if (!invitation || !isRecord(value)) return null;
-  const creator = readCreator(value.created_by);
-  if (creator === undefined) return null;
-  return { ...invitation, created_by: creator };
+  return readInvitation(value);
 }
 
 /** Query for one page: `status` only travels when the caller asks for one. */
