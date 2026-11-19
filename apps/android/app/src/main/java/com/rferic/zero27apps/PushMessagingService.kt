@@ -28,7 +28,13 @@ class PushMessagingService : FirebaseMessagingService() {
         manager.createNotificationChannel(
             NotificationChannel(CHANNEL_ID, "027Apps events", NotificationManager.IMPORTANCE_DEFAULT),
         )
-        val open = Intent(this, MainActivity::class.java).putExtra("start", "owe_group")
+        // An invitation push opens the invitation screen; every other push still
+        // opens the group it names. The server only sends the request push to
+        // administrators, so no role check is needed here.
+        val isInvitation = data["key"] == "push.invitation_requested" ||
+            data["key"] == "push.invitation_request_resolved"
+        val open = Intent(this, MainActivity::class.java)
+            .putExtra("start", if (isInvitation) "invite" else "owe_group")
         data["target"]?.let { open.putExtra("group", it) }
         // One PendingIntent per group: with a fixed request code every
         // notification reused the first group's intent and opened the wrong one.

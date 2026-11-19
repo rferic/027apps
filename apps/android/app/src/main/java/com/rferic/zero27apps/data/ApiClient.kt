@@ -318,6 +318,13 @@ class ApiClient(
     suspend fun createJoinCode(): JoinCodeDto =
         read(request(HttpMethod.Post, "/api/v1/me/join-codes"))
 
+    /**
+     * Exchanges a scanned join code for a 15-minute invitation token (public).
+     * The code travels in the path, never logged, and the token is returned once.
+     */
+    suspend fun exchangeJoinCode(code: String): JoinCodeExchangeDto =
+        read(request(HttpMethod.Post, "/api/v1/join-codes/$code/exchange"))
+
     /** Asks an administrator for more seats (only when none are left). */
     suspend fun requestInvitationQuota(amount: Int, reason: String?): InvitationRequestDto =
         read<InvitationRequestResponse>(

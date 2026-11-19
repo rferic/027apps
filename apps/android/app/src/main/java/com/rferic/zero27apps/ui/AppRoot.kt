@@ -104,13 +104,21 @@ fun AppRoot(
     val inviteMembers by viewModel.inviteMembers.collectAsStateWithLifecycle()
     val joinCode by viewModel.joinCode.collectAsStateWithLifecycle()
     val createdLink by viewModel.createdLink.collectAsStateWithLifecycle()
+    val joinLink by viewModel.joinLink.collectAsStateWithLifecycle()
     var scanningMigration by rememberSaveable { mutableStateOf(false) }
     var showingMigrationQr by rememberSaveable { mutableStateOf(false) }
     var showingInviteMembers by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(deepLink) {
         val link = deepLink ?: return@LaunchedEffect
-        if (!viewModel.onMigrationLink(link)) viewModel.onInviteLink(link)
+        if (!viewModel.onMigrationLink(link) && !viewModel.onJoinLink(link)) viewModel.onInviteLink(link)
+    }
+
+    // A push for an invitation request or its resolution opens the invitation
+    // screen; no role check here because the server only sends the request push
+    // to administrators.
+    LaunchedEffect(startAction) {
+        if (startAction == "invite") showingInviteMembers = true
     }
 
     // Coming back to the app is the natural moment to ask for a newer build and
@@ -327,6 +335,33 @@ fun AppRoot(
                             }
                         } else {
                             null
+                        },
+                    )
+                }
+
+                // A scanned join code that could not be exchanged (expired, used,
+                // or the inviter ran out of seats) says why, and asks for a new QR.
+                val joinLinkError = joinLink.error
+                if (joinLinkError != null) {
+                    AppAlertDialog(
+                        onDismissRequest = viewModel::dismissJoinLink,
+                        title = { Text(strings.joinCodeErrorTitle) },
+                        text = {
+                            Text(
+                                when (joinLinkError) {
+                                    JoinLinkError.USED -> strings.joinCodeUsed
+                                    JoinLinkError.QUOTA_EXHAUSTED -> strings.joinCodeQuota
+                                    JoinLinkError.EXPIRED -> strings.joinCodeExpired
+                                    JoinLinkError.RATE_LIMITED -> strings.inviteRateLimited
+                                    JoinLinkError.NETWORK -> strings.failureNetwork
+                                    JoinLinkError.GENERIC -> strings.inviteFailed
+                                },
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(onClick = viewModel::dismissJoinLink) {
+                                Text(strings.inviteClose)
+                            }
                         },
                     )
                 }

@@ -40,6 +40,9 @@
                      the one-shot code to the new phone. -->
                 <data android:scheme="zero27apps" android:host="migrate" />
                 <data android:scheme="027apps" android:host="migrate" />
+                <!-- A member's join QR hands its single-use code to the new phone. -->
+                <data android:scheme="zero27apps" android:host="join" />
+                <data android:scheme="027apps" android:host="join" />
             </intent-filter>
         </activity>
 

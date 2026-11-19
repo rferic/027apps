@@ -273,6 +273,13 @@ data class JoinCodeDto(
     val path: String = "",
 )
 
+/** `POST /join-codes/{code}/exchange`: the code becomes a 15-minute invitation. */
+@Serializable
+data class JoinCodeExchangeDto(
+    val token: String = "",
+    val path: String = "",
+)
+
 @Serializable
 data class RequestInvitationQuotaBody(
     val amount: Int,

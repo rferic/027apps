@@ -82,7 +82,7 @@ class MainActivity : ComponentActivity() {
         const val LINK_KEY = "handled_deep_link"
         const val LINK_AT_KEY = "handled_deep_link_at"
         const val LINK_REPLAY_MS = 15_000L
-        val START_ACTIONS = setOf("owe_group", "owe_expense", "modules", "settings")
+        val START_ACTIONS = setOf("owe_group", "owe_expense", "modules", "settings", "invite")
         val UUID_PATTERN =
             Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
     }

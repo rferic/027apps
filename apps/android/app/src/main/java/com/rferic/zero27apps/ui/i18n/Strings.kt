@@ -339,6 +339,10 @@ class Strings(private val values: Map<String, String>) {
     val inviteRateLimitedHint: String get() = values.getValue("inviteRateLimitedHint")
     val inviteTooManyRequests: String get() = values.getValue("inviteTooManyRequests")
     val inviteEmpty: String get() = values.getValue("inviteEmpty")
+    val joinCodeErrorTitle: String get() = values.getValue("joinCodeErrorTitle")
+    val joinCodeExpired: String get() = values.getValue("joinCodeExpired")
+    val joinCodeUsed: String get() = values.getValue("joinCodeUsed")
+    val joinCodeQuota: String get() = values.getValue("joinCodeQuota")
 }
 
 object AppStrings {
@@ -690,6 +694,10 @@ object AppStrings {
         "inviteTooManyRequests" to "Too many requests",
         "inviteRateLimitedHint" to "Wait a moment before asking for another QR or link.",
         "inviteEmpty" to "No invitations yet.",
+        "joinCodeErrorTitle" to "This code can't be used",
+        "joinCodeExpired" to "This code has expired. Ask for a new QR.",
+        "joinCodeUsed" to "This code has already been used. Ask for a new QR.",
+        "joinCodeQuota" to "No seats left to invite you. Ask the administrator for more.",
     ))
 
     val es = Strings(mapOf(
@@ -1028,6 +1036,10 @@ object AppStrings {
         "inviteTooManyRequests" to "Demasiadas peticiones",
         "inviteRateLimitedHint" to "Espera un momento antes de pedir otro QR o enlace.",
         "inviteEmpty" to "Aún no hay invitaciones.",
+        "joinCodeErrorTitle" to "Este código no se puede usar",
+        "joinCodeExpired" to "Este código ha caducado. Pide otro QR.",
+        "joinCodeUsed" to "Este código ya se ha usado. Pide otro QR.",
+        "joinCodeQuota" to "No quedan plazas para invitarte. Pide más al administrador.",
     ))
 
     val ca = Strings(mapOf(
@@ -1366,6 +1378,10 @@ object AppStrings {
         "inviteTooManyRequests" to "Massa peticions",
         "inviteRateLimitedHint" to "Espera un moment abans de demanar un altre QR o enllaç.",
         "inviteEmpty" to "Encara no hi ha invitacions.",
+        "joinCodeErrorTitle" to "Aquest codi no es pot fer servir",
+        "joinCodeExpired" to "Aquest codi ha caducat. Demana un altre QR.",
+        "joinCodeUsed" to "Aquest codi ja s'ha fet servir. Demana un altre QR.",
+        "joinCodeQuota" to "No queden places per convidar-te. Demana'n més a l'administrador.",
     ))
 
     val it = Strings(mapOf(
@@ -1704,6 +1720,10 @@ object AppStrings {
         "inviteTooManyRequests" to "Troppe richieste",
         "inviteRateLimitedHint" to "Attendi un momento prima di chiedere un altro QR o link.",
         "inviteEmpty" to "Ancora nessun invito.",
+        "joinCodeErrorTitle" to "Questo codice non può essere usato",
+        "joinCodeExpired" to "Questo codice è scaduto. Chiedi un altro QR.",
+        "joinCodeUsed" to "Questo codice è già stato usato. Chiedi un altro QR.",
+        "joinCodeQuota" to "Non ci sono posti per invitarti. Chiedine altri all'amministratore.",
     ))
 
     val fr = Strings(mapOf(
@@ -2042,6 +2062,10 @@ object AppStrings {
         "inviteTooManyRequests" to "Trop de demandes",
         "inviteRateLimitedHint" to "Attendez un instant avant de demander un autre QR ou lien.",
         "inviteEmpty" to "Aucune invitation pour l'instant.",
+        "joinCodeErrorTitle" to "Ce code ne peut pas être utilisé",
+        "joinCodeExpired" to "Ce code a expiré. Demandez un autre QR.",
+        "joinCodeUsed" to "Ce code a déjà été utilisé. Demandez un autre QR.",
+        "joinCodeQuota" to "Plus aucune place pour vous inviter. Demandez-en plus à l'administrateur.",
     ))
 
     val de = Strings(mapOf(
@@ -2380,6 +2404,10 @@ object AppStrings {
         "inviteTooManyRequests" to "Zu viele Anfragen",
         "inviteRateLimitedHint" to "Warte einen Moment, bevor du einen weiteren QR oder Link anforderst.",
         "inviteEmpty" to "Noch keine Einladungen.",
+        "joinCodeErrorTitle" to "Dieser Code kann nicht verwendet werden",
+        "joinCodeExpired" to "Dieser Code ist abgelaufen. Bitte um einen neuen QR-Code.",
+        "joinCodeUsed" to "Dieser Code wurde bereits verwendet. Bitte um einen neuen QR-Code.",
+        "joinCodeQuota" to "Keine Plätze mehr, um dich einzuladen. Bitte den Administrator um mehr.",
     ))
 
     val pt = Strings(mapOf(
@@ -2718,6 +2746,10 @@ object AppStrings {
         "inviteTooManyRequests" to "Demasiados pedidos",
         "inviteRateLimitedHint" to "Espera um momento antes de pedir outro QR ou ligação.",
         "inviteEmpty" to "Ainda sem convites.",
+        "joinCodeErrorTitle" to "Este código não pode ser usado",
+        "joinCodeExpired" to "Este código expirou. Pede outro QR.",
+        "joinCodeUsed" to "Este código já foi usado. Pede outro QR.",
+        "joinCodeQuota" to "Não restam lugares para te convidar. Pede mais ao administrador.",
     ))
 
     val gl = Strings(mapOf(
@@ -3056,6 +3088,10 @@ object AppStrings {
         "inviteTooManyRequests" to "Demasiadas peticións",
         "inviteRateLimitedHint" to "Agarda un momento antes de pedir outro QR ou ligazón.",
         "inviteEmpty" to "Aínda non hai invitacións.",
+        "joinCodeErrorTitle" to "Este código non se pode usar",
+        "joinCodeExpired" to "Este código caducou. Pide outro QR.",
+        "joinCodeUsed" to "Este código xa se usou. Pide outro QR.",
+        "joinCodeQuota" to "Non quedan prazas para convidarte. Pide máis ao administrador.",
     ))
 
     val eu = Strings(mapOf(
@@ -3394,5 +3430,9 @@ object AppStrings {
         "inviteTooManyRequests" to "Eskaera gehiegi",
         "inviteRateLimitedHint" to "Itxaron pixka bat beste QR edo esteka bat eskatu aurretik.",
         "inviteEmpty" to "Oraindik ez dago gonbidapenik.",
+        "joinCodeErrorTitle" to "Kode hau ezin da erabili",
+        "joinCodeExpired" to "Kode hau iraungi da. Eskatu beste QR bat.",
+        "joinCodeUsed" to "Kode hau erabili da dagoeneko. Eskatu beste QR bat.",
+        "joinCodeQuota" to "Ez daude tokirik zu gonbidatzeko. Eskatu gehiago administratzaileari.",
     ))
 }

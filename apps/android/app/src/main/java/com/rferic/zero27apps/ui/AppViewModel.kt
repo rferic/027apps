@@ -10,6 +10,7 @@ import com.rferic.zero27apps.InstanceStore
 import com.rferic.zero27apps.ServerUrl
 import com.rferic.zero27apps.auth.EncryptedStringStore
 import com.rferic.zero27apps.auth.InvitationLink
+import com.rferic.zero27apps.auth.JoinLink
 import com.rferic.zero27apps.auth.MigrationLink
 import com.rferic.zero27apps.auth.sessionIdOf
 import com.rferic.zero27apps.auth.KeystoreSecretCipher
@@ -85,6 +86,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _migration = MutableStateFlow(MigrationState())
     val migration: StateFlow<MigrationState> = _migration.asStateFlow()
+
+    /** The `/join/<code>` deep-link exchange, in flight or failed. */
+    private val _joinLink = MutableStateFlow(JoinLinkState())
+    val joinLink: StateFlow<JoinLinkState> = _joinLink.asStateFlow()
 
     /** The invitation screen's state machine, in a plain class the tests can drive. */
     private val inviteStore = InviteMembersStore(
@@ -180,6 +185,42 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** Entry point for an invitation deep link, from either activity callback. */
     fun onInviteLink(raw: String) {
         val link = InvitationLink.parse(raw) ?: return
+        handleInvite(link)
+    }
+
+    /**
+     * Entry point for a `/join/<code>` link. The exchange is the user opening
+     * the QR, never a prefetch; it turns the code into a 15-minute invitation
+     * and then walks the same path as [onInviteLink]. False means the link was
+     * not a join link and the caller should try the invitation parser.
+     */
+    fun onJoinLink(raw: String): Boolean {
+        val link = JoinLink.parse(raw) ?: return false
+        bootJob?.cancel()
+        _joinLink.value = JoinLinkState(loading = true)
+        viewModelScope.launch {
+            try {
+                val exchanged = apiFor(link.instance).exchangeJoinCode(link.code)
+                _joinLink.value = JoinLinkState()
+                handleInvite(InvitationLink(exchanged.token, link.instance))
+            } catch (error: ApiException) {
+                _joinLink.value = JoinLinkState(error = joinLinkError(error))
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                _joinLink.value = JoinLinkState(
+                    error = if (error.isNetworkFailure()) JoinLinkError.NETWORK else JoinLinkError.GENERIC,
+                )
+            }
+        }
+        return true
+    }
+
+    /** The join-code exchange failed: close the notice and stay on the shell. */
+    fun dismissJoinLink() {
+        _joinLink.value = JoinLinkState()
+    }
+
+    private fun handleInvite(link: InvitationLink) {
         // The link wins over a boot that is still resolving the session.
         bootJob?.cancel()
         val current = _state.value
@@ -941,6 +982,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         error.code == "conflict" -> InviteError.CONFLICT
         error.network -> InviteError.NETWORK
         else -> InviteError.GENERIC
+    }
+
+    private fun joinLinkError(error: ApiException): JoinLinkError = when {
+        error.code == "join_code_used" -> JoinLinkError.USED
+        error.code == "invitation_quota_exhausted" -> JoinLinkError.QUOTA_EXHAUSTED
+        // An unknown or expired code is a `not_found` by design.
+        error.code == "not_found" -> JoinLinkError.EXPIRED
+        error.code == "rate_limited" -> JoinLinkError.RATE_LIMITED
+        error.network -> JoinLinkError.NETWORK
+        else -> JoinLinkError.GENERIC
     }
 
     /** Supabase Auth says the password is wrong (as opposed to a network error). */

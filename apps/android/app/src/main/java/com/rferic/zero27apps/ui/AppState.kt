@@ -117,3 +117,11 @@ data class JoinCodeState(
     val expiresAt: String? = null,
     val error: InviteJoinError? = null,
 )
+
+/** Why a scanned `/join/<code>` link could not be exchanged. */
+enum class JoinLinkError { EXPIRED, USED, QUOTA_EXHAUSTED, RATE_LIMITED, NETWORK, GENERIC }
+
+data class JoinLinkState(
+    val loading: Boolean = false,
+    val error: JoinLinkError? = null,
+)
