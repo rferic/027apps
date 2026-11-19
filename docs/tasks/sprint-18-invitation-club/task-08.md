@@ -2,7 +2,7 @@
 id: sprint-18-task-08
 titulo: "App: pantalla de invitación"
 area: app
-estado: pendiente
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-18-invitation-club.md
 fuente: docs/superpowers/specs/2026-11-18-invitation-club-design.md
 adrs: [0004, 0007]

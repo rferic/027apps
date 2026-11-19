@@ -2,7 +2,7 @@
 id: sprint-18-task-01
 titulo: Migración, ajustes y modelo base
 area: core + SQL
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-18-invitation-club.md
 fuente: docs/superpowers/specs/2026-11-18-invitation-club-design.md
 adrs: [0004, 0007]

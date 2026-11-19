@@ -2,7 +2,7 @@
 id: sprint-18-invitation-club
 titulo: Invitaciones de club (niveles, cuota y QR)
 area: producto
-estado: en curso
+estado: implementación finalizada · pendiente de merge
 ---
 
 # Sprint 18 — Invitaciones de club
@@ -61,6 +61,17 @@ administrador. El acceso se entrega con un QR rotativo o con un enlace compartib
 - Aprobar el plan y el orden de las tareas.
 - Aceptar el copy de la pantalla de invitación y de la solicitud en el preview.
 - Orden explícita de merge a `staging` y, después, de `staging` a `main`.
+
+## Cierre (2026-11-19)
+
+- Implementación, revisión por tarea y revisión final del branch completadas.
+- Auditoría de seguridad: **APTO**; los dos High de fuga del Bearer por deep link a un host ajeno
+  están cerrados, y el push de invitación solo lleva `{key, module, state}`.
+- Ramo: `a3a9348..5e38739` (24 commits), rama `sprint/18-invitation-club`.
+- Verificación: core 620, admin 1344, i18n 1102 cadenas/9 locales, OpenAPI 121/121, Android 122;
+  `db-tests` completo tiene 5 fallos preexistentes por datos de demo locales, y las suites
+  objetivo de invitaciones están verdes. CI con base limpia es la referencia.
+- Pendiente: orden explícita de merge (PR del sprint contra `staging`) y promoción posterior.
 
 ## Relación con el sprint 17
 
