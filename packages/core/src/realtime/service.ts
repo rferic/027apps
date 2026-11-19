@@ -312,6 +312,7 @@ export async function publishPending(
           const text = (value: unknown) =>
             typeof value === "string" && value.trim() !== "" ? value.slice(0, 80) : undefined;
           const amount = typeof resource.amount_minor === "number" ? resource.amount_minor : undefined;
+          const places = typeof resource.places === "number" ? resource.places : undefined;
           const results = await deps.push.send(tokens, {
             key: `push.${event.type.replace(/\./g, "_")}`,
             module: event.module_key ?? "027apps",
@@ -322,6 +323,8 @@ export async function publishPending(
             ...(text(resource.currency) ? { currency: text(resource.currency)! } : {}),
             ...(text(resource.movement_id) ? { resource_id: text(resource.movement_id)! } : {}),
             ...(text(resource.group_id) ? { target: text(resource.group_id)! } : {}),
+            ...(text(resource.state) ? { state: text(resource.state)! } : {}),
+            ...(places !== undefined ? { places: String(places) } : {}),
           });
           const invalid = results
             .filter((result) => result.error === "UNREGISTERED" || result.error === "INVALID_ARGUMENT")

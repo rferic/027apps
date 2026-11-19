@@ -30,6 +30,16 @@ import {
   exchangeJoinCode,
   previewJoinCode,
 } from "./join-codes";
+import {
+  approveInvitationRequest,
+  cancelInvitationRequest,
+  grantInvitationQuota,
+  listInvitationGrants,
+  listInvitationRequests,
+  rejectInvitationRequest,
+  requestInvitationQuota,
+  revokeInvitationGrant,
+} from "./requests";
 
 /**
  * Invitations API (core-api spec §3.5). Admin routes require
@@ -67,6 +77,7 @@ export interface InvitationsRouteDeps {
     joinCodeCreate?: number;
     joinCodePreview?: number;
     joinCodeExchange?: number;
+    invitationRequest?: number;
   };
 }
 
@@ -109,6 +120,39 @@ export const redeemInvitationSchema = z
 
 /** `POST /me/invitations` body: empty, the server derives every field. */
 export const createMemberInvitationSchema = z.object({}).strict();
+
+/** `POST /me/invitation-requests` body: a seat amount and an optional reason. */
+export const createInvitationRequestSchema = z
+  .object({
+    amount: z.number().int().min(1).max(20),
+    reason: z.string().trim().max(280).optional(),
+  })
+  .strict();
+
+/** `POST /invitation-requests/{id}/approve` body: the granted seat amount. */
+export const approveInvitationRequestSchema = z
+  .object({ amount: z.number().int().min(1).max(100) })
+  .strict();
+
+/** `POST /invitation-requests/{id}/reject` body: an optional reason. */
+export const rejectInvitationRequestSchema = z
+  .object({ reason: z.string().trim().max(280).optional() })
+  .strict();
+
+/** `POST /users/{id}/invitation-grants` body: a direct grant. */
+export const createInvitationGrantSchema = z
+  .object({
+    amount: z.number().int().min(1).max(100),
+    reason: z.string().trim().max(280).optional(),
+  })
+  .strict();
+
+/** `GET /invitation-requests` state filter, validated at the edge. */
+export const invitationRequestListFiltersSchema = z
+  .object({
+    state: z.enum(["pending", "approved", "rejected", "cancelled", "all"]).optional(),
+  })
+  .strict();
 
 function uuid(value: string, field: string): string {
   if (!UUID.test(value)) throw new DomainError("validation_failed", `invalid ${field}`);
@@ -420,5 +464,170 @@ export function joinCodeExchangeRoute(deps: InvitationsRouteDeps) {
       },
       deps.door,
       async () => tokenResponse(await exchangeJoinCode(deps.invitations, rawCode), 201),
+    );
+}
+
+/** `POST /me/invitation-requests` — ask an administrator for more seats. */
+export function createInvitationRequestRoute(deps: InvitationsRouteDeps) {
+  return (req: Request): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["profile:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        schema: createInvitationRequestSchema,
+        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.invitationRequest ?? 3 },
+      },
+      deps.door,
+      async (ctx) => ({
+        status: 201,
+        body: {
+          request: await requestInvitationQuota(deps.invitations, ctx.caller, ctx.body as {
+            amount: number;
+            reason?: string;
+          }),
+        },
+      }),
+    );
+}
+
+/** `POST /me/invitation-requests/{id}/cancel` — withdraw a pending request. */
+export function cancelInvitationRequestRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["profile:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
+      },
+      deps.door,
+      async (ctx) => {
+        await cancelInvitationRequest(deps.invitations, ctx.caller, uuid(rawId, "invitation request id"));
+        return new Response(null, { status: 204 });
+      },
+    );
+}
+
+/** `GET /invitation-requests` — the admin list, pending first, with live quota. */
+export function listInvitationRequestsRoute(deps: InvitationsRouteDeps) {
+  return (req: Request): Promise<Response> =>
+    withDoor(req, readOptions(deps), deps.door, async (ctx) => {
+      const page = pageParams(ctx.searchParams);
+      const rawState = ctx.searchParams.get("state") || undefined;
+      const filters = invitationRequestListFiltersSchema.safeParse({ state: rawState });
+      if (!filters.success) {
+        throw new DomainError("validation_failed", "invalid state filter");
+      }
+      const result = await listInvitationRequests(deps.invitations, {
+        ...page,
+        ...(filters.data.state ? { state: filters.data.state } : {}),
+      });
+      return { ...result, limit: page.limit, offset: page.offset };
+    });
+}
+
+/** `POST /invitation-requests/{id}/approve` — approve with a seat amount. */
+export function approveInvitationRequestRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(
+      req,
+      options(deps, ["invitations:write"], approveInvitationRequestSchema),
+      deps.door,
+      async (ctx) => ({
+        request: await approveInvitationRequest(
+          deps.invitations,
+          ctx.caller,
+          uuid(rawId, "invitation request id"),
+          (ctx.body as { amount: number }).amount,
+        ),
+      }),
+    );
+}
+
+/** `POST /invitation-requests/{id}/reject` — refuse with an optional reason. */
+export function rejectInvitationRequestRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(
+      req,
+      options(deps, ["invitations:write"], rejectInvitationRequestSchema),
+      deps.door,
+      async (ctx) => ({
+        request: await rejectInvitationRequest(
+          deps.invitations,
+          ctx.caller,
+          uuid(rawId, "invitation request id"),
+          (ctx.body as { reason?: string }).reason,
+        ),
+      }),
+    );
+}
+
+/** `GET /users/{id}/invitation-grants` — active and revoked grants (users:write). */
+export function listInvitationGrantsRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawUserId: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["users:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.read ?? DEFAULT_READ_LIMIT },
+      },
+      deps.door,
+      async () => ({
+        grants: await listInvitationGrants(deps.invitations, uuid(rawUserId, "user id")),
+      }),
+    );
+}
+
+/** `POST /users/{id}/invitation-grants` — a direct grant with no request. */
+export function grantInvitationQuotaRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawUserId: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["users:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        schema: createInvitationGrantSchema,
+        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
+      },
+      deps.door,
+      async (ctx) => ({
+        status: 201,
+        body: {
+          grant: await grantInvitationQuota(deps.invitations, ctx.caller, uuid(rawUserId, "user id"), ctx.body as {
+            amount: number;
+            reason?: string;
+          }),
+        },
+      }),
+    );
+}
+
+/** `DELETE /users/{id}/invitation-grants/{grantId}` — revoke, keeping history. */
+export function revokeInvitationGrantRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawUserId: string, rawGrantId: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["users:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
+      },
+      deps.door,
+      async (ctx) => {
+        await revokeInvitationGrant(
+          deps.invitations,
+          ctx.caller,
+          uuid(rawUserId, "user id"),
+          uuid(rawGrantId, "grant id"),
+        );
+        return new Response(null, { status: 204 });
+      },
     );
 }

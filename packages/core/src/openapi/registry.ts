@@ -9,7 +9,15 @@ import {
   oweImportCommit,
   oweImportPreview,
 } from "./owe-requests";
-import { createInvitationSchema, redeemInvitationSchema, createMemberInvitationSchema } from "../invitations/api";
+import {
+  createInvitationSchema,
+  redeemInvitationSchema,
+  createMemberInvitationSchema,
+  createInvitationRequestSchema,
+  approveInvitationRequestSchema,
+  rejectInvitationRequestSchema,
+  createInvitationGrantSchema,
+} from "../invitations/api";
 import { maintenanceRunSchema } from "../maintenance/api";
 import {
   moduleSettingSchema,
@@ -58,11 +66,16 @@ import {
   invitationDetailResponseSchema,
   invitationListSchema,
   invitationsQuerySchema,
+  invitationRequestsQuerySchema,
   joinCodeCreatedSchema,
   joinCodeExchangeSchema,
   joinCodePreviewSchema,
   memberInvitationCreatedSchema,
   memberInvitationListSchema,
+  invitationRequestResponseSchema,
+  invitationRequestListSchema,
+  invitationGrantListSchema,
+  invitationGrantResponseSchema,
   maintenanceRunSchema as maintenanceRunResponseSchema,
   maintenanceStatusSchema,
   moduleDetailResponseSchema,
@@ -162,6 +175,10 @@ const categoryRename = component("UserCategoryRename", userCategoryRenameSchema)
 const invitationCreate = component("InvitationCreate", createInvitationSchema);
 const invitationRedeem = component("InvitationRedeem", redeemInvitationSchema);
 const memberInvitationCreate = component("MemberInvitationCreate", createMemberInvitationSchema);
+const invitationRequestCreate = component("InvitationRequestCreate", createInvitationRequestSchema);
+const invitationRequestApprove = component("InvitationRequestApprove", approveInvitationRequestSchema);
+const invitationRequestReject = component("InvitationRequestReject", rejectInvitationRequestSchema);
+const invitationGrantCreate = component("InvitationGrantCreate", createInvitationGrantSchema);
 const apiKeyCreate = component("ApiKeyCreate", createApiKeySchema);
 const apiKeyUpdate = component("ApiKeyUpdate", updateApiKeySchema);
 // `updateApiKeySchema` refines "at least one field"; publish the equivalent
@@ -794,6 +811,77 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     response: joinCodeExchangeSchema,
     auth: "public",
     status: 201,
+  },
+  {
+    method: "post",
+    path: "/me/invitation-requests",
+    summary: "Ask an administrator to raise the caller's invitation quota.",
+    scopes: ["profile:write"],
+    request: invitationRequestCreate,
+    response: invitationRequestResponseSchema,
+    auth: "session-only",
+    status: 201,
+  },
+  {
+    method: "post",
+    path: "/me/invitation-requests/{id}/cancel",
+    summary: "Withdraw one of the caller's own pending quota requests.",
+    scopes: ["profile:write"],
+    auth: "session-only",
+    status: 204,
+  },
+  {
+    method: "get",
+    path: "/invitation-requests",
+    summary: "List quota requests (admins), pending first, with the requester's live quota.",
+    scopes: ["invitations:read"],
+    query: invitationRequestsQuerySchema,
+    response: invitationRequestListSchema,
+    auth: "session",
+  },
+  {
+    method: "post",
+    path: "/invitation-requests/{id}/approve",
+    summary: "Approve a pending request with a seat amount; creates one grant.",
+    scopes: ["invitations:write"],
+    request: invitationRequestApprove,
+    response: invitationRequestResponseSchema,
+    auth: "session",
+  },
+  {
+    method: "post",
+    path: "/invitation-requests/{id}/reject",
+    summary: "Reject a pending request with an optional reason.",
+    scopes: ["invitations:write"],
+    request: invitationRequestReject,
+    response: invitationRequestResponseSchema,
+    auth: "session",
+  },
+  {
+    method: "get",
+    path: "/users/{id}/invitation-grants",
+    summary: "A member's quota grants, active and revoked (users:write).",
+    scopes: ["users:write"],
+    response: invitationGrantListSchema,
+    auth: "session",
+  },
+  {
+    method: "post",
+    path: "/users/{id}/invitation-grants",
+    summary: "Grant quota directly to a member, without a request.",
+    scopes: ["users:write"],
+    request: invitationGrantCreate,
+    response: invitationGrantResponseSchema,
+    auth: "session",
+    status: 201,
+  },
+  {
+    method: "delete",
+    path: "/users/{id}/invitation-grants/{grantId}",
+    summary: "Revoke a grant, keeping its history.",
+    scopes: ["users:write"],
+    auth: "session",
+    status: 204,
   },
   {
     method: "get",

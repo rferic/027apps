@@ -4,6 +4,7 @@ import type { QueryClient } from "../api/rate-limit-storage";
 import { isEmailLocale, type EmailLocale } from "../email/types";
 import { invitationQuota, type InvitationQuota } from "./quota";
 import { hashInviteToken, newInviteToken, withInviteTx } from "./shared";
+import { listOwnInvitationRequests, type InvitationRequestView } from "./requests";
 import {
   getInvitation,
   type InvitationSource,
@@ -218,10 +219,19 @@ export type OwnInvitee = {
   joined_at: string;
 };
 
+/** The one pending request the app shows on the quota bar (spec §6.2). */
+export type PendingInvitationRequest = {
+  id: string;
+  amount: number;
+  created_at: string;
+};
+
 export type OwnInvitationsView = {
-  quota: InvitationQuota & { pending_request: null };
+  quota: InvitationQuota & { pending_request: PendingInvitationRequest | null };
   invitations: OwnInvitationListItem[];
   invitees: OwnInvitee[];
+  /** The caller's latest 10 requests, newest first (resolved or not). */
+  requests: InvitationRequestView[];
 };
 
 const toIso = (value: unknown): string =>
@@ -234,8 +244,9 @@ function invitationState(row: Record<string, unknown>, now: Date): InvitationSta
 }
 
 /**
- * The caller's live quota plus their own invitations (never the tokens) and
- * their direct invitees. `pending_request` arrives with task 5.
+ * The caller's live quota plus their own invitations (never the tokens), their
+ * direct invitees and their recent quota requests. `pending_request` names the
+ * one open request (there can only be one), so the app can show it on the bar.
  */
 export async function listOwnInvitations(
   deps: InvitationsDeps,
@@ -246,6 +257,12 @@ export async function listOwnInvitations(
   const now = deps.now?.() ?? new Date();
 
   const quota = await invitationQuota(deps.db, uid);
+  const requests = await listOwnInvitationRequests(deps, uid, 10);
+  const pending = requests.find((request) => request.state === "pending") ?? null;
+  const pendingRequest: PendingInvitationRequest | null = pending
+    ? { id: pending.id, amount: pending.amount, created_at: pending.created_at }
+    : null;
+
   const { rows: invitationRows } = await deps.db.query(
     `select i.id, i.source, i.expires_at, i.used_at, i.revoked_at, i.created_at,
             rb.id as redeemed_by_id, rb.display_name as redeemed_by_display_name
@@ -264,7 +281,7 @@ export async function listOwnInvitations(
   );
 
   return {
-    quota: { ...quota, pending_request: null },
+    quota: { ...quota, pending_request: pendingRequest },
     invitations: invitationRows.map((row) => ({
       id: String(row.id),
       state: invitationState(row, now),
@@ -297,5 +314,6 @@ export async function listOwnInvitations(
           : "deactivated",
       joined_at: toIso(row.created_at),
     })),
+    requests,
   };
 }

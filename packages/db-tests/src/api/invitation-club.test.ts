@@ -7,6 +7,15 @@ import {
   revokeOwnInvitation,
 } from "@027apps/core/invitations/member.js";
 import {
+  approveInvitationRequest,
+  cancelInvitationRequest,
+  grantInvitationQuota,
+  listInvitationGrants,
+  rejectInvitationRequest,
+  requestInvitationQuota,
+  revokeInvitationGrant,
+} from "@027apps/core/invitations/requests.js";
+import {
   createJoinCode,
   exchangeJoinCode,
   previewJoinCode,
@@ -414,6 +423,199 @@ describe("anonymous redemption", () => {
           [existing.id],
         );
         expect(rows[0]).toMatchObject({ invite_level: 7, invited_by: otherInviter });
+      } finally {
+        await c.query("ROLLBACK");
+      }
+    });
+  });
+});
+
+describe("quota requests and grants", () => {
+  it("requests out of seats, approves once and records one grant and the resolved event", async () => {
+    await withClient(async (c) => {
+      await c.query("BEGIN");
+      try {
+        await setLevels(c, '[{"level":1,"quota":0}]');
+        const requester = await member(c, { name: "requestor", level: 1 });
+        await query(c, "update public.profiles set display_name = 'Eric' where id = $1", [requester]);
+        const admin = await createTestUser(c, { email: email("admin"), role: "admin" });
+        await query(c, "update public.profiles set display_name = 'Ada' where id = $1", [admin.id]);
+
+        const caller: Caller = { kind: "session", userId: requester, role: "user" };
+        const request = await requestInvitationQuota(deps(c), caller, { amount: 3, reason: "family" });
+        expect(request).toMatchObject({
+          state: "pending",
+          amount: 3,
+          reason: "family",
+          requester: { id: requester, display_name: "Eric", level: 1 },
+        });
+
+        // One pending per member.
+        await expect(
+          requestInvitationQuota(deps(c), caller, { amount: 2 }),
+        ).rejects.toMatchObject({ code: "request_pending" });
+
+        const adminCaller: Caller = { kind: "session", userId: admin.id, role: "admin" };
+        const approved = await approveInvitationRequest(deps(c), adminCaller, request.id, 5);
+        expect(approved).toMatchObject({
+          state: "approved",
+          granted_amount: 5,
+          resolved_by: { id: admin.id, display_name: "Ada" },
+        });
+
+        // Exactly one grant with the approved amount.
+        const { rows: grants } = await query(
+          c,
+          "select amount, granted_by, request_id, revoked_at from public.invitation_quota_grants where user_id = $1",
+          [requester],
+        );
+        expect(grants).toHaveLength(1);
+        expect(grants[0]).toMatchObject({ amount: 5, request_id: request.id, revoked_at: null });
+
+        // The resolved event reached the requester with a push, never an email.
+        const { rows: events } = await query(
+          c,
+          "select target, subject_id, resource, notify from public.event_outbox where type = 'invitation.request_resolved' and resource->>'request_id' = $1",
+          [request.id],
+        );
+        expect(events).toHaveLength(1);
+        expect(events[0]).toMatchObject({ target: "user", subject_id: requester, notify: ["push"] });
+        expect(events[0].resource).toMatchObject({ request_id: request.id, state: "approved", amount: 5 });
+
+        // The member's own list shows the resolved request and the new quota.
+        const own = await listOwnInvitations(deps(c), caller);
+        expect(own.quota.pending_request).toBeNull();
+        expect(own.quota.granted).toBe(5);
+        expect(own.requests).toHaveLength(1);
+        expect(own.requests[0]).toMatchObject({ id: request.id, state: "approved", granted_amount: 5 });
+      } finally {
+        await c.query("ROLLBACK");
+      }
+    });
+  });
+
+  it("rejects and cancels with a reason and never grants", async () => {
+    await withClient(async (c) => {
+      await c.query("BEGIN");
+      try {
+        await setLevels(c, '[{"level":1,"quota":0}]');
+        const requester = await member(c, { name: "rejectee", level: 1 });
+        const admin = await createTestUser(c, { email: email("reject-admin"), role: "admin" });
+        const caller: Caller = { kind: "session", userId: requester, role: "user" };
+        const adminCaller: Caller = { kind: "session", userId: admin.id, role: "admin" };
+
+        const rejected = await requestInvitationQuota(deps(c), caller, { amount: 3 });
+        const afterReject = await rejectInvitationRequest(deps(c), adminCaller, rejected.id, "not now");
+        expect(afterReject).toMatchObject({ state: "rejected", resolution_reason: "not now", granted_amount: null });
+
+        // Rejected means the member may ask again.
+        const second = await requestInvitationQuota(deps(c), caller, { amount: 4 });
+        await cancelInvitationRequest(deps(c), caller, second.id);
+        const { rows: cancelled } = await query(
+          c,
+          "select state from public.invitation_requests where id = $1",
+          [second.id],
+        );
+        expect(cancelled[0]).toMatchObject({ state: "cancelled" });
+
+        // Neither a reject nor a cancel ever creates a grant.
+        const { rows: grants } = await query(
+          c,
+          "select count(*)::int as n from public.invitation_quota_grants where user_id = $1",
+          [requester],
+        );
+        expect(grants[0]).toMatchObject({ n: 0 });
+      } finally {
+        await c.query("ROLLBACK");
+      }
+    });
+  });
+
+  it("two concurrent approvals create one grant", async () => {
+    const live = liveDeps();
+    let requester = "";
+    let adminId = "";
+    let requestId = "";
+    let original = "";
+    try {
+      await withClient(async (c) => {
+        original = await getLevels(c);
+        await setLevels(c, '[{"level":1,"quota":0}]');
+        requester = await member(c, { name: "race-requestor", level: 1 });
+        adminId = (await createTestUser(c, { email: email("race-admin"), role: "admin" })).id;
+      });
+
+      const who: Caller = { kind: "session", userId: requester, role: "user" };
+      requestId = (await requestInvitationQuota(live, who, { amount: 3 })).id;
+
+      const admin: Caller = { kind: "session", userId: adminId, role: "admin" };
+      const attempts = await Promise.allSettled([
+        approveInvitationRequest(live, admin, requestId, 4),
+        approveInvitationRequest(live, admin, requestId, 6),
+      ]);
+
+      expect(attempts.filter((attempt) => attempt.status === "fulfilled")).toHaveLength(1);
+      const rejected = attempts.find((attempt) => attempt.status === "rejected");
+      expect((rejected?.reason as { code?: string } | undefined)?.code).toBe("request_resolved");
+
+      await withClient(async (c) => {
+        const { rows: grants } = await query(
+          c,
+          "select amount from public.invitation_quota_grants where request_id = $1",
+          [requestId],
+        );
+        expect(grants).toHaveLength(1);
+      });
+    } finally {
+      await withClient(async (c) => {
+        if (requestId) {
+          await query(c, "delete from public.event_outbox where resource->>'request_id' = $1", [requestId]);
+          await query(c, "delete from public.invitation_quota_grants where request_id = $1", [requestId]);
+          await query(c, "delete from public.invitation_requests where id = $1", [requestId]);
+        }
+        for (const id of [requester, adminId]) {
+          if (!id) continue;
+          await query(c, "delete from public.profiles where id = $1", [id]);
+          await query(c, "delete from auth.users where id = $1", [id]);
+        }
+        if (original) await setLevels(c, original);
+      });
+    }
+  });
+
+  it("grants directly, lists and revokes without deleting history", async () => {
+    await withClient(async (c) => {
+      await c.query("BEGIN");
+      try {
+        const grantee = await member(c, { name: "grantee", level: 1 });
+        const admin = await createTestUser(c, { email: email("grant-admin"), role: "admin" });
+        await query(c, "update public.profiles set display_name = 'Ada' where id = $1", [admin.id]);
+
+        const adminCaller: Caller = { kind: "session", userId: admin.id, role: "admin" };
+        const grant = await grantInvitationQuota(deps(c), adminCaller, grantee, {
+          amount: 4,
+          reason: "gift",
+        });
+        expect(grant).toMatchObject({
+          user_id: grantee,
+          amount: 4,
+          reason: "gift",
+          granted_by: { id: admin.id, display_name: "Ada" },
+          request_id: null,
+          revoked_at: null,
+        });
+
+        const listed = await listInvitationGrants(deps(c), grantee);
+        expect(listed).toHaveLength(1);
+        expect(listed[0].id).toBe(grant.id);
+
+        await revokeInvitationGrant(deps(c), adminCaller, grantee, grant.id);
+
+        // Revocation keeps history: the row is still there, only marked.
+        const after = await listInvitationGrants(deps(c), grantee);
+        expect(after).toHaveLength(1);
+        expect(after[0].id).toBe(grant.id);
+        expect(after[0].revoked_at).not.toBeNull();
       } finally {
         await c.query("ROLLBACK");
       }

@@ -155,6 +155,13 @@ export const invitationsQuerySchema = paginationQuerySchema.extend({
     .describe("Filter by derived status; omitted or all removes the filter. total reflects it."),
 });
 
+export const invitationRequestsQuerySchema = paginationQuerySchema.extend({
+  state: z
+    .enum(["pending", "approved", "rejected", "cancelled", "all"])
+    .optional()
+    .describe("Filter by request state; omitted or all removes the filter. total reflects it."),
+});
+
 export const apiKeysQuerySchema = paginationQuerySchema.extend({
   kind: z
     .enum(["all", "service", "delegated"])
@@ -434,13 +441,104 @@ export const ownInviteeSchema = component(
     .strict(),
 );
 
+export const invitationRequesterSchema = component(
+  "InvitationRequester",
+  z
+    .object({
+      id: z.uuid(),
+      display_name: z.string(),
+      level: z.number().int().nullable(),
+    })
+    .strict(),
+);
+
+/** A quota request as the member reads it (and the admin list row's base). */
+export const invitationRequestSchema = component(
+  "InvitationRequest",
+  z
+    .object({
+      id: z.uuid(),
+      requester: invitationRequesterSchema,
+      amount: z.number().int(),
+      reason: z.string().nullable(),
+      state: z.enum(["pending", "approved", "rejected", "cancelled"]),
+      granted_amount: z.number().int().nullable(),
+      resolution_reason: z.string().nullable(),
+      resolved_by: invitationPersonSchema.nullable(),
+      resolved_at: nullableDate,
+      created_at: isoDate,
+    })
+    .strict(),
+);
+
+/** One admin-list row: the request plus the requester's live quota. */
+export const invitationRequestListRowSchema = component(
+  "InvitationRequestListRow",
+  invitationRequestSchema.extend({ quota: invitationQuotaSchema }).strict(),
+);
+
+export const invitationRequestResponseSchema = component(
+  "InvitationRequestResponse",
+  z.object({ request: invitationRequestSchema }).strict(),
+);
+
+export const invitationRequestListSchema = component(
+  "InvitationRequestList",
+  z
+    .object({
+      requests: z.array(invitationRequestListRowSchema),
+      total: z.number().int(),
+      limit: z.number().int(),
+      offset: z.number().int(),
+    })
+    .strict(),
+);
+
+export const invitationGrantSchema = component(
+  "InvitationGrant",
+  z
+    .object({
+      id: z.uuid(),
+      user_id: z.uuid(),
+      amount: z.number().int(),
+      granted_by: invitationPersonSchema.nullable(),
+      request_id: z.uuid().nullable(),
+      reason: z.string().nullable(),
+      revoked_at: nullableDate,
+      created_at: isoDate,
+    })
+    .strict(),
+);
+
+export const invitationGrantListSchema = component(
+  "InvitationGrantList",
+  z.object({ grants: z.array(invitationGrantSchema) }).strict(),
+);
+
+export const invitationGrantResponseSchema = component(
+  "InvitationGrantResponse",
+  z.object({ grant: invitationGrantSchema }).strict(),
+);
+
 export const memberInvitationListSchema = component(
   "MemberInvitationList",
   z
     .object({
-      quota: invitationQuotaSchema.extend({ pending_request: z.null() }).strict(),
+      quota: invitationQuotaSchema
+        .extend({
+          pending_request: z
+            .object({
+              id: z.uuid(),
+              amount: z.number().int(),
+              created_at: isoDate,
+            })
+            .strict()
+            .nullable(),
+        })
+        .strict(),
       invitations: z.array(ownInvitationSchema),
       invitees: z.array(ownInviteeSchema),
+      requests: z.array(invitationRequestSchema),
     })
     .strict(),
 );
