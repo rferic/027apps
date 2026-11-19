@@ -73,7 +73,6 @@ import com.rferic.zero27apps.ui.screens.quotaFraction
 import com.rferic.zero27apps.ui.screens.OweNoScreen
 import com.rferic.zero27apps.ui.screens.ModulesScreen
 import com.rferic.zero27apps.ui.screens.SettingsScreen
-import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Color
 import com.rferic.zero27apps.ui.theme.LocalPalette
 import com.rferic.zero27apps.ui.theme.moduleAccent

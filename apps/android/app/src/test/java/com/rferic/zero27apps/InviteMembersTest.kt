@@ -12,9 +12,11 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import com.rferic.zero27apps.ui.screens.quotaFraction
+import com.rferic.zero27apps.ui.screens.shouldRenewJoinCode
 import com.rferic.zero27apps.ui.migration.joinCodeQrContent
 
 /**
@@ -49,6 +51,16 @@ class InviteMembersTest {
     fun `quota bar is clamped when reservations exceed the top`() {
         val quota = InvitationQuotaDto(base = 1, granted = 0, used = 1, reserved = 1)
         assertEquals(1f, quotaFraction(quota), 0f)
+    }
+
+    @Test
+    fun `a join code expiring is replaced by a new one`() {
+        // Renew once inside the last 15 seconds of the 90-second TTL.
+        assertTrue(shouldRenewJoinCode(15))
+        assertTrue(shouldRenewJoinCode(1))
+        assertFalse(shouldRenewJoinCode(16))
+        assertFalse(shouldRenewJoinCode(0))
+        assertFalse(shouldRenewJoinCode(90))
     }
 
     // --- Member invitations --------------------------------------------------

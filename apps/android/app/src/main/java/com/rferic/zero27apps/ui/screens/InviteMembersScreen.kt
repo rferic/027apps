@@ -66,7 +66,7 @@ import com.rferic.zero27apps.ui.InviteMembersError
 import com.rferic.zero27apps.ui.InviteMembersState
 import com.rferic.zero27apps.ui.InviteJoinError
 import com.rferic.zero27apps.ui.JoinCodeState
-import com.rferic.zero27apps.ui.components.AppSheet
+import com.rferic.zero27apps.ui.components.AppAlertDialog
 import com.rferic.zero27apps.ui.components.BrandWordmark
 import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.i18n.Strings
@@ -84,6 +84,13 @@ fun quotaFraction(quota: InvitationQuotaDto): Float {
     if (total <= 0) return 0f
     return ((quota.used + quota.reserved).toFloat() / total.toFloat()).coerceIn(0f, 1f)
 }
+
+/**
+ * Whether the QR countdown should mint a fresh join code. The 90-second code is
+ * renewed once it drops to 15 seconds, so a scan near the end never gets a dead
+ * code mid-flow; the old one stays valid until its own TTL.
+ */
+fun shouldRenewJoinCode(remainingSeconds: Long): Boolean = remainingSeconds in 1..15
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
@@ -360,6 +367,7 @@ private fun InvitedCard(
 ) {
     val strings = LocalStrings.current
     val palette = LocalPalette.current
+    var revokeTarget by remember { mutableStateOf<String?>(null) }
     if (invitees.isEmpty() && invitations.none { it.state == "pending" }) return
 
     Column(
@@ -413,11 +421,32 @@ private fun InvitedCard(
                         fontSize = 12.sp,
                     )
                 }
-                TextButton(onClick = { onRevoke(invitation.id) }) {
+                TextButton(onClick = { revokeTarget = invitation.id }) {
                     Text(strings.inviteRevoke, color = palette.destructive, fontSize = 12.sp)
                 }
             }
         }
+    }
+
+    // A destructive action: confirm before freeing the seat.
+    val target = revokeTarget
+    if (target != null) {
+        AppAlertDialog(
+            onDismissRequest = { revokeTarget = null },
+            title = { Text(strings.inviteRevokeTitle) },
+            text = { Text(strings.inviteRevokeBody) },
+            confirmButton = {
+                TextButton(onClick = {
+                    revokeTarget = null
+                    onRevoke(target)
+                }) {
+                    Text(strings.inviteRevoke, color = palette.destructive)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { revokeTarget = null }) { Text(strings.cancel) }
+            },
+        )
     }
 }
 
@@ -673,7 +702,7 @@ private fun InviteQrScreen(
     var renewedFor by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(state.code, remaining) {
         val code = state.code
-        if (code != null && remaining in 1..15 && renewedFor != code) {
+        if (code != null && shouldRenewJoinCode(remaining) && renewedFor != code) {
             renewedFor = code
             onMint()
         }
