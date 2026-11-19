@@ -1,0 +1,931 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>027Apps · Mockup de invitaciones de club</title>
+  <style>
+    /* Tokens de apps/admin/tokens.json. No hay colores libres en las pantallas. */
+    :root {
+      color-scheme: light;
+      --background: #F6F7F8;
+      --surface: #FFFFFF;
+      --surface-2: #F6F7F8;
+      --muted: #ECEEF0;
+      --muted-foreground: #5B6472;
+      --foreground: #17191C;
+      --primary: #17191C;
+      --primary-foreground: #FFFFFF;
+      --accent: #09795F;
+      --accent-foreground: #FFFFFF;
+      --brand: #0F9B7D;
+      --border: #E3E5E8;
+      --destructive: #BE123C;
+      --destructive-subtle: rgba(190, 18, 60, .08);
+      --success: #15803D;
+      --success-subtle: rgba(34, 197, 94, .12);
+      --warning: #B93815;
+      --warning-subtle: rgba(185, 56, 21, .10);
+      --stage: #E7EAEE;
+      --shadow: 0 18px 50px rgba(23, 25, 28, .14);
+      --card-radius: 16px;
+      --control-radius: 12px;
+    }
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --background: #08090A;
+      --surface: #0E0F11;
+      --surface-2: #141517;
+      --muted: #1A1B1E;
+      --muted-foreground: #8A8F98;
+      --foreground: #F7F8F8;
+      --primary: #F7F8F8;
+      --primary-foreground: #08090A;
+      --accent: #1CC29F;
+      --accent-foreground: #05231C;
+      --brand: #1CC29F;
+      --border: rgba(255, 255, 255, .09);
+      --destructive: #FB7185;
+      --destructive-subtle: rgba(251, 113, 133, .12);
+      --success: #4ADE80;
+      --success-subtle: rgba(74, 222, 128, .12);
+      --warning: #FF8A5C;
+      --warning-subtle: rgba(255, 138, 92, .12);
+      --stage: #050607;
+      --shadow: 0 18px 50px rgba(0, 0, 0, .55);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--stage);
+      color: var(--foreground);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+    }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .toolbar {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+      padding: 14px 24px;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+    }
+    .toolbar strong { display: block; font-size: 14px; }
+    .toolbar .muted { display: block; font-size: 12px; margin-top: 2px; }
+    .toolbar nav { display: flex; gap: 6px; flex-wrap: wrap; }
+    .toolbar nav a {
+      color: var(--muted-foreground); text-decoration: none; font-size: 12px; font-weight: 600;
+      padding: 6px 10px; border-radius: 999px;
+    }
+    .toolbar nav a:hover { background: var(--muted); color: var(--foreground); }
+    .toolbar .actions { display: flex; align-items: center; gap: 10px; }
+    .theme {
+      height: 34px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--surface); color: var(--foreground); font-size: 12px; font-weight: 600;
+    }
+
+    main { padding: 28px 24px 80px; display: grid; gap: 44px; max-width: 1240px; margin: 0 auto; }
+    section > h2 { font-size: 20px; margin: 0 0 4px; }
+    section > p.lead { margin: 0 0 20px; color: var(--muted-foreground); max-width: 760px; }
+    h3 { font-size: 13px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted-foreground); }
+    .gallery { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+
+    .muted { color: var(--muted-foreground); }
+    .small { font-size: 12px; }
+    .tiny { font-size: 11px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .row { display: flex; align-items: center; gap: 10px; }
+    .row.between { justify-content: space-between; }
+    .col { display: flex; flex-direction: column; gap: 10px; }
+    .grow { flex: 1; }
+
+    /* ---------- Controles ---------- */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      min-height: 38px; padding: 0 14px; border-radius: var(--control-radius);
+      border: 1px solid var(--border); background: var(--surface); color: var(--foreground);
+      font-size: 13px; font-weight: 650; white-space: nowrap;
+    }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-foreground); }
+    .btn.danger { background: var(--destructive-subtle); border-color: transparent; color: var(--destructive); }
+    .btn.ghost { background: transparent; border-color: transparent; color: var(--muted-foreground); }
+    .btn.small { min-height: 30px; padding: 0 10px; font-size: 12px; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px;
+      border-radius: 999px; font-size: 11px; font-weight: 700;
+      background: var(--muted); color: var(--muted-foreground); white-space: nowrap;
+    }
+    .chip.ok { background: var(--success-subtle); color: var(--success); }
+    .chip.warn { background: var(--warning-subtle); color: var(--warning); }
+    .chip.bad { background: var(--destructive-subtle); color: var(--destructive); }
+    .chip.accent { background: var(--accent); color: var(--accent-foreground); }
+
+    .bar { height: 8px; border-radius: 999px; background: var(--muted); overflow: hidden; }
+    .bar > i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+    .bar.warn > i { background: var(--warning); }
+    .bar.bad > i { background: var(--destructive); }
+
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field > span { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-foreground); }
+    .input {
+      min-height: 38px; padding: 8px 11px; border: 1px solid var(--border);
+      border-radius: 10px; background: var(--surface); color: var(--foreground); width: 100%;
+    }
+    .input.prefix { display: flex; align-items: center; gap: 8px; padding: 0 11px; color: var(--muted-foreground); }
+    .textarea { min-height: 62px; resize: none; }
+    .hint { font-size: 11px; color: var(--muted-foreground); }
+
+    .switch {
+      width: 42px; height: 24px; border-radius: 999px; border: 1px solid var(--border);
+      background: var(--muted); position: relative; flex: 0 0 auto;
+    }
+    .switch::after {
+      content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px;
+      border-radius: 50%; background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.25);
+      transition: transform .15s ease;
+    }
+    .switch[data-on="true"] { background: var(--accent); border-color: var(--accent); }
+    .switch[data-on="true"]::after { transform: translateX(18px); background: var(--accent-foreground); }
+
+    /* ---------- Tarjetas y listas ---------- */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--card-radius); padding: 14px;
+    }
+    .card.soft { background: var(--surface-2); }
+    .card-title { font-size: 13px; font-weight: 750; margin: 0 0 8px; }
+    .list { display: flex; flex-direction: column; gap: 8px; }
+    .list-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .list-item:last-child { border-bottom: 0; }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%; background: var(--muted);
+      display: grid; place-items: center; font-size: 12px; font-weight: 750; flex: 0 0 auto;
+    }
+    .empty { border: 1px dashed var(--border); border-radius: var(--card-radius); padding: 22px; text-align: center; color: var(--muted-foreground); }
+    .skeleton { height: 12px; border-radius: 6px; background: var(--muted); }
+    .skeleton.wide { width: 100%; }
+    .skeleton.short { width: 56%; }
+
+    .table { border: 1px solid var(--border); border-radius: var(--card-radius); overflow: hidden; background: var(--surface); }
+    .thead, .tr { display: grid; align-items: center; gap: 12px; padding: 10px 14px; }
+    .thead { background: var(--surface-2); font-size: 11px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-foreground); }
+    .tr { border-top: 1px solid var(--border); font-size: 12px; }
+    .tr:hover { background: var(--surface-2); }
+    .tr .actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+    /* ---------- Móvil ---------- */
+    .phone {
+      width: 390px; background: var(--background); border: 1px solid var(--border);
+      border-radius: 34px; overflow: hidden; box-shadow: var(--shadow); flex: 0 0 auto;
+      position: relative;
+    }
+    .statusbar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 18px 4px; font-size: 11px; font-weight: 700; color: var(--muted-foreground);
+    }
+    .statusbar .icons { display: flex; gap: 5px; }
+    .appbar { display: flex; align-items: center; gap: 10px; padding: 8px 16px 10px; }
+    .appbar .back { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; border: 0; background: transparent; color: var(--foreground); font-size: 16px; }
+    .appbar h4 { margin: 0; font-size: 17px; }
+    .screen { padding: 6px 16px 18px; display: flex; flex-direction: column; gap: 12px; min-height: 620px; }
+    .tabbar {
+      display: flex; justify-content: space-around; padding: 10px 12px 16px;
+      border-top: 1px solid var(--border); background: var(--surface); font-size: 10px; color: var(--muted-foreground);
+    }
+    .tabbar .on { color: var(--accent); font-weight: 750; }
+
+    .quota-big { font-size: 30px; font-weight: 800; letter-spacing: -.02em; }
+    .quota-big small { font-size: 13px; font-weight: 600; color: var(--muted-foreground); letter-spacing: 0; }
+
+    /* ---------- Web y panel ---------- */
+    .browser {
+      width: 560px; max-width: 100%; background: var(--background); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); flex: 0 0 auto;
+    }
+    .browser-bar { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .dots { display: flex; gap: 5px; }
+    .dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); display: block; }
+    .url { flex: 1; height: 28px; border-radius: 8px; background: var(--surface-2); display: flex; align-items: center; padding: 0 10px; font-size: 11px; color: var(--muted-foreground); }
+    .browser .page { padding: 26px; min-height: 520px; display: flex; flex-direction: column; gap: 14px; justify-content: center; }
+    .browser .page.top { justify-content: flex-start; }
+
+    .window {
+      width: 1100px; max-width: 100%; background: var(--background); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); flex: 0 0 auto;
+    }
+    .window-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface); border-bottom: 1px solid var(--border); font-size: 11px; color: var(--muted-foreground); }
+    .panel-body { display: grid; grid-template-columns: 210px 1fr; min-height: 560px; }
+    .sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 14px 10px; }
+    .sidebar .brand { font-size: 12px; font-weight: 800; padding: 4px 10px 14px; }
+    .nav-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 9px; font-size: 12px; color: var(--muted-foreground); }
+    .nav-item.on { background: var(--accent); color: var(--accent-foreground); font-weight: 700; }
+    .nav-item .count { min-width: 18px; height: 18px; border-radius: 999px; background: var(--destructive); color: #fff; font-size: 10px; display: grid; place-items: center; padding: 0 5px; }
+    .nav-item.on .count { background: var(--accent-foreground); color: var(--accent); }
+    .pane { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .pane h4 { margin: 0; font-size: 18px; }
+    .pane .sub { margin: 0; font-size: 12px; color: var(--muted-foreground); }
+
+    .overlay { position: absolute; inset: 0; background: rgba(0,0,0,.42); display: grid; place-items: center; padding: 20px; }
+    .dialog { width: 320px; background: var(--surface); border-radius: var(--card-radius); padding: 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; }
+    .dialog h5 { margin: 0; font-size: 15px; }
+    .dialog p { margin: 0; font-size: 12px; color: var(--muted-foreground); }
+    .dialog .row { justify-content: flex-end; }
+
+    .qr { width: 186px; height: 186px; background: #fff; border-radius: 12px; padding: 10px; display: grid; grid-template-columns: repeat(21, 1fr); grid-template-rows: repeat(21, 1fr); margin: 0 auto; }
+    .qr i { background: #17191C; display: block; }
+    .barcode { letter-spacing: 2px; font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted-foreground); }
+
+    .kv { display: grid; grid-template-columns: 130px 1fr; gap: 8px 12px; font-size: 12px; }
+    .kv dt { color: var(--muted-foreground); font-weight: 600; }
+    .kv dd { margin: 0; }
+
+    .tree { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+    .tree .node { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 8px; }
+    .tree .node:hover { background: var(--surface-2); }
+    .tree .node.depth-1 { margin-left: 22px; }
+    .tree .node.depth-2 { margin-left: 44px; }
+    .tree .node.depth-3 { margin-left: 66px; }
+    .tree .node .line { color: var(--muted-foreground); }
+    .tree .node.orphan { border: 1px dashed var(--border); color: var(--muted-foreground); }
+
+    .notes { background: var(--surface); border: 1px solid var(--border); border-radius: var(--card-radius); padding: 18px 20px; }
+    .notes h3 { margin-top: 0; }
+    .notes ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.7; }
+    .swatches { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .swatch { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted-foreground); }
+    .swatch i { width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--border); display: block; }
+
+    @media (max-width: 760px) {
+      main { padding: 20px 12px 60px; }
+      .phone { width: 100%; max-width: 390px; }
+      .window, .browser { width: 100%; }
+      .panel-body { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="toolbar">
+    <div>
+      <strong>027Apps · Invitaciones de club</strong>
+      <span class="muted">Mockup de todas las pantallas · app, web y panel · 2026-11-18</span>
+    </div>
+    <nav aria-label="Secciones">
+      <a href="#app">App</a>
+      <a href="#web">Web</a>
+      <a href="#panel">Panel</a>
+      <a href="#notas">Decisiones</a>
+    </nav>
+    <div class="actions">
+      <button class="theme" id="theme" type="button">Tema: claro</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============================================================ APP -->
+    <section id="app">
+      <h2>App Android</h2>
+      <p class="lead">El miembro vive aquí: ve su cuota, enseña el QR, copia un enlace, revoca y pide
+        plazas. El administrador ve las solicitudes, pero las gestiona en el panel.</p>
+
+      <div class="gallery">
+        <figure class="phone">
+          <div class="statusbar"><span>9:41</span><span class="icons">▮▮▮ ⌁ ▰</span></div>
+          <div class="screen" style="padding-top:12px;">
+            <div class="row">
+              <span class="avatar">A</span>
+              <div class="grow"><span class="muted tiny">Hola</span><br><strong style="font-size:18px;">Ana</strong></div>
+              <span class="muted">◉</span>
+            </div>
+            <p class="muted tiny" style="margin:8px 0 0; letter-spacing:.08em; font-weight:750;">MI ESPACIO</p>
+            <div class="card" style="border-color:var(--accent);">
+              <div class="row between">
+                <div>
+                  <span class="chip accent">El club</span>
+                  <p class="card-title" style="margin:8px 0 2px;">4 plazas libres</p>
+                  <p class="hint" style="margin:0;">1 persona dentro · 1 invitación pendiente</p>
+                </div>
+                <button class="btn small primary" type="button">Invitar</button>
+              </div>
+              <div class="bar" style="margin-top:10px;"><i style="width:33%"></i></div>
+            </div>
+            <div class="card"><div class="row between"><div><strong>OweNo</strong><br><span class="muted tiny">Gastos compartidos</span></div><span class="chip">Abrir</span></div></div>
+            <div class="card soft"><div class="row between"><div><strong>Módulos</strong><br><span class="muted tiny">Lo que puedes abrir</span></div><span class="chip">3</span></div></div>
+            <p class="hint" style="margin-top:auto;">La tarjeta del club está siempre en Inicio para los miembros: cambia entre «Invitar» y «Pedir» según la cuota. Para un administrador muestra las solicitudes pendientes.</p>
+          </div>
+          <div class="tabbar"><span class="on">Inicio</span><span>Módulos</span><span>Ajustes</span></div>
+        </figure>
+
+        <figure class="phone">
+          <div class="statusbar"><span>9:41</span><span class="icons">▮▮▮ ⌁ ▰</span></div>
+          <div class="appbar"><h4>Ajustes</h4></div>
+          <div class="screen">
+            <p class="muted tiny" style="margin:0; letter-spacing:.08em; font-weight:750;">CUENTA</p>
+            <div class="card" style="padding:0 14px;">
+              <div class="list-item"><div class="grow"><strong>Perfil</strong><br><span class="muted tiny">Ana · ana@example.com</span></div><span class="muted">›</span></div>
+              <div class="list-item"><div class="grow"><strong>Idioma</strong><br><span class="muted tiny">Español</span></div><span class="muted">›</span></div>
+              <div class="list-item"><div class="grow"><strong>Tema</strong><br><span class="muted tiny">Claro</span></div><span class="muted">›</span></div>
+            </div>
+            <p class="muted tiny" style="margin:8px 0 0; letter-spacing:.08em; font-weight:750;">CLUB</p>
+            <div class="card" style="padding:0 14px; border-color:var(--accent);">
+              <div class="list-item" style="align-items:flex-start;">
+                <div class="grow">
+                  <div class="row between"><strong>Invitaciones</strong><span class="muted tiny">2 de 6</span></div>
+                  <span class="muted tiny">4 plazas libres · 1 pendiente</span>
+                  <div class="bar" style="margin-top:7px; height:6px;"><i style="width:33%"></i></div>
+                </div>
+                <span class="muted" style="align-self:center;">›</span>
+              </div>
+            </div>
+            <p class="muted tiny" style="margin:8px 0 0; letter-spacing:.08em; font-weight:750;">DISPOSITIVO</p>
+            <div class="card" style="padding:0 14px;">
+              <div class="list-item"><div class="grow"><strong>Notificaciones</strong><br><span class="muted tiny">Push activadas</span></div><span class="muted">›</span></div>
+              <div class="list-item"><div class="grow"><strong>Mover a otro teléfono</strong></div><span class="muted">›</span></div>
+              <div class="list-item"><div class="grow"><strong>Actualizar la app</strong><br><span class="muted tiny">0.20.0 · al día</span></div><span class="muted">›</span></div>
+            </div>
+            <button class="btn danger" type="button" style="width:100%; margin-top:6px;">Cerrar sesión</button>
+          </div>
+          <div class="tabbar"><span>Inicio</span><span>Módulos</span><span class="on">Ajustes</span></div>
+        </figure>
+
+        <figure class="phone">
+          <div class="statusbar"><span>9:41</span><span class="icons">▮▮▮ ⌁ ▰</span></div>
+          <div class="appbar"><button class="back" aria-label="Atrás">‹</button><h4>Invitaciones</h4></div>
+          <div class="screen">
+            <div class="card">
+              <div class="row between">
+                <span class="muted small">Tu cuota</span>
+                <span class="chip">Nivel 1</span>
+              </div>
+              <div class="row" style="align-items:baseline; gap:8px; margin:6px 0 10px;">
+                <span class="quota-big">2<small> de 6</small></span>
+                <span class="muted tiny">1 usada + 1 reservada · 5 + 1 concedida</span>
+              </div>
+              <div class="bar" style="--pct:33%"><i style="width:33%"></i></div>
+              <p class="hint" style="margin:8px 0 0;">Puedes invitar a 4 personas más.</p>
+            </div>
+
+            <div class="row">
+              <button class="btn primary grow" type="button">Mostrar QR</button>
+              <button class="btn grow" type="button">Crear enlace</button>
+            </div>
+
+            <div class="card">
+              <p class="card-title">Has invitado a</p>
+              <div class="list">
+                <div class="list-item">
+                  <span class="avatar">L</span>
+                  <div class="grow"><strong>Luis</strong><br><span class="muted tiny">Nivel 2 · activo · hace 3 días</span></div>
+                  <span class="chip ok">Dentro</span>
+                </div>
+                <div class="list-item">
+                  <span class="avatar">M</span>
+                  <div class="grow"><strong>Marta</strong><br><span class="muted tiny">Enlace pendiente · caduca en 47 h</span></div>
+                  <button class="btn small ghost" type="button">Revocar</button>
+                </div>
+              </div>
+            </div>
+
+            <p class="hint">El nivel y las plazas los fija el administrador. Tú no eliges rol, nivel ni módulos.</p>
+          </div>
+          <div class="tabbar"><span>Inicio</span><span>Módulos</span><span class="on">Ajustes</span></div>
+        </figure>
+
+        <figure class="phone">
+          <div class="statusbar"><span>9:41</span><span class="icons">▮▮▮ ⌁ ▰</span></div>
+          <div class="appbar"><button class="back" aria-label="Atrás">‹</button><h4>Mostrar QR</h4></div>
+          <div class="screen" style="min-height:600px;">
+            <div class="card" style="text-align:center;">
+              <p class="card-title" style="margin-bottom:2px;">Que lo escanee quien tengas delante</p>
+              <p class="muted tiny" style="margin:0 0 12px;">Ana · Familia Pérez</p>
+              <div class="qr" data-qr aria-label="Código QR de ejemplo"></div>
+              <p class="small" style="margin:12px 0 4px;"><strong>1:12</strong></p>
+              <p class="hint" style="margin:0;">Se renueva solo. El QR caduca en 90 s.</p>
+            </div>
+            <button class="btn" type="button">Copiar enlace</button>
+            <p class="hint">El QR crea una invitación de 15 minutos para rellenar el registro. Si no se
+              usa, la plaza se libera sola.</p>
+            <p class="chip warn" style="align-self:center;">Pantalla protegida: sin capturas</p>
+          </div>
+        </figure>
+
+        <figure class="phone">
+          <div class="statusbar"><span>9:41</span><span class="icons">▮▮▮ ⌁ ▰</span></div>
+          <div class="appbar"><button class="back" aria-label="Atrás">‹</button><h4>Invitaciones</h4></div>
+          <div class="screen">
+            <div class="card">
+              <div class="row between"><span class="muted small">Tu cuota</span><span class="chip warn">Sin plazas</span></div>
+              <div class="row" style="align-items:baseline; gap:8px; margin:6px 0 10px;">
+                <span class="quota-big">5<small> de 5</small></span>
+              </div>
+              <div class="bar bad"><i style="width:100%"></i></div>
+              <p class="hint" style="margin:8px 0 0;">Has usado todas tus plazas. Pide más al administrador.</p>
+            </div>
+
+            <div class="card">
+              <p class="card-title">Solicitar plazas</p>
+              <div class="field"><span>Cuántas</span><input class="input" value="2" inputmode="numeric"></div>
+              <div class="field" style="margin-top:10px;"><span>Motivo (opcional)</span><textarea class="textarea input" placeholder="Para invitar a mi hermana"></textarea></div>
+              <button class="btn primary" type="button" style="width:100%; margin-top:12px;">Enviar solicitud</button>
+            </div>
+
+            <div class="card soft">
+              <div class="row between"><span class="small">Solicitud pendiente</span><span class="chip warn">En revisión</span></div>
+              <p class="hint" style="margin:6px 0 0;">2 plazas · enviada hace 2 h</p>
+              <button class="btn small ghost" type="button" style="margin-top:8px;">Cancelar solicitud</button>
+            </div>
+          </div>
+          <div class="tabbar"><span>Inicio</span><span>Módulos</span><span class="on">Ajustes</span></div>
+        </figure>
+
+        <figure class="phone">
+          <div class="statusbar"><span>9:41</span><span class="icons">▮▮▮ ⌁ ▰</span></div>
+          <div class="appbar"><button class="back" aria-label="Atrás">‹</button><h4>Solicitud</h4></div>
+          <div class="screen">
+            <div class="card" style="border-color:var(--success);">
+              <span class="chip ok">Aprobada</span>
+              <p class="card-title" style="margin:8px 0 4px;">El administrador te ha concedido 2 plazas</p>
+              <p class="hint" style="margin:0;">Tu cuota pasa a 7. Se suman a tu nivel, no lo cambian.</p>
+              <div class="row" style="margin-top:10px;"><button class="btn primary" type="button">Invitar ahora</button></div>
+            </div>
+            <div class="card">
+              <span class="chip bad">Rechazada</span>
+              <p class="card-title" style="margin:8px 0 4px;">Solicitud de 2 plazas</p>
+              <p class="hint" style="margin:0;">Motivo: «Este mes no ampliamos». Puedes volver a pedir más adelante.</p>
+            </div>
+            <div class="card soft">
+              <span class="chip">Cancelada</span>
+              <p class="hint" style="margin:8px 0 0;">La retiraste tú. La plaza que había quedado libre sigue disponible.</p>
+            </div>
+          </div>
+        </figure>
+
+        <figure class="phone">
+          <div class="statusbar"><span>9:41</span><span class="icons">▮▮▮ ⌁ ▰</span></div>
+          <div class="appbar"><button class="back" aria-label="Atrás">‹</button><h4>Tu invitación</h4></div>
+          <div class="screen">
+            <div class="card soft">
+              <p class="muted tiny" style="margin:0;">Ana te invita a</p>
+              <p class="card-title" style="margin:2px 0 0; font-size:16px;">Familia Pérez</p>
+              <p class="hint" style="margin:4px 0 0;">Caduca en 14:32 · nivel 2</p>
+            </div>
+            <div class="field"><span>Nombre</span><input class="input" value="Marta Ruiz"></div>
+            <div class="field"><span>Email</span><input class="input" value="marta@example.com"></div>
+            <div class="field"><span>Contraseña</span><input class="input" type="password" value="············"></div>
+            <div class="field"><span>Repite la contraseña</span><input class="input" type="password" value="············"></div>
+            <button class="btn primary" type="button" style="width:100%;">Crear cuenta y entrar</button>
+            <p class="hint" style="text-align:center;">Si ya tienes cuenta, <strong>entra con tu contraseña</strong> y la invitación se aplica a tu perfil.</p>
+            <p class="hint" style="text-align:center;">Al continuar aceptas las normas de esta instancia privada.</p>
+          </div>
+        </figure>
+
+        <figure class="phone" style="position:relative;">
+          <div class="statusbar"><span>9:41</span><span class="icons">▮▮▮ ⌁ ▰</span></div>
+          <div class="appbar"><button class="back" aria-label="Atrás">‹</button><h4>Invitaciones</h4></div>
+          <div class="screen">
+            <div class="card"><p class="card-title">Has invitado a</p>
+              <div class="list-item"><span class="avatar">M</span><div class="grow"><strong>Marta</strong><br><span class="muted tiny">Enlace pendiente · 47 h</span></div></div>
+            </div>
+          </div>
+          <div class="overlay">
+            <div class="dialog" role="dialog" aria-modal="true">
+              <h5>¿Revocar la invitación de Marta?</h5>
+              <p>El enlace dejará de funcionar y la plaza quedará libre. Marta no podrá registrarse con él.</p>
+              <div class="row"><button class="btn small" type="button">Cancelar</button><button class="btn small danger" type="button">Revocar</button></div>
+            </div>
+          </div>
+        </figure>
+
+        <figure class="phone">
+          <div class="statusbar"><span>9:41</span><span class="icons">▮▮▮ ⌁ ▰</span></div>
+          <div class="appbar"><button class="back" aria-label="Atrás">‹</button><h4>Solicitudes</h4></div>
+          <div class="screen">
+            <p class="muted small" style="margin:0;">Solo los administradores ven esta sección. Aquí no se aprueba: se gestiona en el panel.</p>
+            <div class="card">
+              <div class="list">
+                <div class="list-item">
+                  <span class="avatar">A</span>
+                  <div class="grow"><strong>Ana</strong><br><span class="muted tiny">Pide 2 plazas · hace 2 h</span></div>
+                  <span class="chip warn">Pendiente</span>
+                </div>
+                <div class="list-item">
+                  <span class="avatar">L</span>
+                  <div class="grow"><strong>Luis</strong><br><span class="muted tiny">Pide 1 plaza · ayer</span></div>
+                  <span class="chip warn">Pendiente</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn" type="button" style="width:100%;">Gestionar en el panel</button>
+            <p class="hint" style="text-align:center;">Se abre el panel en el navegador. Necesitas sesión de administrador.</p>
+          </div>
+          <div class="tabbar"><span>Inicio</span><span>Módulos</span><span class="on">Ajustes</span></div>
+        </figure>
+        <figure class="phone">
+          <div class="statusbar"><span>9:41</span><span class="icons">▮▮▮ ⌁ ▰</span></div>
+          <div class="appbar"><button class="back" aria-label="Atrás">‹</button><h4>Invitaciones</h4></div>
+          <div class="screen">
+            <p class="muted small" style="margin:0;">Estados de la pantalla, no pantallas nuevas.</p>
+            <div class="card">
+              <div class="row between"><span class="skeleton short"></span><span class="skeleton" style="width:54px;"></span></div>
+              <div class="skeleton wide" style="height:30px; margin:14px 0 10px;"></div>
+              <div class="skeleton wide" style="height:8px;"></div>
+              <div class="skeleton wide" style="margin-top:14px;"></div>
+              <div class="skeleton short" style="margin-top:8px;"></div>
+            </div>
+            <div class="card" style="border-color:var(--destructive);">
+              <span class="chip bad">Sin conexión</span>
+              <p class="card-title" style="margin:8px 0 4px;">No se pudo cargar tu cuota</p>
+              <p class="hint" style="margin:0 0 10px;">Revisa la conexión. No se ha gastado ninguna plaza.</p>
+              <button class="btn small" type="button">Reintentar</button>
+            </div>
+            <div class="card">
+              <span class="chip warn">Demasiadas peticiones</span>
+              <p class="hint" style="margin:8px 0 0;">Espera un momento antes de volver a pedir un QR o un enlace.</p>
+            </div>
+          </div>
+          <div class="tabbar"><span>Inicio</span><span>Módulos</span><span class="on">Ajustes</span></div>
+        </figure>
+      </div>
+    </section>
+    <section id="web">
+      <h2>Web pública</h2>
+      <p class="lead">El canje funciona sin app. El GET de <span class="mono">/join/[code]</span> solo
+        pinta; el botón «Continuar» es el que canjea, para que un prefetch no gaste el QR.</p>
+
+      <div class="gallery">
+        <figure class="browser">
+          <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">https://familia.test/join/027_join_9f3a…</span></div>
+          <div class="page">
+            <div class="card" style="text-align:center;">
+              <div class="avatar" style="margin:0 auto 10px;">E</div>
+              <p class="hint" style="margin:0;">Eric te invita a</p>
+              <p class="card-title" style="font-size:20px; margin:2px 0 4px;">Familia Pérez</p>
+              <p class="hint" style="margin:0 0 16px;">Una instancia privada para la familia y amigos cercanos.</p>
+              <button class="btn primary" type="button" style="width:100%;">Continuar</button>
+              <p class="barcode" style="margin:14px 0 0;">027_join_9f3a2c… · caduca en 1:12</p>
+            </div>
+            <p class="hint" style="text-align:center;">Si no esperabas esta invitación, cierra la página.</p>
+          </div>
+        </figure>
+
+        <figure class="browser">
+          <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">https://familia.test/join/027_join_9f3a…</span></div>
+          <div class="page">
+            <div class="card" style="text-align:center;">
+              <span class="chip bad">QR caducado</span>
+              <p class="card-title" style="margin:12px 0 4px;">Este QR ya no sirve</p>
+              <p class="hint" style="margin:0 0 12px;">Pide a quien te invitó que enseñe uno nuevo. Los códigos duran 90 segundos.</p>
+              <button class="btn" type="button">Volver</button>
+            </div>
+            <div class="card" style="text-align:center;">
+              <span class="chip warn">Club lleno</span>
+              <p class="card-title" style="margin:12px 0 4px;">No quedan plazas</p>
+              <p class="hint" style="margin:0;">Quien te invitó tiene que pedirle plazas al administrador.</p>
+            </div>
+            <div class="card" style="text-align:center;">
+              <span class="chip">Ya usado</span>
+              <p class="card-title" style="margin:12px 0 4px;">Este enlace ya se usó</p>
+              <p class="hint" style="margin:0;">Si fuiste tú, inicia sesión. Si no, pide otra invitación.</p>
+            </div>
+          </div>
+        </figure>
+
+        <figure class="browser">
+          <div class="browser-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">https://familia.test/invite/027_inv_…</span></div>
+          <div class="page top">
+            <div class="card soft">
+              <p class="muted tiny" style="margin:0;">Invitación de Eric · Familia Pérez</p>
+              <p class="hint" style="margin:4px 0 0;">Caduca el 20/11 a las 18:00 · nivel 2 · categoría Familia</p>
+            </div>
+            <div class="row" style="gap:14px; align-items:flex-start;">
+              <div class="grow col">
+                <div class="field"><span>Nombre</span><input class="input" value="Marta Ruiz"></div>
+                <div class="field"><span>Email</span><input class="input" value="marta@example.com"></div>
+                <div class="field"><span>Contraseña</span><input class="input" type="password" value="············"></div>
+                <div class="field"><span>Repite la contraseña</span><input class="input" type="password" value="············"></div>
+                <button class="btn primary" type="button">Crear cuenta</button>
+              </div>
+              <div class="col" style="width:190px;">
+                <div class="card">
+                  <p class="card-title" style="font-size:12px;">Ya tienes cuenta</p>
+                  <p class="hint" style="margin:0 0 8px;">Entra con tu contraseña actual; no se crea otra cuenta.</p>
+                  <div class="field"><span>Contraseña actual</span><input class="input" type="password" value="············"></div>
+                  <button class="btn small" type="button" style="margin-top:8px; width:100%;">Entrar y aceptar</button>
+                </div>
+                <p class="hint">El rol, el nivel y los módulos los pone la invitación. No puedes cambiarlos.</p>
+              </div>
+            </div>
+          </div>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ============================================================ PANEL -->
+    <section id="panel">
+      <h2>Panel de administración</h2>
+      <p class="lead">Configurar niveles, resolver solicitudes, ver el árbol y entender el origen de
+        cada invitación. El contador de solicitudes se refresca por polling.</p>
+
+      <div class="gallery">
+        <!-- Ajustes -->
+        <figure class="window">
+          <div class="window-bar"><span class="dots"><i></i><i></i><i></i></span><span>panel/settings/invitations</span></div>
+          <div class="panel-body">
+            <aside class="sidebar">
+              <div class="brand">027Apps</div>
+              <div class="nav-item">Home</div>
+              <div class="nav-item">Members</div>
+              <div class="nav-item">Invitations</div>
+              <div class="nav-item">Requests <span class="count">2</span></div>
+              <div class="nav-item">Modules</div>
+              <div class="nav-item on">Settings</div>
+            </aside>
+            <div class="pane">
+              <div><h4>Invitation levels</h4><p class="sub">Who can join and how many people each member may bring.</p></div>
+              <div class="card">
+                <div class="table">
+                  <div class="thead" style="grid-template-columns:80px 120px 1fr 90px;">Nivel<span>Plazas</span><span>Quién</span><span></span></div>
+                  <div class="tr" style="grid-template-columns:80px 120px 1fr 90px;">
+                    <strong>Nivel 1</strong><input class="input" value="5" style="width:76px;"><span class="muted">Invitado por un administrador</span><button class="btn small ghost">Quitar</button>
+                  </div>
+                  <div class="tr" style="grid-template-columns:80px 120px 1fr 90px;">
+                    <strong>Nivel 2</strong><input class="input" value="2" style="width:76px;"><span class="muted">Invitado por un nivel 1</span><button class="btn small ghost">Quitar</button>
+                  </div>
+                  <div class="tr" style="grid-template-columns:80px 120px 1fr 90px;">
+                    <strong>Nivel 3</strong><input class="input" value="1" style="width:76px;"><span class="muted">Invitado por un nivel 2</span><button class="btn small ghost">Quitar</button>
+                  </div>
+                </div>
+                <div class="row between" style="margin-top:12px;">
+                  <button class="btn small" type="button">+ Añadir nivel</button>
+                  <span class="hint">Máximo 20 niveles · plazas 0–100</span>
+                </div>
+              </div>
+              <div class="card soft">
+                <p class="small" style="margin:0;"><strong>Esta configuración permite 26 cuentas</strong> por invitación de administrador (1 + 5 + 10 + 10).</p>
+                <p class="hint" style="margin:6px 0 0;">Cambiar los niveles no reescribe el nivel de nadie; solo cambia la cuota base de quien coincide.</p>
+              </div>
+              <div class="row"><button class="btn primary" type="button">Guardar</button><button class="btn" type="button">Descartar</button></div>
+            </div>
+          </div>
+        </figure>
+
+        <!-- Solicitudes -->
+        <figure class="window">
+          <div class="window-bar"><span class="dots"><i></i><i></i><i></i></span><span>panel/requests</span></div>
+          <div class="panel-body">
+            <aside class="sidebar">
+              <div class="brand">027Apps</div>
+              <div class="nav-item">Home</div>
+              <div class="nav-item">Members</div>
+              <div class="nav-item">Invitations</div>
+              <div class="nav-item on">Requests <span class="count">2</span></div>
+              <div class="nav-item">Modules</div>
+              <div class="nav-item">Settings</div>
+            </aside>
+            <div class="pane">
+              <div class="row between"><div><h4>Solicitudes</h4><p class="sub">Pendientes primero. Aprobar suma plazas permanentes a esa persona.</p></div><span class="chip warn">2 pendientes</span></div>
+              <div class="table">
+                <div class="thead" style="grid-template-columns:1.2fr 70px 70px 1.4fr 90px 190px;">Solicitante<span>Nivel</span><span>Pide</span><span>Motivo</span><span>Cuota</span><span></span></div>
+                <div class="tr" style="grid-template-columns:1.2fr 70px 70px 1.4fr 90px 190px;">
+                  <span><strong>Ana García</strong><br><span class="muted tiny">hace 2 h</span></span><span>1</span><span><strong>2</strong></span><span class="muted">Para mi hermana</span><span class="chip bad">2/6</span>
+                  <span class="actions"><button class="btn small primary" type="button">Aprobar</button><button class="btn small" type="button">Rechazar</button></span>
+                </div>
+                <div class="tr" style="grid-template-columns:1.2fr 70px 70px 1.4fr 90px 190px;">
+                  <span><strong>Luis Pérez</strong><br><span class="muted tiny">ayer</span></span><span>3</span><span><strong>1</strong></span><span class="muted">—</span><span class="chip bad">1/1</span>
+                  <span class="actions"><button class="btn small primary" type="button">Aprobar</button><button class="btn small" type="button">Rechazar</button></span>
+                </div>
+              </div>
+              <div class="row" style="align-items:flex-start; gap:12px; flex-wrap:wrap;">
+                <div class="card" style="max-width:440px;">
+                  <p class="card-title">Aprobar solicitud</p>
+                  <div class="row" style="align-items:flex-end; gap:10px;">
+                    <div class="field" style="width:120px;"><span>Plazas</span><input class="input" value="2"></div>
+                    <button class="btn primary" type="button">Aprobar 2 plazas</button>
+                  </div>
+                  <p class="hint" style="margin:8px 0 0;">Se suman a la cuota de Ana de forma permanente y revocable. No cambia su nivel.</p>
+                </div>
+                <div class="card" style="max-width:440px;">
+                  <p class="card-title">Rechazar solicitud</p>
+                  <div class="field"><span>Motivo (opcional)</span><input class="input" value="Este mes no ampliamos"></div>
+                  <div class="row" style="justify-content:flex-end; margin-top:10px;"><button class="btn small" type="button">Cancelar</button><button class="btn small danger" type="button">Rechazar</button></div>
+                  <p class="hint" style="margin:8px 0 0;">El solicitante ve el motivo y puede volver a pedir más adelante.</p>
+                </div>
+              </div>
+              <div class="empty">No hay solicitudes pendientes. Cuando alguien se quede sin plazas, aparecerá aquí y sonará el aviso.</div>
+            </div>
+          </div>
+        </figure>
+
+        <!-- Ficha del miembro -->
+        <figure class="window">
+          <div class="window-bar"><span class="dots"><i></i><i></i><i></i></span><span>panel/members/ana</span></div>
+          <div class="panel-body">
+            <aside class="sidebar">
+              <div class="brand">027Apps</div>
+              <div class="nav-item">Home</div>
+              <div class="nav-item on">Members</div>
+              <div class="nav-item">Invitations</div>
+              <div class="nav-item">Requests <span class="count">2</span></div>
+              <div class="nav-item">Modules</div>
+              <div class="nav-item">Settings</div>
+            </aside>
+            <div class="pane">
+              <div class="row between"><div><h4>Ana García</h4><p class="sub">ana@example.com · usuaria · se unió el 12/11</p></div><span class="chip">Nivel 1</span></div>
+              <div class="row" style="align-items:flex-start; gap:14px;">
+                <div class="card grow">
+                  <p class="card-title">Cuota de invitación</p>
+                  <div class="row" style="align-items:baseline;"><span class="quota-big">2<small> de 6 · 1 usada · 1 reservada · 4 disponibles</small></span></div>
+                  <div class="bar" style="margin:8px 0;"><i style="width:33%"></i></div>
+                  <p class="hint" style="margin:0;">Base 5 (nivel 1) + 1 concedida = 6. Invitados: 1.</p>
+                  <div class="row" style="margin-top:12px;"><span class="small">Nivel</span><select class="input" style="width:110px;"><option>Nivel 1</option><option>Nivel 2</option><option>Nivel 3</option></select><button class="btn small" type="button">Guardar</button></div>
+                </div>
+                <div class="card" style="width:300px;">
+                  <p class="card-title">Concesiones</p>
+                  <div class="list-item"><div class="grow"><strong>+1 plaza</strong><br><span class="muted tiny">Eric · hace 3 días</span></div><button class="btn small danger" type="button">Retirar</button></div>
+                  <p class="hint" style="margin:8px 0 0;">Retirar no borra la historia. Si Ana ya gastó la plaza, se bloquean invitaciones nuevas.</p>
+                  <button class="btn small" type="button" style="margin-top:10px; width:100%;">Conceder plazas</button>
+                </div>
+              </div>
+              <div class="card">
+                <p class="card-title">Personas que ha traído</p>
+                <div class="tree">
+                  <div class="node"><span class="line">└</span><span class="avatar" style="width:24px;height:24px;font-size:10px;">L</span><strong>Luis</strong><span class="chip ok">Activo</span><span class="muted tiny">Nivel 2 · hace 4 días</span></div>
+                  <div class="node depth-1"><span class="line">└</span><span class="avatar" style="width:24px;height:24px;font-size:10px;">M</span><strong>Marta</strong><span class="chip warn">Invitación pendiente</span><span class="muted tiny">Nivel 2 · caduca en 47 h</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </figure>
+
+        <!-- Árbol / purga -->
+        <figure class="window">
+          <div class="window-bar"><span class="dots"><i></i><i></i><i></i></span><span>panel/members/arbol</span></div>
+          <div class="panel-body">
+            <aside class="sidebar">
+              <div class="brand">027Apps</div>
+              <div class="nav-item">Home</div>
+              <div class="nav-item on">Members</div>
+              <div class="nav-item">Invitations</div>
+              <div class="nav-item">Requests <span class="count">2</span></div>
+              <div class="nav-item">Modules</div>
+              <div class="nav-item">Settings</div>
+            </aside>
+            <div class="pane">
+              <div><h4>Árbol de invitaciones</h4><p class="sub">Quién trajo a quién. Expulsar no saca a los invitados; purgar deja huérfanos.</p></div>
+              <div class="card">
+                <div class="tree">
+                  <div class="node"><span class="avatar" style="width:24px;height:24px;font-size:10px;">E</span><strong>Eric</strong><span class="chip">Admin</span><span class="muted tiny">raíz</span></div>
+                  <div class="node depth-1"><span class="line">├</span><span class="avatar" style="width:24px;height:24px;font-size:10px;">A</span><strong>Ana</strong><span class="chip ok">Activo</span><span class="muted tiny">Nivel 1</span><span class="muted tiny">2 plazas usadas</span></div>
+                  <div class="node depth-2"><span class="line">└</span><span class="avatar" style="width:24px;height:24px;font-size:10px;">L</span><strong>Luis</strong><span class="chip ok">Activo</span><span class="muted tiny">Nivel 2</span></div>
+                  <div class="node depth-2"><span class="line">└</span><span class="avatar" style="width:24px;height:24px;font-size:10px;">M</span><strong>Marta</strong><span class="chip warn">Pendiente</span><span class="muted tiny">Nivel 2</span></div>
+                  <div class="node depth-3"><span class="line">└</span><span class="avatar" style="width:24px;height:24px;font-size:10px;">P</span><strong>Pablo</strong><span class="chip ok">Activo</span><span class="muted tiny">Nivel 3</span></div>
+                  <div class="node depth-1 orphan"><span class="line">└</span><strong>Cuenta purgada</strong><span class="chip">Histórico</span><span class="muted tiny">sus invitados dejan de contar contra nadie</span></div>
+                </div>
+              </div>
+              <div class="card soft"><p class="hint" style="margin:0;">Al desactivar, sus enlaces pendientes se revocan y sus invitados siguen dentro. Al purgar, sus invitados conservan su nivel y pasan a ser raíces.</p></div>
+            </div>
+          </div>
+        </figure>
+
+        <!-- Listado -->
+        <figure class="window">
+          <div class="window-bar"><span class="dots"><i></i><i></i><i></i></span><span>panel/invitations</span></div>
+          <div class="panel-body">
+            <aside class="sidebar">
+              <div class="brand">027Apps</div>
+              <div class="nav-item">Home</div>
+              <div class="nav-item">Members</div>
+              <div class="nav-item on">Invitations</div>
+              <div class="nav-item">Requests <span class="count">2</span></div>
+              <div class="nav-item">Modules</div>
+              <div class="nav-item">Settings</div>
+            </aside>
+            <div class="pane">
+              <div class="row between"><div><h4>Invitaciones</h4><p class="sub">Todas las puertas: administrador, miembro y QR.</p></div><div class="row"><select class="input" style="width:130px;"><option>Todos los estados</option></select><select class="input" style="width:120px;"><option>Todos los orígenes</option></select></div></div>
+              <div class="table">
+                <div class="thead" style="grid-template-columns:90px 90px 1fr 1.2fr 120px 170px;">Estado<span>Origen</span><span>Invitador</span><span>Destinatario</span><span>Caduca</span><span></span></div>
+                <div class="tr" style="grid-template-columns:90px 90px 1fr 1.2fr 120px 170px;"><span class="chip warn">Pendiente</span><span class="chip">Admin</span><span>Eric</span><span>ana@example.com</span><span class="muted">20/11</span><span class="actions"><button class="btn small">Renovar</button><button class="btn small">Rotar</button><button class="btn small">Reenviar</button></span></div>
+                <div class="tr" style="grid-template-columns:90px 90px 1fr 1.2fr 120px 170px;"><span class="chip warn">Pendiente</span><span class="chip accent">Miembro</span><span>Ana</span><span class="muted">Anónima · sin rellenar</span><span class="muted">48 h</span><span class="actions"><button class="btn small danger">Revocar</button></span></div>
+                <div class="tr" style="grid-template-columns:90px 90px 1fr 1.2fr 120px 170px;"><span class="chip ok">Usada</span><span class="chip">QR</span><span>Ana</span><span>Luis · luis@example.com</span><span class="muted">—</span><span class="actions"><button class="btn small" disabled>Renovar</button></span></div>
+                <div class="tr" style="grid-template-columns:90px 90px 1fr 1.2fr 120px 170px;"><span class="chip bad">Revocada</span><span class="chip accent">Miembro</span><span>Luis</span><span class="muted">Anónima · sin rellenar</span><span class="muted">—</span><span class="actions"><button class="btn small danger">Revocar</button></span></div>
+              </div>
+              <p class="hint">Renovar, rotar y reenviar solo existen en las invitaciones de administrador. Las anónimas se revocan y se crean de nuevo.</p>
+            </div>
+          </div>
+        </figure>
+
+        <!-- Módulo delegable -->
+        <figure class="window">
+          <div class="window-bar"><span class="dots"><i></i><i></i><i></i></span><span>panel/modules/owe-no</span></div>
+          <div class="panel-body">
+            <aside class="sidebar">
+              <div class="brand">027Apps</div>
+              <div class="nav-item">Home</div>
+              <div class="nav-item">Members</div>
+              <div class="nav-item">Invitations</div>
+              <div class="nav-item">Requests <span class="count">2</span></div>
+              <div class="nav-item on">Modules</div>
+              <div class="nav-item">Settings</div>
+            </aside>
+            <div class="pane">
+              <div><h4>OweNo</h4><p class="sub">Gastos compartidos y liquidaciones.</p></div>
+              <div class="card">
+                <div class="row between"><div><strong>Módulo público</strong><p class="hint" style="margin:2px 0 0;">Todos los miembros lo ven, sin concesión.</p></div><span class="switch" data-on="false" role="switch" aria-checked="false"></span></div>
+                <div class="row between" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
+                  <div><strong>Delegable</strong><p class="hint" style="margin:2px 0 0;">Un miembro puede pasar este módulo a quien invite, pero solo si él ya lo tiene.</p></div>
+                  <span class="switch" data-on="true" role="switch" aria-checked="true"></span>
+                </div>
+              </div>
+              <div class="card soft"><p class="hint" style="margin:0;">Los módulos públicos se heredan siempre. Los privados solo si están marcados como delegables. Las categorías del invitador también se copian.</p></div>
+            </div>
+          </div>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ============================================================ NOTAS -->
+    <section id="notas">
+      <div class="notes">
+        <h3>Decisiones que este mockup fija</h3>
+        <ul>
+          <li><strong>Dos puertas, una invitación:</strong> el QR crea una invitación de 15 min; el enlace dura 48 h. La cuota se gasta al canjear, no al enseñar el QR.</li>
+          <li><strong>El GET de <span class="mono">/join/[code]</span> no canjea:</strong> hay un botón «Continuar» para que un prefetch de WhatsApp no se coma el código.</li>
+          <li><strong>La barra es ocupación viva:</strong> usadas + reservadas / base + concedidas. Una cuenta desactivada ocupa; una purgada libera.</li>
+          <li><strong>La solicitud no cambia el nivel:</strong> suma plazas permanentes y revocables a esa persona.</li>
+          <li><strong>El panel no tiene realtime nuevo:</strong> el contador de Solicitudes se refresca por polling.</li>
+          <li><strong>La app no aprueba:</strong> solo lista y abre el panel. La gestión es del panel.</li>
+          <li><strong>El push es genérico:</strong> «Nueva solicitud de invitación», sin importes ni nombres; el detalle está al abrir.</li>
+        </ul>
+
+        <h3 style="margin-top:18px;">Fuera de este mockup</h3>
+        <ul>
+          <li>El flujo de login, el shell de módulos y el canje con cuenta existente ya existentes (solo se muestran sus variantes nuevas).</li>
+          <li>La pantalla de descarga del APK y el wizard de la app; el canje web reutiliza el del sprint 16.</li>
+          <li>Notificaciones push en iOS y la aprobación desde la app.</li>
+        </ul>
+
+        <h3 style="margin-top:18px;">Tokens</h3>
+        <div class="swatches">
+          <span class="swatch"><i style="background:var(--accent)"></i>accent</span>
+          <span class="swatch"><i style="background:var(--foreground)"></i>foreground</span>
+          <span class="swatch"><i style="background:var(--muted)"></i>muted</span>
+          <span class="swatch"><i style="background:var(--surface)"></i>surface</span>
+          <span class="swatch"><i style="background:var(--destructive)"></i>destructive</span>
+          <span class="swatch"><i style="background:var(--success)"></i>success</span>
+          <span class="swatch"><i style="background:var(--warning)"></i>warning</span>
+        </div>
+        <p class="hint" style="margin-top:10px;">Claro y oscuro; contraste AA en texto y controles. Los estados no dependen solo del color: llevan texto y forma.</p>
+
+        <h3 style="margin-top:18px;">Puerta P2</h3>
+        <p class="small" style="margin:0;">Ninguna tarea de UI (6–9) empieza hasta que el propietario apruebe este mockup por escrito. Si un cambio de aquí altera un flujo, se actualiza la spec antes de implementarlo.</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const root = document.documentElement;
+    const theme = document.getElementById('theme');
+    const query = new URLSearchParams(location.search);
+    if (query.get('theme') === 'dark') root.dataset.theme = 'dark';
+    theme.textContent = root.dataset.theme === 'dark' ? 'Tema: oscuro' : 'Tema: claro';
+    theme.addEventListener('click', () => {
+      const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      root.dataset.theme = next;
+      theme.textContent = next === 'dark' ? 'Tema: oscuro' : 'Tema: claro';
+    });
+
+    // Patrón de maqueta: no es un QR legible, solo la silueta.
+    function inFinder(x, y, n) {
+      const corners = [[0, 0], [n - 7, 0], [0, n - 7]];
+      for (const [cx, cy] of corners) {
+        if (x >= cx && x < cx + 7 && y >= cy && y < cy + 7) {
+          const lx = x - cx, ly = y - cy;
+          return lx === 0 || lx === 6 || ly === 0 || ly === 6 || (lx >= 2 && lx <= 4 && ly >= 2 && ly <= 4);
+        }
+      }
+      return null;
+    }
+    document.querySelectorAll('[data-qr]').forEach((el) => {
+      const n = 21;
+      for (let y = 0; y < n; y++) {
+        for (let x = 0; x < n; x++) {
+          const finder = inFinder(x, y, n);
+          const on = finder === null ? ((x * 7 + y * 13 + x * y * 3) % 5 < 2) : finder;
+          if (on) {
+            const dot = document.createElement('i');
+            dot.style.gridArea = `${y + 1} / ${x + 1}`;
+            el.appendChild(dot);
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
