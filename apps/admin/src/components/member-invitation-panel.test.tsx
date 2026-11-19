@@ -105,6 +105,13 @@ describe("MemberInvitationPanel", () => {
     expect(html).toContain(">Assign level</button>");
   });
 
+  it("does not claim 'no seats left' for a member without a level, even at zero remaining", () => {
+    const html = render({ invitation_level: null, quota: { remaining: 0 } });
+
+    expect(html).toContain("This member has no level, so they cannot invite anyone.");
+    expect(html).not.toContain("No seats left. Ask the administrator for more.");
+  });
+
   it("gives an administrator no level selector", () => {
     const html = render({ role: "admin", invitation_level: null });
 

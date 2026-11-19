@@ -21,6 +21,11 @@ function grantLabel(amount: number, messages: TranslationMap): string {
   return t("+{amount} seat(s)", messages, { amount });
 }
 
+/** Only a member with a level can run out of seats; a null level means "not assigned". */
+function hasNoSeats(level: number | null, remaining: number): boolean {
+  return level !== null && remaining === 0;
+}
+
 /**
  * The member ficha's invitation panel (mockup §7.5): the live quota (level,
  * base + granted, used + reserved, remaining), the level selector for members,
@@ -103,7 +108,7 @@ export function MemberInvitationPanel({
             {t("{remaining} remaining", messages, { remaining: quota.remaining })}
           </p>
 
-          {quota.remaining === 0 && (
+          {hasNoSeats(member.invitation_level, quota.remaining) && (
             <p role="status" className="text-xs font-semibold text-warning">
               {t("No seats left. Ask the administrator for more.", messages)}
             </p>

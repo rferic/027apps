@@ -41,6 +41,7 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-subtle: var(--success-subtle);
+  --color-warning: var(--warning);
   --color-android: var(--android);
   --color-android-foreground: var(--android-foreground);
   --radius-card: var(--card-radius);
