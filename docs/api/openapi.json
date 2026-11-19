@@ -1939,6 +1939,7 @@
                   "invitation_expired",
                   "invitation_used",
                   "invitation_not_expired",
+                  "invitation_not_renewable",
                   "invitation_quota_exhausted",
                   "invitation_quota_available",
                   "invitation_inviter_inactive",
@@ -11842,6 +11843,20 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "description": "Filter by origin; omitted removes the filter. total reflects it.",
+              "enum": [
+                "admin",
+                "member",
+                "qr"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -12036,6 +12051,9 @@
             },
             "description": "Successful response."
           },
+          "409": {
+            "description": "invitation_not_renewable: member and QR invitations can only be revoked."
+          },
           "default": {
             "content": {
               "application/json": {
@@ -12170,6 +12188,9 @@
             },
             "description": "Successful response."
           },
+          "409": {
+            "description": "invitation_not_renewable: member and QR invitations can only be revoked."
+          },
           "default": {
             "content": {
               "application/json": {
@@ -12217,6 +12238,9 @@
               }
             },
             "description": "Successful response."
+          },
+          "409": {
+            "description": "invitation_not_renewable: member and QR invitations can only be revoked."
           },
           "default": {
             "content": {

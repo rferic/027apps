@@ -725,6 +725,11 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     scopes: ["invitations:write"],
     response: invitationResendResponseSchema,
     auth: "session",
+    responses: {
+      "409": {
+        description: "invitation_not_renewable: member and QR invitations can only be revoked.",
+      },
+    },
   },
   {
     method: "post",
@@ -733,6 +738,11 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     scopes: ["invitations:write"],
     response: invitationLinkResponseSchema,
     auth: "session",
+    responses: {
+      "409": {
+        description: "invitation_not_renewable: member and QR invitations can only be revoked.",
+      },
+    },
   },
   {
     method: "get",
@@ -749,6 +759,11 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     scopes: ["invitations:write"],
     response: invitationRenewResponseSchema,
     auth: "session",
+    responses: {
+      "409": {
+        description: "invitation_not_renewable: member and QR invitations can only be revoked.",
+      },
+    },
   },
   {
     method: "post",

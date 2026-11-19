@@ -711,6 +711,24 @@ describe("rotateInvitationToken", () => {
 
     await expect(rotateInvitationToken(deps, "i1")).rejects.toMatchObject({ code: "not_found" });
   });
+
+  it("refuses a member invitation as not renewable without touching the row", async () => {
+    const { deps, updates } = depsFor({ ...pending, source: "member" });
+
+    await expect(rotateInvitationToken(deps, "i1")).rejects.toMatchObject({
+      code: "invitation_not_renewable",
+    });
+    expect(updates).toHaveLength(0);
+  });
+
+  it("refuses a qr invitation as not renewable without touching the row", async () => {
+    const { deps, updates } = depsFor({ ...pending, source: "qr" });
+
+    await expect(rotateInvitationToken(deps, "i1")).rejects.toMatchObject({
+      code: "invitation_not_renewable",
+    });
+    expect(updates).toHaveLength(0);
+  });
 });
 
 describe("resendCooldownSeconds", () => {
@@ -968,6 +986,24 @@ describe("renewInvitation", () => {
   it("hides a revoked invitation", async () => {
     const { deps } = renewDeps({ ...expired, revoked_at: "2026-11-02T00:00:00.000Z" });
     await expect(renewInvitation(deps, "i1")).rejects.toMatchObject({ code: "not_found" });
+  });
+
+  it("refuses a member invitation as not renewable without touching the row", async () => {
+    const { deps, updates } = renewDeps({ ...expired, source: "member" });
+
+    await expect(renewInvitation(deps, "i1")).rejects.toMatchObject({
+      code: "invitation_not_renewable",
+    });
+    expect(updates).toHaveLength(0);
+  });
+
+  it("refuses a qr invitation as not renewable without touching the row", async () => {
+    const { deps, updates } = renewDeps({ ...expired, source: "qr" });
+
+    await expect(renewInvitation(deps, "i1")).rejects.toMatchObject({
+      code: "invitation_not_renewable",
+    });
+    expect(updates).toHaveLength(0);
   });
 });
 

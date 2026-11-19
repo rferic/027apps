@@ -139,6 +139,8 @@ export interface InvitationPage {
   offset: number;
   /** Derived status filter; omitted means `all`. */
   status?: InvitationStatusFilter;
+  /** Origin filter; omitted means `all` (spec §6.4). */
+  source?: InvitationSource;
 }
 
 const TOKEN_PREFIX = "027_inv_";
@@ -468,6 +470,7 @@ export async function listInvitations(
 ): Promise<InvitationList> {
   const now = deps.now?.() ?? new Date();
   const status = page.status ?? "all";
+  const source = page.source ?? "all";
   // One CTE filters and the next counts: `total` reflects the filter, so the
   // paginator and the panel agree on how many rows the list really has.
   const { rows } = await deps.db.query(
@@ -480,13 +483,16 @@ export async function listInvitations(
          from public.invitations i
          left join public.profiles cb on cb.id = i.created_by
          left join public.profiles rb on rb.id = i.redeemed_by
-        where $3::text = 'all'
-           or ($3::text = 'used' and used_at is not null)
-           or ($3::text = 'revoked' and used_at is null and revoked_at is not null)
-           or ($3::text = 'pending'
-               and used_at is null and revoked_at is null and expires_at > $4::timestamptz)
-           or ($3::text = 'expired'
-               and used_at is null and revoked_at is null and expires_at <= $4::timestamptz)
+        where ($5::text = 'all' or i.source = $5::text)
+          and (
+            $3::text = 'all'
+            or ($3::text = 'used' and used_at is not null)
+            or ($3::text = 'revoked' and used_at is null and revoked_at is not null)
+            or ($3::text = 'pending'
+                and used_at is null and revoked_at is null and expires_at > $4::timestamptz)
+            or ($3::text = 'expired'
+                and used_at is null and revoked_at is null and expires_at <= $4::timestamptz)
+          )
      ),
      total as (select count(*)::int as n from filtered),
      page as (
@@ -496,7 +502,7 @@ export async function listInvitations(
      )
      select total.n as total, page.*
        from total left join page on true`,
-    [page.limit, page.offset, status, now.toISOString()],
+    [page.limit, page.offset, status, now.toISOString(), source],
   );
   const invitations = rows.filter((row) => row.id !== null && row.id !== undefined);
   const modules = await modulesFor(
@@ -697,6 +703,12 @@ export async function rotateInvitationToken(
     );
     const current = rows[0];
     if (!current) throw new DomainError("not_found");
+    // Member and QR invitations are anonymous, one-shot links: only an admin
+    // invitation can be rotated, resending would kill the member's shared link
+    // (spec §6.4/R7).
+    if (sourceOf(current.source) !== "admin") {
+      throw new DomainError("invitation_not_renewable");
+    }
     assertPending(current, now);
     await db.query("update public.invitations set token_hash = $1 where id = $2", [tokenHash, id]);
     return current;
@@ -739,6 +751,11 @@ export async function renewInvitation(
     );
     const current = rows[0];
     if (!current) throw new DomainError("not_found");
+    // Renewing an anonymous invitation would re-reserve a seat with a 7-day
+    // default and no quota check, breaking the live-quota invariant (spec §6.5).
+    if (sourceOf(current.source) !== "admin") {
+      throw new DomainError("invitation_not_renewable");
+    }
     if (current.revoked_at !== null && current.revoked_at !== undefined) {
       throw new DomainError("not_found");
     }

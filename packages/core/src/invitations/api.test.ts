@@ -175,6 +175,58 @@ describe("invitations route status filter", () => {
   });
 });
 
+describe("invitations route source filter", () => {
+  function recordingDeps(seed: InvitationRow[]) {
+    const deps = pagedDeps(seed);
+    const query = deps.invitations.db.query;
+    const calls: { sql: string; params: unknown[] }[] = [];
+    deps.invitations.db = {
+      query: (sql: string, params: unknown[] = []) => {
+        calls.push({ sql, params });
+        return query(sql, params);
+      },
+    };
+    return { deps, calls };
+  }
+
+  it("passes a source filter to the service", async () => {
+    const { deps, calls } = recordingDeps(rows(1));
+
+    await list(invitationsRoute(deps), "/api/v1/invitations?source=member");
+
+    const page = calls.find((call) => call.sql.includes("public.invitations"));
+    expect(page?.params[4]).toBe("member");
+  });
+
+  it("combines source and status filters", async () => {
+    const { deps, calls } = recordingDeps(rows(1));
+
+    await list(invitationsRoute(deps), "/api/v1/invitations?source=qr&status=pending");
+
+    const page = calls.find((call) => call.sql.includes("public.invitations"));
+    expect(page?.params[4]).toBe("qr");
+    expect(page?.params[2]).toBe("pending");
+  });
+
+  it("defaults to an unfiltered source", async () => {
+    const { deps, calls } = recordingDeps(rows(1));
+
+    await list(invitationsRoute(deps), "/api/v1/invitations");
+
+    const page = calls.find((call) => call.sql.includes("public.invitations"));
+    expect(page?.params[4]).toBe("all");
+  });
+
+  it("rejects an unknown source instead of guessing", async () => {
+    const res = await invitationsRoute(pagedDeps(rows(1)))(
+      new Request("http://local/api/v1/invitations?source=maybe"),
+    );
+
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe("validation_failed");
+  });
+});
+
 describe("invitation detail route", () => {
   function detailDeps(
     input: { row?: Record<string, unknown> | null; who?: Caller } = {},

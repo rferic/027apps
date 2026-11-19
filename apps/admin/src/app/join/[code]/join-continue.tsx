@@ -64,9 +64,12 @@ export function JoinContinue({
   );
 }
 
-function errorCopy(code: string | undefined, messages: TranslationMap): string {
+export function errorCopy(code: string | undefined, messages: TranslationMap): string {
   if (code === "join_code_used") return t("This invitation has already been used.", messages);
-  // A quota race (the seat was taken while the page was open) and any other
-  // failure share the same generic card: the invitee asks for a new code.
+  // A quota race (the seat was taken while the page was open) has its own card:
+  // the club is full and the invitee asks the administrator (spec §7.1).
+  if (code === "invitation_quota_exhausted") {
+    return t("No seats left. Ask the administrator for more.", messages);
+  }
   return t("The link is not valid or has expired. Request a new one.", messages);
 }

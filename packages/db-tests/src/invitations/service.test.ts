@@ -9,6 +9,7 @@ import {
   redeemInvitation,
   renewInvitation,
   revokeInvitation,
+  rotateInvitationToken,
   type InvitationStatusFilter,
   type InvitationView,
   type InvitationsAuth,
@@ -865,6 +866,115 @@ describe("invitation preview and renewal", () => {
         role: "admin",
       });
       expect(created.invitation.role).toBe("admin");
+    });
+  });
+});
+
+describe("member and QR invitations are not renewable", () => {
+  /** An anonymous club invitation: the token is known only here (hash in the row). */
+  async function clubInvitation(
+    c: ClientBase,
+    inviterId: string,
+    source: "member" | "qr",
+  ): Promise<{ id: string; token: string }> {
+    const token = `027_inv_${crypto.randomUUID()}`;
+    const { rows } = await query(
+      c,
+      `insert into public.invitations
+         (email, name, role, source, depth, token_hash, locale, expires_at, created_by)
+       values (null, null, 'user', $1, 2, $2, 'en', now() + interval '48 hours', $3)
+       returning id`,
+      [source, hashInvitationToken(token), inviterId],
+    );
+    return { id: String(rows[0]!.id), token };
+  }
+
+  it("refuses to renew or rotate a member invitation and leaves the row untouched", async () => {
+    await inRollback(async (c) => {
+      const who = await admin(c);
+      if (who.kind !== "session") throw new Error("expected a session caller");
+      const d = deps(c, authPort(c).port);
+
+      const { id } = await clubInvitation(c, who.userId, "member");
+      const { rows: before } = await query(
+        c,
+        "select token_hash, expires_at from public.invitations where id = $1",
+        [id],
+      );
+
+      await expect(renewInvitation(d, id)).rejects.toMatchObject({
+        code: "invitation_not_renewable",
+      });
+      await expect(rotateInvitationToken(d, id)).rejects.toMatchObject({
+        code: "invitation_not_renewable",
+      });
+
+      const { rows: after } = await query(
+        c,
+        "select token_hash, expires_at from public.invitations where id = $1",
+        [id],
+      );
+      expect(after[0]).toEqual(before[0]);
+    });
+  });
+
+  it("refuses to renew or rotate a qr invitation", async () => {
+    await inRollback(async (c) => {
+      const who = await admin(c);
+      if (who.kind !== "session") throw new Error("expected a session caller");
+      const d = deps(c, authPort(c).port);
+
+      const { id } = await clubInvitation(c, who.userId, "qr");
+
+      await expect(renewInvitation(d, id)).rejects.toMatchObject({
+        code: "invitation_not_renewable",
+      });
+      await expect(rotateInvitationToken(d, id)).rejects.toMatchObject({
+        code: "invitation_not_renewable",
+      });
+    });
+  });
+
+  it("filters the list by source", async () => {
+    await inRollback(async (c) => {
+      await query(c, "delete from public.invitations");
+      const who = await admin(c);
+      if (who.kind !== "session") throw new Error("expected a session caller");
+      const d = deps(c, authPort(c).port);
+
+      const adminInv = await createInvitation(d, who, { email: email("src-admin"), name: "A" });
+      const { id: memberId } = await clubInvitation(c, who.userId, "member");
+
+      const members = await listInvitations(d, { ...PAGE, source: "member" });
+      expect(members.invitations.map((row) => row.id)).toEqual([memberId]);
+
+      const admins = await listInvitations(d, { ...PAGE, source: "admin" });
+      expect(admins.invitations.map((row) => row.id)).toEqual([adminInv.invitation.id]);
+
+      const all = await listInvitations(d, { ...PAGE });
+      expect(all.total).toBe(2);
+    });
+  });
+
+  it("still renews and rotates an admin invitation", async () => {
+    await inRollback(async (c) => {
+      const who = await admin(c);
+      const d = deps(c, authPort(c).port);
+
+      const created = await createInvitation(d, who, {
+        email: email("renew-admin"),
+        name: "Renew admin",
+        expires_in_days: 30,
+      });
+      await query(
+        c,
+        "update public.invitations set created_at = now() - interval '2 days', expires_at = now() - interval '1 day' where id = $1",
+        [created.invitation.id],
+      );
+
+      const renewed = await renewInvitation(d, created.invitation.id);
+      expect(renewed.token).not.toBe(created.token);
+      expect(renewed.invitation.expires_in_days).toBe(30);
     });
   });
 });

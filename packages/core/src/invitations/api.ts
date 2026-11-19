@@ -104,6 +104,7 @@ export const createInvitationSchema = z
 export const invitationListFiltersSchema = z
   .object({
     status: z.enum(["pending", "used", "expired", "revoked", "all"]).optional(),
+    source: z.enum(["admin", "member", "qr"]).optional(),
   })
   .strict();
 
@@ -199,13 +200,18 @@ export function invitationsRoute(deps: InvitationsRouteDeps) {
     withDoor(req, readOptions(deps), deps.door, async (ctx) => {
       const page = pageParams(ctx.searchParams);
       const rawStatus = ctx.searchParams.get("status") || undefined;
-      const filters = invitationListFiltersSchema.safeParse({ status: rawStatus });
+      const rawSource = ctx.searchParams.get("source") || undefined;
+      const filters = invitationListFiltersSchema.safeParse({
+        status: rawStatus,
+        source: rawSource,
+      });
       if (!filters.success) {
-        throw new DomainError("validation_failed", "invalid status filter");
+        throw new DomainError("validation_failed", "invalid status or source filter");
       }
       const result = await listInvitations(deps.invitations, {
         ...page,
         ...(filters.data.status ? { status: filters.data.status } : {}),
+        ...(filters.data.source ? { source: filters.data.source } : {}),
       });
       return { ...result, limit: page.limit, offset: page.offset };
     });

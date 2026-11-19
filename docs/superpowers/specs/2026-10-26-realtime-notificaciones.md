@@ -83,9 +83,10 @@ El manifest (task-03 §3) declara:
 - Un evento cuyo consumidor no exista en v1 no entra en el catálogo.
 - `invitation.requested` y `invitation.request_resolved` llevan push **data-only** con `key`
   (`push.invitation_requested` / `push.invitation_request_resolved`) y, para el segundo, `state`
-  (`approved` | `rejected`). El push también lleva `places` (número de plazas) pero **nunca
-  `amount`**: la app no lo pinta como dinero (delta al sprint 18, decisión R5 de la spec de
-  invitaciones). El detalle se pide a la API al abrir.
+  (`approved` | `rejected`). El push lleva solo `{key, module, state}` — o `{key, module}` cuando no
+  hay `state` — y **nunca** `amount` ni `places`: la app no pinta importes ni números de plazas
+  (delta al sprint 18, decisión R5 de la spec de invitaciones). El detalle se pide a la API al
+  abrir.
 
 ## 5. Publicación: outbox transaccional (at-least-once)
 

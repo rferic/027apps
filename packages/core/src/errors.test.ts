@@ -18,6 +18,7 @@ const CODES: DomainErrorCode[] = [
   'invitation_expired',
   'invitation_used',
   'invitation_not_expired',
+  'invitation_not_renewable',
   'invitation_quota_exhausted',
   'invitation_quota_available',
   'invitation_inviter_inactive',

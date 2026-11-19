@@ -98,6 +98,25 @@ export function InviteFailureAlert({
 }
 
 /**
+ * Shown on an anonymous form only (D11): the field still asks for a new
+ * password, but a retry for an existing account signs in with the current one.
+ */
+function CurrentPasswordHint({
+  requiresIdentity,
+  messages,
+}: {
+  requiresIdentity: boolean;
+  messages: TranslationMap;
+}) {
+  if (!requiresIdentity) return null;
+  return (
+    <p className="text-xs text-muted-foreground">
+      {t("If you already have an account, use your current password.", messages)}
+    </p>
+  );
+}
+
+/**
  * Redemption form. The token is the capability and only ever travels in the
  * request path; it is never rendered, stored or logged. The email comes from
  * the invitation card, never from an editable input.
@@ -286,6 +305,8 @@ export function InviteForm({
               className={inputClass}
             />
           </FormField>
+
+          <CurrentPasswordHint requiresIdentity={view.requires_identity} messages={messages} />
         </>
       )}
 

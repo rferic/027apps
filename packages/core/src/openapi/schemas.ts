@@ -153,6 +153,10 @@ export const invitationsQuerySchema = paginationQuerySchema.extend({
     .enum(["pending", "used", "expired", "revoked", "all"])
     .optional()
     .describe("Filter by derived status; omitted or all removes the filter. total reflects it."),
+  source: z
+    .enum(["admin", "member", "qr"])
+    .optional()
+    .describe("Filter by origin; omitted removes the filter. total reflects it."),
 });
 
 export const invitationRequestsQuerySchema = paginationQuerySchema.extend({

@@ -78,6 +78,20 @@ describe("InviteForm", () => {
   it("links to the login page as the way out", () => {
     expect(renderToStaticMarkup(form())).toContain('href="/login"');
   });
+
+  it("hints the current password on an anonymous form for the D11 retry", () => {
+    const html = renderToStaticMarkup(
+      form({ ...VIEW, requires_identity: true, email: null, name: null }),
+    );
+
+    expect(html).toContain("If you already have an account, use your current password.");
+  });
+
+  it("does not show the current-password hint on a named invitation", () => {
+    expect(renderToStaticMarkup(form())).not.toContain(
+      "If you already have an account, use your current password.",
+    );
+  });
 });
 
 describe("fieldProps", () => {

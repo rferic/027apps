@@ -195,8 +195,9 @@ sesión abierta, el canje asocia la invitación a ese perfil y el rol **no** se 
   `expired`. Reusa `expires_in_days` y devuelve el enlace renovado.
 - **Revocar** (`DELETE /api/v1/invitations/{id}` o `DELETE /api/v1/me/invitations/{id}`): pasa a
   `revoked`; el enlace deja de canjearse y se libera la reserva.
-- **Reenviar email** y **rotar el enlace**: limitados por rate limit; no cambian el token ni la
-  caducidad (reenviar) o generan un enlace nuevo (rotar).
+- **Reenviar email** y **rotar el enlace**: limitados por rate limit; ambos **rotan el token**
+  (`rotateInvitationToken`): generan un enlace nuevo y dejan el anterior inservible, sin cambiar la
+  caducidad. Reenviar además manda el email con el token nuevo.
 - **Renovar, rotar y reenviar** responden `invitation_not_renewable` cuando
   `source in ('member','qr')`: esas invitaciones solo se revocan. El panel oculta esas acciones en
   esas filas.
