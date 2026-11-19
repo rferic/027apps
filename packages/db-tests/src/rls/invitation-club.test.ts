@@ -200,6 +200,31 @@ describe("invitation club schema", () => {
     });
   });
 
+  it("grants service_role full DML on the server-only tables", async () => {
+    await withClient(async (c) => {
+      const { rows } = await query(
+        c,
+        `select t.table_name,
+                has_table_privilege('service_role', format('public.%I', t.table_name), 'select') as can_select,
+                has_table_privilege('service_role', format('public.%I', t.table_name), 'insert') as can_insert,
+                has_table_privilege('service_role', format('public.%I', t.table_name), 'update') as can_update,
+                has_table_privilege('service_role', format('public.%I', t.table_name), 'delete') as can_delete
+           from information_schema.tables t
+          where t.table_schema = 'public'
+            and t.table_name = any($1::text[])
+          order by t.table_name`,
+        [SERVER_ONLY_TABLES.map((entry) => entry.table)],
+      );
+
+      expect(rows).toHaveLength(SERVER_ONLY_TABLES.length);
+      expect(
+        rows.filter(
+          (row) => !row.can_select || !row.can_insert || !row.can_update || !row.can_delete,
+        ),
+      ).toEqual([]);
+    });
+  });
+
   it("allows one pending request per user and a second after it is resolved", async () => {
     await withClient(async (c) => {
       await c.query("BEGIN");

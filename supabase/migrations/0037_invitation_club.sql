@@ -96,6 +96,14 @@ revoke all on public.join_codes from anon, authenticated;
 revoke all on public.invitation_requests from anon, authenticated;
 revoke all on public.invitation_quota_grants from anon, authenticated;
 
+-- The server connects as service_role for these tables: the grant has to be
+-- explicit, because default privileges are not guaranteed in every environment
+-- (CI runs `supabase db reset`). Mirrors 0036_device_transfers.sql.
+grant select, insert, update, delete on public.invitation_categories to service_role;
+grant select, insert, update, delete on public.join_codes to service_role;
+grant select, insert, update, delete on public.invitation_requests to service_role;
+grant select, insert, update, delete on public.invitation_quota_grants to service_role;
+
 insert into public.settings_categories (category_key, label, help, icon, sort_order)
 values ('invitations', 'Invitations',
         'Who can join and how many people each member may bring.', 'users', 60)
