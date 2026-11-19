@@ -319,11 +319,13 @@ class ApiClient(
         read(request(HttpMethod.Post, "/api/v1/me/join-codes"))
 
     /**
-     * Exchanges a scanned join code for a 15-minute invitation token (public).
-     * The code travels in the path, never logged, and the token is returned once.
+     * Exchanges a scanned join code for a 15-minute invitation token. Public: the
+     * request never carries the session bearer, so it is safe to call against any
+     * host the link names. The code travels in the path, never logged, and the
+     * token is returned once.
      */
     suspend fun exchangeJoinCode(code: String): JoinCodeExchangeDto =
-        read(request(HttpMethod.Post, "/api/v1/join-codes/$code/exchange"))
+        read(request(HttpMethod.Post, "/api/v1/join-codes/$code/exchange", authenticated = false))
 
     /** Asks an administrator for more seats (only when none are left). */
     suspend fun requestInvitationQuota(amount: Int, reason: String?): InvitationRequestDto =
@@ -346,17 +348,23 @@ class ApiClient(
             request(HttpMethod.Get, "/api/v1/invitation-requests?state=$state"),
         ).requests
 
-    /** Runs a request; a 401 refreshes the session and retries once. */
+    /**
+     * Runs a request; a 401 refreshes the session and retries once. A public
+     * request (`authenticated = false`) never carries the session token and never
+     * runs the refresh/retry, so a public endpoint can be called against a host
+     * that is not the signed-in instance without leaking the bearer token.
+     */
     private suspend fun request(
         method: HttpMethod,
         path: String,
         body: Any? = null,
+        authenticated: Boolean = true,
     ): HttpResponse {
-        val first = send(method, path, body)
-        if (first.status != HttpStatusCode.Unauthorized) return first
+        val first = send(method, path, body, authenticated)
+        if (first.status != HttpStatusCode.Unauthorized || !authenticated) return first
         return when (refresh()) {
             RefreshResult.Refreshed -> {
-                val second = send(method, path, body)
+                val second = send(method, path, body, authenticated)
                 if (second.status == HttpStatusCode.Unauthorized) sessionRevoked()
                 second
             }
@@ -384,11 +392,11 @@ class ApiClient(
         throw ApiException("unauthorized", 401, "Session revoked")
     }
 
-    private suspend fun send(method: HttpMethod, path: String, body: Any?): HttpResponse =
+    private suspend fun send(method: HttpMethod, path: String, body: Any?, authenticated: Boolean): HttpResponse =
         try {
             http.request("${baseUrl.trimEnd('/')}$path") {
                 this.method = method
-                token()?.let { header(HttpHeaders.Authorization, "Bearer $it") }
+                if (authenticated) token()?.let { header(HttpHeaders.Authorization, "Bearer $it") }
                 if (body != null) {
                     contentType(ContentType.Application.Json)
                     setBody(body)
@@ -409,9 +417,9 @@ class ApiClient(
                 Regex("/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"),
                 "/:id",
             )
-            // 24+ characters is the server's own rule; the two token prefixes
-            // are listed so a shorter code still never reaches the log.
-            .replace(Regex("/027_(?:inv|mig)_[A-Za-z0-9_-]+"), "/:token")
+            // 24+ characters is the server's own rule; the token prefixes are
+            // listed so a shorter code still never reaches the log.
+            .replace(Regex("/027_(?:inv|mig|join)_[A-Za-z0-9_-]+"), "/:token")
             .replace(Regex("/[A-Za-z0-9_-]{24,}"), "/:token")
 
     private suspend fun expectSuccess(response: HttpResponse) {

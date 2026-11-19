@@ -343,6 +343,7 @@ class Strings(private val values: Map<String, String>) {
     val joinCodeExpired: String get() = values.getValue("joinCodeExpired")
     val joinCodeUsed: String get() = values.getValue("joinCodeUsed")
     val joinCodeQuota: String get() = values.getValue("joinCodeQuota")
+    val joinCodeWrongInstance: String get() = values.getValue("joinCodeWrongInstance")
 }
 
 object AppStrings {
@@ -698,6 +699,7 @@ object AppStrings {
         "joinCodeExpired" to "This code has expired. Ask for a new QR.",
         "joinCodeUsed" to "This code has already been used. Ask for a new QR.",
         "joinCodeQuota" to "No seats left to invite you. Ask the administrator for more.",
+        "joinCodeWrongInstance" to "This code is for another instance. Sign out of this one first.",
     ))
 
     val es = Strings(mapOf(
@@ -1040,6 +1042,7 @@ object AppStrings {
         "joinCodeExpired" to "Este código ha caducado. Pide otro QR.",
         "joinCodeUsed" to "Este código ya se ha usado. Pide otro QR.",
         "joinCodeQuota" to "No quedan plazas para invitarte. Pide más al administrador.",
+        "joinCodeWrongInstance" to "Este código es de otra instancia. Cierra la sesión de esta primero.",
     ))
 
     val ca = Strings(mapOf(
@@ -1382,6 +1385,7 @@ object AppStrings {
         "joinCodeExpired" to "Aquest codi ha caducat. Demana un altre QR.",
         "joinCodeUsed" to "Aquest codi ja s'ha fet servir. Demana un altre QR.",
         "joinCodeQuota" to "No queden places per convidar-te. Demana'n més a l'administrador.",
+        "joinCodeWrongInstance" to "Aquest codi és d'una altra instància. Tanca la sessió d'aquesta primer.",
     ))
 
     val it = Strings(mapOf(
@@ -1724,6 +1728,7 @@ object AppStrings {
         "joinCodeExpired" to "Questo codice è scaduto. Chiedi un altro QR.",
         "joinCodeUsed" to "Questo codice è già stato usato. Chiedi un altro QR.",
         "joinCodeQuota" to "Non ci sono posti per invitarti. Chiedine altri all'amministratore.",
+        "joinCodeWrongInstance" to "Questo codice è di un'altra istanza. Esci prima da questa.",
     ))
 
     val fr = Strings(mapOf(
@@ -2066,6 +2071,7 @@ object AppStrings {
         "joinCodeExpired" to "Ce code a expiré. Demandez un autre QR.",
         "joinCodeUsed" to "Ce code a déjà été utilisé. Demandez un autre QR.",
         "joinCodeQuota" to "Plus aucune place pour vous inviter. Demandez-en plus à l'administrateur.",
+        "joinCodeWrongInstance" to "Ce code vient d'une autre instance. Déconnectez-vous d'abord de celle-ci.",
     ))
 
     val de = Strings(mapOf(
@@ -2408,6 +2414,7 @@ object AppStrings {
         "joinCodeExpired" to "Dieser Code ist abgelaufen. Bitte um einen neuen QR-Code.",
         "joinCodeUsed" to "Dieser Code wurde bereits verwendet. Bitte um einen neuen QR-Code.",
         "joinCodeQuota" to "Keine Plätze mehr, um dich einzuladen. Bitte den Administrator um mehr.",
+        "joinCodeWrongInstance" to "Dieser Code gehört zu einer anderen Instanz. Melde dich zuerst hier ab.",
     ))
 
     val pt = Strings(mapOf(
@@ -2750,6 +2757,7 @@ object AppStrings {
         "joinCodeExpired" to "Este código expirou. Pede outro QR.",
         "joinCodeUsed" to "Este código já foi usado. Pede outro QR.",
         "joinCodeQuota" to "Não restam lugares para te convidar. Pede mais ao administrador.",
+        "joinCodeWrongInstance" to "Este código é de outra instância. Termina primeiro a sessão desta.",
     ))
 
     val gl = Strings(mapOf(
@@ -3092,6 +3100,7 @@ object AppStrings {
         "joinCodeExpired" to "Este código caducou. Pide outro QR.",
         "joinCodeUsed" to "Este código xa se usou. Pide outro QR.",
         "joinCodeQuota" to "Non quedan prazas para convidarte. Pide máis ao administrador.",
+        "joinCodeWrongInstance" to "Este código é doutra instancia. Pecha primeiro a sesión desta.",
     ))
 
     val eu = Strings(mapOf(
@@ -3434,5 +3443,6 @@ object AppStrings {
         "joinCodeExpired" to "Kode hau iraungi da. Eskatu beste QR bat.",
         "joinCodeUsed" to "Kode hau erabili da dagoeneko. Eskatu beste QR bat.",
         "joinCodeQuota" to "Ez daude tokirik zu gonbidatzeko. Eskatu gehiago administratzaileari.",
+        "joinCodeWrongInstance" to "Kode hau beste instantzia batekoa da. Itxi lehenengo honen saioa.",
     ))
 }

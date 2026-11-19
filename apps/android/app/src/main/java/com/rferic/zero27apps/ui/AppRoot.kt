@@ -360,6 +360,7 @@ fun AppRoot(
                                     JoinLinkError.USED -> strings.joinCodeUsed
                                     JoinLinkError.QUOTA_EXHAUSTED -> strings.joinCodeQuota
                                     JoinLinkError.EXPIRED -> strings.joinCodeExpired
+                                    JoinLinkError.WRONG_INSTANCE -> strings.joinCodeWrongInstance
                                     JoinLinkError.RATE_LIMITED -> strings.inviteRateLimited
                                     JoinLinkError.NETWORK -> strings.failureNetwork
                                     JoinLinkError.GENERIC -> strings.inviteFailed

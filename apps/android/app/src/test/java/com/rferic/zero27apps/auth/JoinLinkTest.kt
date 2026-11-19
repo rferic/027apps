@@ -1,7 +1,9 @@
 package com.rferic.zero27apps.auth
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class JoinLinkTest {
@@ -49,5 +51,13 @@ class JoinLinkTest {
     @Test
     fun `rejects an instance that this build would not accept`() {
         assertNull(JoinLink.parse("027apps-dev://join/$code?instance=ftp%3A%2F%2Fbad"))
+    }
+
+    @Test
+    fun `a signed-in phone refuses a join link from another instance`() {
+        val link = JoinLink("027_join_abcdefghijklmnop", "https://evil.example")
+        assertTrue(link.crossesInstance("https://027apps.ericrf.com", signedIn = true))
+        assertFalse(link.crossesInstance("https://evil.example", signedIn = true))
+        assertFalse(link.crossesInstance("https://027apps.ericrf.com", signedIn = false))
     }
 }

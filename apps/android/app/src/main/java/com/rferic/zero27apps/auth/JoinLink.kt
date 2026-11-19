@@ -11,6 +11,14 @@ import java.net.URI
  * link cannot point the app at a plain `http://` server outside debug.
  */
 data class JoinLink(val code: String, val instance: String) {
+    /**
+     * True when a phone already signed in to [currentInstance] must refuse this
+     * code: a join QR is for a brand-new member, so a session on another host
+     * must never be handed to (or the code exchanged against) that host.
+     */
+    fun crossesInstance(currentInstance: String, signedIn: Boolean): Boolean =
+        signedIn && currentInstance != instance
+
     companion object {
         private val TOKEN = Regex("^027_join_[A-Za-z0-9_-]{1,200}$")
         private const val PRODUCTION_HOST = "027apps.ericrf.com"

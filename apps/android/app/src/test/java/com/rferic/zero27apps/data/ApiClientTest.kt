@@ -146,6 +146,44 @@ class ApiClientTest {
     }
 
     @Test
+    fun `the public join exchange never sends the session bearer`() = runTest {
+        var seenAuth: String? = "unset"
+        val engine = MockEngine { request ->
+            seenAuth = request.headers[HttpHeaders.Authorization]
+            respond(
+                content = """{"token":"027_inv_abcdefghijklmnop","path":"/invite/027_inv_abcdefghijklmnop"}""",
+                status = HttpStatusCode.Created,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        // Pointed at a different host than the signed-in instance, with a live token.
+        val api = ApiClient("https://evil.example", engine, { "session-jwt" }, { RefreshResult.NoSession }, {})
+
+        val exchanged = api.exchangeJoinCode("027_join_abcdefghijklmnop")
+
+        assertEquals(null, seenAuth)
+        assertEquals("027_inv_abcdefghijklmnop", exchanged.token)
+    }
+
+    @Test
+    fun `the join exchange parses the returned invitation token`() = runTest {
+        var seenPath = ""
+        val engine = MockEngine { request ->
+            seenPath = request.url.encodedPath
+            respond(
+                content = """{"token":"027_inv_abcdefghijklmnop","path":"/invite/027_inv_abcdefghijklmnop"}""",
+                status = HttpStatusCode.Created,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+
+        val exchanged = client(engine).exchangeJoinCode("027_join_abcdefghijklmnop")
+
+        assertEquals("/api/v1/join-codes/027_join_abcdefghijklmnop/exchange", seenPath)
+        assertEquals("027_inv_abcdefghijklmnop", exchanged.token)
+    }
+
+    @Test
     fun `an existing account redeems without a password`() = runTest {
         var seenBody = ""
         val engine = MockEngine { request ->
@@ -311,6 +349,10 @@ class ApiPathRedactionTest {
         assertEquals(
             "/api/v1/device-transfers/:token/exchange",
             client.redactPath("/api/v1/device-transfers/027_mig_abcdEFGH123456789012345/exchange"),
+        )
+        assertEquals(
+            "/api/v1/join-codes/:token/exchange",
+            client.redactPath("/api/v1/join-codes/027_join_abcdEFGH123456789012345/exchange"),
         )
     }
 

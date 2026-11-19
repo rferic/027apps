@@ -197,10 +197,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun onJoinLink(raw: String): Boolean {
         val link = JoinLink.parse(raw) ?: return false
         bootJob?.cancel()
+        // A join QR is for a brand-new member. A phone signed in to another
+        // instance must not hand its session (or the code) to that host: refuse
+        // instead of switching silently, matching the invite flow's confirmation.
+        if (link.crossesInstance(instanceStore.current(), hasStoredSession())) {
+            _joinLink.value = JoinLinkState(error = JoinLinkError.WRONG_INSTANCE)
+            return true
+        }
         _joinLink.value = JoinLinkState(loading = true)
         viewModelScope.launch {
             try {
-                val exchanged = apiFor(link.instance).exchangeJoinCode(link.code)
+                // The exchange is public: a throwaway authless client, never the
+                // signed-in session's bearer.
+                val exchanged = publicApi(link.instance).use { it.exchangeJoinCode(link.code) }
                 _joinLink.value = JoinLinkState()
                 handleInvite(InvitationLink(exchanged.token, link.instance))
             } catch (error: ApiException) {
@@ -966,6 +975,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         client = api
         return api
     }
+
+    /**
+     * A throwaway client with no session and no token, for public endpoints such
+     * as the join-code exchange. It never touches [client], so a public call
+     * against another host cannot reuse (or leak) the signed-in bearer.
+     */
+    private fun publicApi(base: String): ApiClient =
+        ApiClient(
+            baseUrl = base,
+            engine = OkHttp.create(),
+            token = { null },
+            refresh = { RefreshResult.NoSession },
+            onSessionEnded = {},
+        )
 
     private fun failureReason(error: ApiException): FailureReason = when {
         error.network -> FailureReason.NETWORK
