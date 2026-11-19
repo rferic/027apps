@@ -239,15 +239,22 @@ export const categoryModulesResponseSchema = component(
   z.object({ modules: z.array(z.string()) }).strict(),
 );
 
+const invitationPersonSchema = z
+  .object({ id: z.uuid(), display_name: z.string() })
+  .strict();
+
 export const invitationSchema = component(
   "Invitation",
   z
     .object({
       id: z.uuid(),
-      email: z.email(),
-      name: z.string(),
+      email: z.email().nullable(),
+      name: z.string().nullable(),
       role: z.enum(["user", "admin"]),
-      expires_in_days: z.number().int(),
+      source: z.enum(["admin", "member", "qr"]),
+      depth: z.number().int().nullable(),
+      anonymous: z.boolean(),
+      expires_in_days: z.number().int().nullable(),
       user_category_id: z.uuid().nullable(),
       modules: z.array(z.string()),
       status: z.enum(["pending", "used", "expired", "revoked"]),
@@ -259,6 +266,8 @@ export const invitationSchema = component(
       email_sent_at: nullableDate,
       email_failed_at: nullableDate,
       email_error: z.string().nullable(),
+      created_by: invitationPersonSchema.nullable(),
+      redeemed_by: invitationPersonSchema.nullable(),
       created_at: isoDate,
     })
     .strict() satisfies z.ZodType<InvitationView>,
@@ -303,10 +312,7 @@ export const invitationDetailSchema = component(
   "InvitationDetail",
   invitationSchema
     .extend({
-      created_by: z
-        .object({ id: z.uuid(), display_name: z.string() })
-        .strict()
-        .nullable(),
+      created_by: invitationPersonSchema.nullable(),
     })
     .strict() satisfies z.ZodType<InvitationDetail>,
 );

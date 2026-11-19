@@ -152,6 +152,8 @@ async function deliver(
 ): Promise<InvitationDelivery> {
   if (mode === "link") return { status: "skipped" };
   if (!deps.mailer) return { status: "skipped", code: "not_configured" };
+  // Anonymous invitations have no address: the link is shared, never emailed.
+  if (!invitation.email) return { status: "skipped", code: "email_no_recipient" };
 
   // The email copy is different when the address already has an account (D16).
   const accountExists = (await deps.invitations.auth.findUserByEmail(invitation.email)) !== null;

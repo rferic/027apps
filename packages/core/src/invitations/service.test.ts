@@ -591,6 +591,50 @@ describe("getInvitation", () => {
     expect(detail).not.toHaveProperty("token");
     expect(detail).not.toHaveProperty("token_hash");
   });
+
+  it("maps an anonymous invitation: no address, no name and no duration", async () => {
+    const detail = await getInvitation(
+      detailDeps({
+        row: {
+          ...DETAIL_ROW,
+          email: null,
+          name: null,
+          source: "member",
+          depth: 2,
+          expires_in_days: null,
+        },
+      }),
+      "i1",
+    );
+
+    expect(detail).toMatchObject({
+      email: null,
+      name: null,
+      anonymous: true,
+      source: "member",
+      depth: 2,
+      expires_in_days: null,
+    });
+  });
+
+  it("names the profile that redeemed the invitation", async () => {
+    const detail = await getInvitation(
+      detailDeps({
+        row: {
+          ...DETAIL_ROW,
+          source: "qr",
+          depth: 3,
+          redeemed_by_id: "u-2",
+          redeemed_by_display_name: "Luis",
+        },
+      }),
+      "i1",
+    );
+
+    expect(detail.anonymous).toBe(false);
+    expect(detail.source).toBe("qr");
+    expect(detail.redeemed_by).toEqual({ id: "u-2", display_name: "Luis" });
+  });
 });
 
 

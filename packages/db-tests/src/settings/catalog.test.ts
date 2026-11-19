@@ -66,7 +66,7 @@ describe('settings catalog seed (migration 0002)', () => {
     });
   });
 
-  it('seeds the 5 categories with matching sort and metadata', async () => {
+  it('seeds the 6 categories with matching sort and metadata', async () => {
     await withClient(async (c) => {
       const { rows } = await query(c, 'select * from public.settings_categories order by sort_order');
       const db = new Map(

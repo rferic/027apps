@@ -4,6 +4,7 @@ import type {
   InvitationDelivery,
   InvitationsMailer,
 } from "@027apps/core/invitations/api.js";
+import type { InvitationView } from "@027apps/core/invitations/service.js";
 import { readPublicSettings } from "@027apps/core/settings/service.js";
 import { getInfra } from "@/lib/api/door";
 
@@ -23,6 +24,12 @@ interface SendContext {
 function fromHeader(name: string, address: string): string {
   const safe = name.replace(/[\r\n"<>]/g, " ").replace(/\s+/g, " ").trim();
   return `${safe || "027Apps"} <${address}>`;
+}
+
+/** Admin invitations carry an address and a name; anonymous ones are links. */
+function recipientOf(invitation: InvitationView): { to: string; name: string } | null {
+  if (!invitation.email || !invitation.name) return null;
+  return { to: invitation.email, name: invitation.name };
 }
 
 function readString(value: unknown): string | null {
@@ -97,6 +104,9 @@ async function postToResend(
 export function createInvitationMailer(): InvitationsMailer {
   return {
     async sendInvitation({ invitation, token, accountExists }): Promise<InvitationDelivery> {
+      const recipient = recipientOf(invitation);
+      if (!recipient) return { status: "skipped", code: "email_no_recipient" };
+
       const key = process.env.RESEND_API_KEY;
       if (!key) return { status: "skipped", code: "email_not_configured" };
 
@@ -106,7 +116,7 @@ export function createInvitationMailer(): InvitationsMailer {
 
         const message = buildInvitationEmail({
           locale: invitation.locale,
-          inviteeName: invitation.name,
+          inviteeName: recipient.name,
           inviterName: context.inviterName,
           instanceName: context.instanceName,
           publicUrl: context.publicUrl,
@@ -120,7 +130,7 @@ export function createInvitationMailer(): InvitationsMailer {
           process.env.EMAIL_FROM_NAME?.trim() || context.instanceName,
           process.env.EMAIL_FROM?.trim() || DEFAULT_FROM,
         );
-        return await postToResend(key, invitation.email, from, message);
+        return await postToResend(key, recipient.to, from, message);
       } catch (error) {
         return {
           status: "failed",
