@@ -10,8 +10,10 @@ import { FormActions, FormAlert, FormField, cancelClass, inputClass } from "@/co
 import { SignInIcon } from "@/components/ui/sign-in-icon";
 import { inviteErrorHeading } from "@/lib/invite-errors";
 import {
+  MAX_NAME,
   MAX_PASSWORD,
   MIN_PASSWORD,
+  type InviteField,
   type InviteFieldError,
   type InviteFieldErrors,
 } from "@/lib/invite-form";
@@ -34,6 +36,13 @@ function fieldMessage(
       return t("Use at most 200 characters.", messages);
     case "password_mismatch":
       return t("Passwords do not match.", messages);
+    case "name_required":
+    case "name_long":
+      return t("Use a name between 1 and 80 characters.", messages);
+    case "email_required":
+      return t("Enter your email address.", messages);
+    case "email_invalid":
+      return t("Enter a valid email address.", messages);
     default:
       return undefined;
   }
@@ -45,7 +54,7 @@ function fieldMessage(
  * hint, a screen reader never announces "At least 12 characters.".
  */
 export function fieldProps(
-  field: "password" | "confirmation",
+  field: InviteField,
   errors: InviteFieldErrors,
   hintId?: string,
 ): { "aria-invalid"?: true; "aria-describedby"?: string } {
@@ -130,7 +139,10 @@ export function InviteForm({
             token,
             password: String(data.get("password") ?? ""),
             confirmation: String(data.get("confirmation") ?? ""),
+            name: String(data.get("name") ?? ""),
+            email: String(data.get("email") ?? ""),
             accountExists: existing,
+            requiresIdentity: view.requires_identity,
           },
           { submit: submitInvitation },
         ),
@@ -163,6 +175,48 @@ export function InviteForm({
       noValidate
       className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4"
     >
+      {view.requires_identity && (
+        <>
+          <FormField
+            id="invite-name"
+            label={t("Name", messages)}
+            error={fieldMessage(fieldErrors.name, messages)}
+            errorId="invite-name-error"
+          >
+            <input
+              id="invite-name"
+              name="name"
+              type="text"
+              required
+              maxLength={MAX_NAME}
+              autoComplete="name"
+              {...fieldProps("name", fieldErrors)}
+              className={inputClass}
+            />
+          </FormField>
+
+          <FormField
+            id="invite-email"
+            label={t("Email", messages)}
+            hint={t("Enter your email address.", messages)}
+            hintId="invite-email-hint"
+            error={fieldMessage(fieldErrors.email, messages)}
+            errorId="invite-email-error"
+          >
+            <input
+              id="invite-email"
+              name="email"
+              type="email"
+              required
+              maxLength={320}
+              autoComplete="email"
+              {...fieldProps("email", fieldErrors, "invite-email-hint")}
+              className={inputClass}
+            />
+          </FormField>
+        </>
+      )}
+
       {existing ? (
         <>
           <FormField

@@ -41,7 +41,7 @@ interface RecordedQuery {
 function fakeDb(input: {
   settings: { key: string; value: unknown }[];
   profile?: { display_name: string; role?: string } | null;
-  invitation?: { locale?: string | null; role?: string };
+  invitation?: Record<string, unknown>;
 }): { db: QueryClient; queries: RecordedQuery[] } {
   const queries: RecordedQuery[] = [];
   const db: QueryClient = {
@@ -120,7 +120,9 @@ describe("redeemInvitation localization", () => {
     const insert = profileInsert(fake.queries);
     expect(insert?.sql).toContain("locale");
     expect(insert?.sql).toContain("timezone");
-    expect(insert?.params).toEqual(["u1", "Ana", "user", "es", "Europe/Madrid"]);
+    expect(insert?.sql).toContain("invited_by");
+    expect(insert?.sql).toContain("invite_level");
+    expect(insert?.params).toEqual(["u1", "Ana", "user", "es", "Europe/Madrid", null, null]);
   });
 
   it("falls back to en/UTC when the settings are missing or null", async () => {
@@ -137,7 +139,7 @@ describe("redeemInvitation localization", () => {
       password: "correct-horse-battery",
     });
 
-    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "user", "en", "UTC"]);
+    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "user", "en", "UTC", null, null]);
   });
 
   it("falls back per key when only one of the two settings is usable", async () => {
@@ -151,7 +153,7 @@ describe("redeemInvitation localization", () => {
       password: "correct-horse-battery",
     });
 
-    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "user", "gl", "UTC"]);
+    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "user", "gl", "UTC", null, null]);
   });
 
   it("prefers the invitation's locale over the instance default", async () => {
@@ -169,7 +171,7 @@ describe("redeemInvitation localization", () => {
       password: "correct-horse-battery",
     });
 
-    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "user", "ca", "Europe/Madrid"]);
+    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "user", "ca", "Europe/Madrid", null, null]);
   });
 
   it("ignores an unsupported invitation locale and keeps the default", async () => {
@@ -184,7 +186,7 @@ describe("redeemInvitation localization", () => {
       password: "correct-horse-battery",
     });
 
-    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "user", "gl", "UTC"]);
+    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "user", "gl", "UTC", null, null]);
   });
 
   it("keeps a deactivated account check before the localization read", async () => {
@@ -792,6 +794,7 @@ describe("previewInvitation", () => {
       email: "ana@example.com",
       name: "Ana",
       role: "user",
+      requires_identity: false,
       role_applies: true,
       account_exists: false,
       locale: "es",
@@ -862,6 +865,46 @@ describe("previewInvitation", () => {
     expect(preview.instance_name).toBe("027Apps");
     expect(preview.timezone).toBe("UTC");
     expect(preview.locale).toBe("en");
+  });
+
+  it("previews an anonymous invitation with requires_identity and no email", async () => {
+    let authCalled = false;
+    const deps: InvitationsDeps = {
+      db: {
+        async query(sql: string) {
+          if (sql.includes("from public.invitations i")) {
+            return { rows: [{ ...PREVIEW_ROW, email: null, name: null }] };
+          }
+          if (sql.includes("from public.settings")) return { rows: [] };
+          return { rows: [] };
+        },
+      },
+      now: () => new Date("2026-11-17T12:00:00.000Z"),
+      auth: {
+        async findUserByEmail() {
+          authCalled = true;
+          return null;
+        },
+        async createUser() {
+          throw new Error("preview must not create users");
+        },
+        async deleteUser() {
+          throw new Error("preview must not delete users");
+        },
+      },
+    };
+
+    const preview = await previewInvitation(deps, "027_inv_valid");
+
+    expect(authCalled).toBe(false);
+    expect(preview).toMatchObject({
+      state: "pending",
+      requires_identity: true,
+      email: null,
+      name: null,
+      account_exists: false,
+      role_applies: true,
+    });
   });
 });
 
@@ -995,8 +1038,10 @@ describe("redeemInvitation for an existing account", () => {
       role: "admin",
     });
     const insert = profileInsert(queries);
-    // `on conflict do nothing`: a new row would still take the invitation role.
-    expect(insert?.params).toEqual(["u-existing", "Ana", "user", "es", "UTC"]);
+    // `on conflict do nothing`: a new row would still take the invitation role,
+    // but the existing row keeps its own name, role, level and inviter.
+    expect(insert?.sql).toContain("on conflict (id) do nothing");
+    expect(insert?.params).toEqual(["u-existing", "Ana", "user", "es", "UTC", null, null]);
     expect(queries.some((entry) => entry.sql.includes("update public.invitations set used_at"))).toBe(
       true,
     );
@@ -1056,5 +1101,141 @@ describe("redeemInvitation for an existing account", () => {
 
     expect(profileInsert(fake.queries)?.params?.[2]).toBe("admin");
     expect(result.user.role).toBe("admin");
+  });
+});
+
+describe("redeemInvitation anonymous and inheritance", () => {
+  const anonymousInvitation = {
+    email: null,
+    name: null,
+    role: "user",
+    created_by: "u-inviter",
+    depth: 2,
+    user_category_id: null,
+  };
+
+  it("redeems an anonymous invitation with the name and email from the form", async () => {
+    const fake = fakeDb({
+      settings: [],
+      profile: { display_name: "Invitada" },
+      invitation: anonymousInvitation,
+    });
+    const deps: InvitationsDeps = { db: fake.db, auth: auth() };
+
+    const result = await redeemInvitation(deps, "027_inv_valid", {
+      email: "invitee@example.com",
+      name: "Invitada",
+      password: "correct-horse-battery",
+    });
+
+    expect(profileInsert(fake.queries)?.params).toEqual([
+      "u1",
+      "Invitada",
+      "user",
+      "en",
+      "UTC",
+      "u-inviter",
+      2,
+    ]);
+    expect(result.user).toMatchObject({
+      id: "u1",
+      email: "invitee@example.com",
+      display_name: "Invitada",
+    });
+
+    // The redeemed event carries the resulting profile's email and name, not
+    // the anonymous invitation's NULLs.
+    const event = fake.queries.find((entry) => entry.sql.includes("insert into public.event_outbox"));
+    const resource = JSON.parse(String(event?.params?.[5] ?? "{}")) as Record<string, unknown>;
+    expect(resource).toMatchObject({ email: "invitee@example.com", name: "Invitada" });
+  });
+
+  it("requires the form name to redeem an anonymous invitation", async () => {
+    const fake = fakeDb({ settings: [], invitation: anonymousInvitation });
+
+    await expect(
+      redeemInvitation({ db: fake.db, auth: auth() }, "027_inv_valid", {
+        email: "invitee@example.com",
+        password: "correct-horse-battery",
+      }),
+    ).rejects.toMatchObject({ code: "validation_failed" });
+    expect(profileInsert(fake.queries)).toBeUndefined();
+  });
+
+  it("still rejects an email that does not match a named invitation", async () => {
+    const fake = fakeDb({ settings: [] });
+
+    await expect(
+      redeemInvitation({ db: fake.db, auth: auth() }, "027_inv_valid", {
+        email: "other@example.com",
+        password: "correct-horse-battery",
+      }),
+    ).rejects.toMatchObject({
+      code: "validation_failed",
+      message: "The email does not match the invitation",
+    });
+  });
+
+  it("leaves invite_level null when the invitation grants admin", async () => {
+    const fake = fakeDb({
+      settings: [],
+      invitation: { ...anonymousInvitation, role: "admin" },
+    });
+
+    await redeemInvitation({ db: fake.db, auth: auth() }, "027_inv_valid", {
+      email: "invitee@example.com",
+      name: "Admin Invitada",
+      password: "correct-horse-battery",
+    });
+
+    expect(profileInsert(fake.queries)?.params).toEqual([
+      "u1",
+      "Admin Invitada",
+      "admin",
+      "en",
+      "UTC",
+      "u-inviter",
+      null,
+    ]);
+  });
+
+  it("does not redeem when the inviter was deactivated", async () => {
+    let authTouched = false;
+    const query = vi.fn(async (sql: string, params: unknown[] = []) => {
+      if (sql.includes("from public.invitations") && sql.includes("token_hash")) {
+        return { rows: [{ ...INVITATION, email: null, name: null, created_by: "u-inviter", depth: 2 }] };
+      }
+      if (sql.includes("select deactivated_at from public.profiles")) {
+        return {
+          rows:
+            params[0] === "u-inviter" ? [{ deactivated_at: "2026-01-01T00:00:00.000Z" }] : [],
+        };
+      }
+      return { rows: [] };
+    });
+    const deps: InvitationsDeps = {
+      db: { query },
+      auth: {
+        async findUserByEmail() {
+          authTouched = true;
+          return null;
+        },
+        async createUser() {
+          throw new Error("createUser must not run when the inviter is inactive");
+        },
+        async deleteUser() {},
+      },
+    };
+
+    await expect(
+      redeemInvitation(deps, "027_inv_valid", {
+        email: "invitee@example.com",
+        name: "Invitada",
+        password: "correct-horse-battery",
+      }),
+    ).rejects.toMatchObject({ code: "invitation_inviter_inactive" });
+
+    // The inviter check runs before any Auth work.
+    expect(authTouched).toBe(false);
   });
 });

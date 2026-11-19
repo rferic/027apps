@@ -51,6 +51,7 @@ const PREVIEW = {
   email: "ana@example.com",
   name: "Ana",
   role: "user",
+  requires_identity: false,
   role_applies: true,
   account_exists: false,
   locale: "es",
@@ -141,6 +142,30 @@ describe("submitInvitation", () => {
       email: PREVIEW.email,
       password: "a-new-password",
     });
+    expect(result).toEqual({ ok: true, role: "admin" });
+  });
+
+  it("redeems an anonymous invitation with the form's name and email", async () => {
+    mocks.preview.mockResolvedValue({
+      ...PREVIEW,
+      requires_identity: true,
+      email: null,
+      name: null,
+    });
+
+    const result = await submitInvitation({
+      token: TOKEN,
+      password: "a-new-password",
+      name: "Invitada",
+      email: "invitee@example.com",
+    });
+
+    expect(mocks.redeem).toHaveBeenCalledWith(
+      expect.anything(),
+      TOKEN,
+      { email: "invitee@example.com", name: "Invitada", password: "a-new-password" },
+      { kind: "anon" },
+    );
     expect(result).toEqual({ ok: true, role: "admin" });
   });
 

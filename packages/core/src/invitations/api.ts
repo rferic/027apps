@@ -99,6 +99,8 @@ export const invitationListFiltersSchema = z
 export const redeemInvitationSchema = z
   .object({
     email: z.string().trim().email().max(320),
+    /** Required on an anonymous invitation; ignored on a named one. */
+    name: z.string().trim().min(1).max(80).optional(),
     /** A new account needs it; an existing one signs in first and omits it. */
     password: z.string().min(12).max(200).optional(),
     display_name: z.string().trim().min(1).max(80).optional(),

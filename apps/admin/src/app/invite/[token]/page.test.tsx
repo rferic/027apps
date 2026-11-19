@@ -65,6 +65,7 @@ const PREVIEW = {
   email: "ana@example.com",
   name: "Ana",
   role: "user" as const,
+  requires_identity: false,
   role_applies: true,
   account_exists: false,
   locale: "en" as const,

@@ -221,6 +221,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
             email: preview.email,
             name: preview.name,
             role: preview.role,
+            requires_identity: preview.requires_identity,
             role_applies: preview.role_applies,
             account_exists: preview.account_exists,
             inviter_name: preview.inviter_name,

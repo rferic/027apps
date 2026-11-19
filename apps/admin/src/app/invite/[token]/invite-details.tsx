@@ -5,9 +5,11 @@ import { formatDate } from "@/lib/format-date";
 
 /** Public fields of an invitation the page and the form may render. */
 export interface InvitePublicView {
-  email: string;
-  name: string;
+  email: string | null;
+  name: string | null;
   role: "user" | "admin";
+  /** True when the invitation carries no email/name: the form asks for them. */
+  requires_identity: boolean;
   role_applies: boolean;
   account_exists: boolean;
   inviter_name: string | null;
@@ -44,8 +46,8 @@ export function InviteDetails({
     : t("Your current role", messages);
   return (
     <dl className="grid grid-cols-1 gap-3 rounded-card border border-border bg-muted/40 p-4 sm:grid-cols-2">
-      <Row label={t("Email", messages)}>{view.email}</Row>
-      <Row label={t("Name", messages)}>{view.name}</Row>
+      {!view.requires_identity && <Row label={t("Email", messages)}>{view.email}</Row>}
+      {!view.requires_identity && <Row label={t("Name", messages)}>{view.name}</Row>}
       <Row label={t("Instance", messages)}>{view.instance_name}</Row>
       <Row label={t("Invited by", messages)}>{view.inviter_name ?? view.instance_name}</Row>
       <Row label={t("Role", messages)}>{role}</Row>

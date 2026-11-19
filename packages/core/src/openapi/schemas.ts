@@ -360,9 +360,10 @@ export const invitationPreviewSchema = component(
   z
     .object({
       state: z.enum(["pending", "expired", "used"]),
-      email: z.email(),
-      name: z.string(),
+      email: z.email().nullable(),
+      name: z.string().nullable(),
       role: z.enum(["user", "admin"]),
+      requires_identity: z.boolean(),
       role_applies: z.boolean(),
       account_exists: z.boolean(),
       locale: z.enum(EMAIL_LOCALES),

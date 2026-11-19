@@ -17,6 +17,7 @@ const VIEW: InvitePublicView = {
   email: "ana@example.com",
   name: "Ana",
   role: "user",
+  requires_identity: false,
   role_applies: true,
   account_exists: false,
   inviter_name: "Eric",
@@ -50,6 +51,19 @@ describe("InviteForm", () => {
     expect(html).toContain('minLength="12"');
     expect(html).toContain('maxLength="200"');
     expect(html).toContain("Accept invitation");
+  });
+
+  it("asks for the name and email only on an anonymous invitation", () => {
+    const html = renderToStaticMarkup(
+      form({ ...VIEW, requires_identity: true, email: null, name: null }),
+    );
+
+    expect(html).toContain('name="name"');
+    expect(html).toContain('name="email"');
+    expect(html).toContain('autoComplete="name"');
+    expect(html).toContain('autoComplete="email"');
+    expect(html).toContain('name="password"');
+    expect(html).toContain('name="confirmation"');
   });
 
   it("asks only for the current password on an existing account", () => {

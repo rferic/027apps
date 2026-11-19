@@ -63,4 +63,48 @@ describe("submitInvite", () => {
     expect(outcome).toEqual({ kind: "redeemed", role: "user" });
     expect(submit).toHaveBeenCalledWith({ token: VALID.token, password: "old-pass" });
   });
+
+  it("collects the name and email on an anonymous invitation", async () => {
+    const submit = vi.fn(async () => ({ ok: true as const, role: "user" as const }));
+
+    const outcome = await submitInvite(
+      {
+        token: VALID.token,
+        password: VALID.password,
+        confirmation: VALID.confirmation,
+        name: "Invitada",
+        email: "invitee@example.com",
+        requiresIdentity: true,
+      },
+      { submit },
+    );
+
+    expect(outcome).toEqual({ kind: "redeemed", role: "user" });
+    expect(submit).toHaveBeenCalledWith({
+      token: VALID.token,
+      password: VALID.password,
+      name: "Invitada",
+      email: "invitee@example.com",
+    });
+  });
+
+  it("requires the name and email on an anonymous invitation", async () => {
+    const submit = vi.fn();
+
+    const outcome = await submitInvite(
+      {
+        token: VALID.token,
+        password: VALID.password,
+        confirmation: VALID.confirmation,
+        requiresIdentity: true,
+      },
+      { submit },
+    );
+
+    expect(outcome).toEqual({
+      kind: "invalid",
+      fieldErrors: { name: "name_required", email: "email_required" },
+    });
+    expect(submit).not.toHaveBeenCalled();
+  });
 });

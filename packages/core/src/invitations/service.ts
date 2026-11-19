@@ -93,6 +93,9 @@ export interface CreateInvitationInput {
 
 export interface RedeemInput {
   email: string;
+  /** The invitee's chosen name; required on an anonymous invitation, ignored
+   *  on a named one (the invitation's name always wins there). */
+  name?: string;
   /** Required for a new account; never sent for an existing one (D21). */
   password?: string;
   /** Obsolete: the name always comes from the invitation. */
@@ -107,9 +110,13 @@ export type RedeemResult = {
 /** Public contract of `GET /invitations/{token}/preview` (spec §6.2). */
 export type InvitationPreview = {
   state: "pending" | "expired" | "used";
-  email: string;
-  name: string;
+  /** Null on an anonymous invitation: the invitee fills it while redeeming. */
+  email: string | null;
+  /** Null on an anonymous invitation: the invitee fills it while redeeming. */
+  name: string | null;
   role: InvitationRole;
+  /** True when the invitation carries no email/name: the form asks for them. */
+  requires_identity: boolean;
   /** False for an existing account: redeeming keeps its role (D6). */
   role_applies: boolean;
   account_exists: boolean;
@@ -577,12 +584,30 @@ export async function previewInvitation(
   if (!row) throw new DomainError("not_found");
   if (row.revoked_at !== null && row.revoked_at !== undefined) throw new DomainError("not_found");
 
-  const email = String(row.email);
-  const [account, context] = await Promise.all([
-    deps.auth.findUserByEmail(email),
-    instanceContext(deps.db),
-  ]);
-  const accountExists = account !== null;
+  // An anonymous invitation carries no address: the form collects both, and
+  // checking Auth against a NULL email would only waste a round-trip.
+  const anonymous =
+    (row.email === null || row.email === undefined) &&
+    (row.name === null || row.name === undefined);
+  const context = await instanceContext(deps.db);
+
+  let email: string | null;
+  let name: string | null;
+  let accountExists: boolean;
+  let roleApplies: boolean;
+  if (anonymous) {
+    email = null;
+    name = null;
+    accountExists = false;
+    roleApplies = true;
+  } else {
+    email = String(row.email);
+    name = String(row.name);
+    const account = await deps.auth.findUserByEmail(email);
+    accountExists = account !== null;
+    roleApplies = !accountExists;
+  }
+
   const state =
     row.used_at !== null && row.used_at !== undefined
       ? "used"
@@ -593,9 +618,10 @@ export async function previewInvitation(
   return {
     state,
     email,
-    name: String(row.name),
+    name,
     role: roleOf(row.role),
-    role_applies: !accountExists,
+    requires_identity: anonymous,
+    role_applies: roleApplies,
     account_exists: accountExists,
     locale: isEmailLocale(row.locale) ? row.locale : context.defaultLocale,
     expires_at: toIso(row.expires_at),
@@ -795,8 +821,9 @@ function assertRedeemable(row: Record<string, unknown>, email: string, now: Date
   if (new Date(String(row.expires_at)).getTime() <= now.getTime()) {
     throw new DomainError("invitation_expired");
   }
-  if (email !== String(row.email)) {
-    // The invitation is bound to its email; a different address does not proceed.
+  // A named invitation is bound to its email; an anonymous one (NULL email)
+  // accepts whatever address the invitee entered in the form.
+  if (row.email !== null && row.email !== undefined && email !== String(row.email)) {
     throw new DomainError("validation_failed", "The email does not match the invitation");
   }
 }
@@ -816,7 +843,7 @@ export async function redeemInvitation(
   // Preflight without locks: fail fast before touching Auth. The shared pool
   // must not be held during the external Auth HTTP call.
   const { rows: preview } = await deps.db.query(
-    `select id, email, name, role, expires_at, used_at, revoked_at
+    `select id, email, name, role, created_by, depth, expires_at, used_at, revoked_at
        from public.invitations where token_hash = $1`,
     [tokenHash],
   );
@@ -824,9 +851,35 @@ export async function redeemInvitation(
   if (!pre) throw new DomainError("not_found");
   assertRedeemable(pre, email, now());
 
-  // The name always comes from the invitation; `display_name` is obsolete
-  // and deliberately ignored.
-  const displayName = String(pre.name).slice(0, 80);
+  // The invitee's name: an anonymous invitation takes it from the form; a
+  // named one keeps the invitation's name and ignores `name`/`display_name`.
+  const anonymous =
+    (pre.email === null || pre.email === undefined) &&
+    (pre.name === null || pre.name === undefined);
+  let displayName: string;
+  if (anonymous) {
+    const chosen = (input.name ?? "").trim();
+    if (chosen.length === 0 || chosen.length > 80) {
+      throw new DomainError("validation_failed", "name must be 1-80 characters");
+    }
+    displayName = chosen;
+  } else {
+    displayName = String(pre.name).slice(0, 80);
+  }
+
+  // The inviter must still be active before any Auth work. Deactivation revokes
+  // their pending links (task 2), so this is a defense for a non-revoked row.
+  if (pre.created_by !== null && pre.created_by !== undefined) {
+    const { rows: inviterRows } = await deps.db.query(
+      "select deactivated_at from public.profiles where id = $1",
+      [pre.created_by],
+    );
+    const inviterDeactivated = inviterRows[0]?.deactivated_at;
+    if (inviterDeactivated !== null && inviterDeactivated !== undefined) {
+      throw new DomainError("invitation_inviter_inactive");
+    }
+  }
+
   let userId: string;
   let createdUserId: string | null = null;
   const existing = await deps.auth.findUserByEmail(email);
@@ -860,8 +913,8 @@ export async function redeemInvitation(
   try {
     return await withTx(deps, async (db) => {
       const { rows } = await db.query(
-        `select id, email, name, role, user_category_id, locale, expires_at, used_at, revoked_at,
-                created_by, created_by_key
+        `select id, email, name, role, user_category_id, locale, depth, expires_at,
+                used_at, revoked_at, created_by, created_by_key
            from public.invitations
           where token_hash = $1
           for update`,
@@ -891,13 +944,31 @@ export async function redeemInvitation(
       const profileLocale = isEmailLocale(invitation.locale)
         ? (invitation.locale as string)
         : localization.locale;
-      // A new profile takes the invitation's role; an existing one keeps its
-      // own name and role (`on conflict do nothing`).
+      // A new profile inherits who invited it and at which depth; an `admin`
+      // invitation leaves `invite_level` null (R6). An existing account keeps
+      // its own name, role, level and inviter via `on conflict (id) do nothing`.
+      const inviteLevel =
+        roleOf(invitation.role) === "admin"
+          ? null
+          : invitation.depth === null || invitation.depth === undefined
+            ? null
+            : Number(invitation.depth);
       await db.query(
-        `insert into public.profiles (id, display_name, role, locale, timezone)
-         values ($1, $2, $3, $4, $5)
+        `insert into public.profiles
+           (id, display_name, role, locale, timezone, invited_by, invite_level)
+         values ($1, $2, $3, $4, $5, $6, $7)
          on conflict (id) do nothing`,
-        [userId, displayName, roleOf(invitation.role), profileLocale, localization.timezone],
+        [
+          userId,
+          displayName,
+          roleOf(invitation.role),
+          profileLocale,
+          localization.timezone,
+          invitation.created_by === null || invitation.created_by === undefined
+            ? null
+            : invitation.created_by,
+          inviteLevel,
+        ],
       );
 
       if (invitation.user_category_id) {
@@ -907,6 +978,17 @@ export async function redeemInvitation(
           [invitation.user_category_id, userId],
         );
       }
+      // Member/QR invitations carry their inherited categories on
+      // `invitation_categories`: materialise them as labels. Access stays on
+      // `invitation_modules` (spec §5.3/§7.7), never on the category members.
+      await db.query(
+        `insert into public.user_category_members (user_category_id, user_id)
+         select ic.user_category_id, $2
+           from public.invitation_categories ic
+          where ic.invitation_id = $1
+         on conflict do nothing`,
+        [invitationId, userId],
+      );
 
       await db.query(
         `insert into public.user_modules (user_id, module_key, granted_by, granted_by_key)
@@ -921,13 +1003,17 @@ export async function redeemInvitation(
       );
 
       await db.query(
-        "update public.invitations set used_at = now() where id = $1 and used_at is null",
-        [invitationId],
+        "update public.invitations set used_at = now(), redeemed_by = $2 where id = $1 and used_at is null",
+        [invitationId, userId],
       );
       await enqueueEvent(db, {
         type: "invitation.redeemed",
         target: "admins",
-        resource: { id: invitationId, email: String(invitation.email), name: String(invitation.name) },
+        resource: {
+          id: invitationId,
+          email: anonymous ? email : String(invitation.email),
+          name: anonymous ? displayName : String(invitation.name),
+        },
         payload: { user_id: userId },
       });
 

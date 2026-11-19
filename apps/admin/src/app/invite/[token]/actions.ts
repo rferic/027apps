@@ -20,6 +20,9 @@ const submitSchema = z
   .object({
     token: z.string().min(1).max(200),
     password: z.string().min(1).max(200),
+    // Anonymous invitation: the name and email the invitee filled in.
+    name: z.string().trim().min(1).max(80).optional(),
+    email: z.string().trim().email().max(320).optional(),
   })
   .strict();
 
@@ -79,14 +82,19 @@ interface RedeemContext {
   token: string;
   preview: InvitationPreview;
   password: string;
+  /** Anonymous invitation: the name/email the invitee filled in. */
+  name?: string;
+  email?: string;
   supabase: SupabaseServer;
   serviceDeps: ServiceDeps;
 }
 
 async function redeemExisting(ctx: RedeemContext): Promise<SubmitInvitationResult> {
   const { token, preview, password, supabase, serviceDeps } = ctx;
+  // `redeemExisting` only runs when `account_exists` is true, which preview
+  // only reports for a named invitation: the address is never null here.
   const { data, error } = await supabase.auth.signInWithPassword({
-    email: preview.email,
+    email: preview.email!,
     password,
   });
   if (error || !data.user) return blocked("wrong_credentials");
@@ -100,7 +108,7 @@ async function redeemExisting(ctx: RedeemContext): Promise<SubmitInvitationResul
   const redeemed = await redeemInvitation(
     serviceDeps,
     token,
-    { email: preview.email },
+    { email: preview.email! },
     { kind: "session", userId: data.user.id, role },
   );
   if (redeemed.user.role === "user") {
@@ -112,11 +120,18 @@ async function redeemExisting(ctx: RedeemContext): Promise<SubmitInvitationResul
 
 /** New account: redeem with the chosen password, then sign in for a panel role. */
 async function redeemNew(ctx: RedeemContext): Promise<SubmitInvitationResult> {
-  const { token, preview, password, supabase, serviceDeps } = ctx;
+  const { token, preview, password, name, email, supabase, serviceDeps } = ctx;
+  // An anonymous invitation takes the address from the form; a named one
+  // carries it in the token (never null once the preview is named).
+  const accountEmail = preview.requires_identity ? email! : preview.email!;
   const redeemed = await redeemInvitation(
     serviceDeps,
     token,
-    { email: preview.email, password },
+    {
+      email: accountEmail,
+      ...(preview.requires_identity ? { name } : {}),
+      password,
+    },
     { kind: "anon" },
   );
   const role = redeemed.user.role;
@@ -126,7 +141,7 @@ async function redeemNew(ctx: RedeemContext): Promise<SubmitInvitationResult> {
   }
 
   const { error } = await supabase.auth.signInWithPassword({
-    email: preview.email,
+    email: accountEmail,
     password,
   });
   // The account exists either way: a failed sign-in is a welcome notice, not a
@@ -149,7 +164,7 @@ async function rememberLocale(locale: Locale): Promise<void> {
 export async function submitInvitation(raw: unknown): Promise<SubmitInvitationResult> {
   const parsed = submitSchema.safeParse(raw);
   if (!parsed.success) return blocked("validation_failed");
-  const { token, password } = parsed.data;
+  const { token, password, name, email } = parsed.data;
 
   const denied = await requestBlocked();
   if (denied) return denied;
@@ -164,7 +179,7 @@ export async function submitInvitation(raw: unknown): Promise<SubmitInvitationRe
 
     const supabase = await createSupabaseServerClient();
     const serviceDeps = await invitationServiceDeps();
-    const context = { token, preview, password, supabase, serviceDeps };
+    const context = { token, preview, password, name, email, supabase, serviceDeps };
     const result = preview.account_exists
       ? await redeemExisting(context)
       : await redeemNew(context);

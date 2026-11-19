@@ -11,6 +11,10 @@ import {
   exchangeJoinCode,
   previewJoinCode,
 } from "@027apps/core/invitations/join-codes.js";
+import {
+  previewInvitation,
+  redeemInvitation,
+} from "@027apps/core/invitations/service.js";
 import type { InvitationsDeps } from "@027apps/core/invitations/service.js";
 import type { Caller } from "@027apps/core/api/types.js";
 
@@ -65,6 +69,35 @@ function liveDeps(): InvitationsDeps {
       },
       async createUser() {
         throw new Error("createUser must not run in this test");
+      },
+      async deleteUser() {},
+    },
+  };
+}
+
+/** Auth port that really creates/reads `auth.users` for redemption tests. */
+function redeemDeps(c: ClientBase): InvitationsDeps {
+  return {
+    db: { query: (sql: string, params: unknown[] = []) => query(c, sql, params) },
+    auth: {
+      async findUserByEmail(address: string) {
+        const { rows } = await query(c, "select id from auth.users where email = $1", [address]);
+        return rows[0] ? { id: String(rows[0].id) } : null;
+      },
+      async createUser(input: { email: string; password: string; displayName: string }) {
+        const id = crypto.randomUUID();
+        await query(
+          c,
+          `insert into auth.users
+             (id, instance_id, email, encrypted_password, email_confirmed_at,
+              raw_app_meta_data, raw_user_meta_data, aud, role)
+           values ($1, '00000000-0000-0000-0000-000000000000', $2,
+                   crypt('test-password', gen_salt('bf')), now(),
+                   '{"provider":"email","providers":["email"]}', '{}',
+                   'authenticated', 'authenticated')`,
+          [id, input.email],
+        );
+        return { id, created: true };
       },
       async deleteUser() {},
     },
@@ -262,6 +295,84 @@ describe("join codes", () => {
         await expect(exchangeJoinCode(deps(c), code.code)).rejects.toMatchObject({
           code: "join_code_used",
         });
+      } finally {
+        await c.query("ROLLBACK");
+      }
+    });
+  });
+});
+
+describe("anonymous redemption", () => {
+  it("redeems an anonymous invitation and records the inherited package", async () => {
+    await withClient(async (c) => {
+      await c.query("BEGIN");
+      try {
+        await setLevels(c, DEFAULT_LEVELS);
+        const inviter = await member(c, { name: "redeem-inviter", level: 2 });
+        await query(c, "update public.profiles set locale = 'es' where id = $1", [inviter]);
+        await moduleWith(c, "expenses", { isPublic: true, delegable: false });
+        await grantModule(c, inviter, "expenses");
+        const cat = await category(c, inviter);
+        await query(
+          c,
+          "insert into public.user_category_members (user_category_id, user_id) values ($1, $2)",
+          [cat, inviter],
+        );
+
+        const caller: Caller = { kind: "session", userId: inviter, role: "user" };
+        const minted = await createMemberInvitation(deps(c), caller);
+
+        // The anonymous link previews without an email and requires identity.
+        const preview = await previewInvitation(redeemDeps(c), minted.token);
+        expect(preview).toMatchObject({
+          requires_identity: true,
+          email: null,
+          name: null,
+          account_exists: false,
+        });
+
+        // Redeem with the name and email the invitee filled in.
+        const inviteeEmail = email("invitee");
+        const result = await redeemInvitation(redeemDeps(c), minted.token, {
+          email: inviteeEmail,
+          name: "Invitada",
+          password: "correct-horse-battery",
+        });
+
+        const { rows: profileRows } = await query(
+          c,
+          "select invited_by, invite_level, display_name from public.profiles where id = $1",
+          [result.user.id],
+        );
+        expect(profileRows[0]).toMatchObject({
+          invited_by: inviter,
+          invite_level: 3,
+          display_name: "Invitada",
+        });
+
+        // The inherited categories and modules are materialised.
+        const { rows: cats } = await query(
+          c,
+          "select user_category_id from public.user_category_members where user_id = $1",
+          [result.user.id],
+        );
+        expect(cats.map((row) => row.user_category_id)).toEqual([cat]);
+
+        const { rows: mods } = await query(
+          c,
+          "select module_key from public.user_modules where user_id = $1",
+          [result.user.id],
+        );
+        expect(mods.map((row) => row.module_key)).toEqual(["expenses"]);
+
+        // The invitation is consumed and names its redeemer.
+        const { rows: inv } = await query(
+          c,
+          "select used_at, redeemed_by from public.invitations where id = $1",
+          [minted.invitation.id],
+        );
+        expect(inv[0]!.used_at).not.toBeNull();
+        expect(inv[0]!.redeemed_by).toBe(result.user.id);
       } finally {
         await c.query("ROLLBACK");
       }

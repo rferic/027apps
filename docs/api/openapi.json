@@ -3862,9 +3862,16 @@
             "type": "boolean"
           },
           "email": {
-            "format": "email",
-            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "email",
+                "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "expires_at": {
             "format": "date-time",
@@ -3895,7 +3902,13 @@
             "type": "string"
           },
           "name": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requires_identity": {
+            "type": "boolean"
           },
           "role": {
             "enum": [
@@ -3924,6 +3937,7 @@
           "email",
           "name",
           "role",
+          "requires_identity",
           "role_applies",
           "account_exists",
           "locale",
@@ -3944,9 +3958,16 @@
                 "type": "boolean"
               },
               "email": {
-                "format": "email",
-                "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
-                "type": "string"
+                "anyOf": [
+                  {
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "expires_at": {
                 "format": "date-time",
@@ -3977,7 +3998,13 @@
                 "type": "string"
               },
               "name": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "requires_identity": {
+                "type": "boolean"
               },
               "role": {
                 "enum": [
@@ -4006,6 +4033,7 @@
               "email",
               "name",
               "role",
+              "requires_identity",
               "role_applies",
               "account_exists",
               "locale",
@@ -4089,6 +4117,11 @@
             "format": "email",
             "maxLength": 320,
             "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
             "type": "string"
           },
           "password": {
