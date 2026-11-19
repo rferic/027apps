@@ -234,6 +234,7 @@ export async function requestInvitationQuota(
         request_id: id,
         actor_name: displayName,
         amount,
+        places: amount,
         level: quota.level,
         remaining: quota.remaining,
       },
@@ -357,7 +358,7 @@ export async function approveInvitationRequest(
       type: "invitation.request_resolved",
       target: "user",
       subject_id: String(row.requester_id),
-      resource: { request_id: id, state: "approved", amount: approved },
+      resource: { request_id: id, state: "approved", amount: approved, places: approved },
       notify: ["push"],
     });
   });
@@ -397,7 +398,12 @@ export async function rejectInvitationRequest(
       type: "invitation.request_resolved",
       target: "user",
       subject_id: String(row.requester_id),
-      resource: { request_id: id, state: "rejected", amount: Number(row.amount) },
+      resource: {
+        request_id: id,
+        state: "rejected",
+        amount: Number(row.amount),
+        places: Number(row.amount),
+      },
       notify: ["push"],
     });
   });

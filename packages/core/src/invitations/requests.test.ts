@@ -168,6 +168,7 @@ describe("requestInvitationQuota", () => {
         request_id: "req-1",
         actor_name: "Eric",
         amount: 5,
+        places: 5,
         level: 1,
         remaining: 0,
       },
@@ -198,7 +199,7 @@ describe("approveInvitationRequest", () => {
       type: "invitation.request_resolved",
       target: "user",
       subject_id: "u-1",
-      resource: { request_id: "req-1", state: "approved", amount: 7 },
+      resource: { request_id: "req-1", state: "approved", amount: 7, places: 7 },
       notify: ["push"],
     });
   });
@@ -233,7 +234,7 @@ describe("rejectInvitationRequest", () => {
       type: "invitation.request_resolved",
       target: "user",
       subject_id: "u-1",
-      resource: { request_id: "req-1", state: "rejected", amount: 3 },
+      resource: { request_id: "req-1", state: "rejected", amount: 3, places: 3 },
       notify: ["push"],
     });
   });

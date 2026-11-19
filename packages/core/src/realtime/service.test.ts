@@ -41,7 +41,7 @@ function claimedEvent(overrides: Record<string, unknown> = {}): Record<string, u
     type: "invitation.request_resolved",
     target: "user",
     subject_id: "u-1",
-    resource: { request_id: "req-1", state: "approved", amount: 3 },
+    resource: { request_id: "req-1", state: "approved", amount: 3, places: 3 },
     payload: null,
     notify: ["push"],
     attempts: 1,

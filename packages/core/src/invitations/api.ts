@@ -477,7 +477,7 @@ export function createInvitationRequestRoute(deps: InvitationsRouteDeps) {
         auth: deps.auth,
         cors: deps.cors,
         schema: createInvitationRequestSchema,
-        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.invitationRequest ?? 3 },
+        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.invitationRequest ?? 3, windowSeconds: 3600, bucket: "invitation-request" },
       },
       deps.door,
       async (ctx) => ({

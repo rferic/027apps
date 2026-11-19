@@ -335,7 +335,7 @@ async function runDoor(
       const result = await checkRateLimit(
         deps.rateLimitStorage,
         `${bucket}:${identity}`,
-        { limit: options.rateLimit.limit, windowSeconds: WINDOW_SECONDS },
+        { limit: options.rateLimit.limit, windowSeconds: options.rateLimit.windowSeconds ?? WINDOW_SECONDS },
       );
       if (!result.allowed) {
         return errorResponse(new DomainError('rate_limited'), requestId, cors, deps, routeOf(req), {

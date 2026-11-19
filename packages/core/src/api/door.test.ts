@@ -229,6 +229,30 @@ describe('withDoor — rate limiting', () => {
     expect(storage.calls[0]).toBe('device-transfers-create:u1');
   });
 
+  it('honours a custom hourly window the route declares (3/hour)', async () => {
+    const calls: Array<{ key: string; windowStart: Date; expiresAt: Date }> = [];
+    const storage: RateLimitStorage = {
+      async increment(key, windowStart, expiresAt) {
+        calls.push({ key, windowStart, expiresAt });
+        return { count: 1 };
+      },
+    };
+    const res = await withDoor(
+      new Request(URL_BASE),
+      makeOptions({
+        rateLimit: { identity: 'user', limit: 3, windowSeconds: 3600, bucket: 'invitation-request' },
+      }),
+      makeDeps({ rateLimitStorage: storage }),
+      async () => ({ ok: true }),
+    );
+
+    expect(res.status).toBe(200);
+    // Keyed by user under its own bucket, so it never inherits the minute budget.
+    expect(calls[0].key).toBe('invitation-request:u1');
+    // The limiter received a full hour, not the default 60 s minute.
+    expect(calls[0].expiresAt.getTime() - calls[0].windowStart.getTime()).toBe(3600 * 1000);
+  });
+
   it('runs the handler when the request is within the limit', async () => {
     const storage = makeStorage(2);
     const res = await withDoor(
