@@ -423,13 +423,20 @@ export async function updateUser(
       throw new DomainError("conflict", "You cannot change your own role");
     }
     if (patch.role !== undefined) await assertRoleChangeAllowed(db, caller, current, patch.role);
-    // Only a patch that speaks about the role or the level is validated: an
-    // unrelated edit (theme, name) never fails on a profile whose level predates
-    // the club tables.
-    if (patch.role !== undefined || patch.invitation_level !== undefined) {
-      const nextLevel =
-        patch.invitation_level !== undefined ? patch.invitation_level : current.invitation_level;
+    // A role change keeps the level invariant instead of failing the call the
+    // panel already makes: promoting to an administrator clears the level and
+    // demoting a user with no level starts it at 1. An explicit level always
+    // wins, but an explicit one that contradicts the resulting role is a 400.
+    // An unrelated edit (theme, name) never touches the level, so a profile that
+    // predates the club tables keeps working.
+    const writesLevel = patch.role !== undefined || patch.invitation_level !== undefined;
+    let nextLevel = current.invitation_level;
+    if (patch.invitation_level !== undefined) {
+      nextLevel = patch.invitation_level;
       assertInvitationLevel(patch.role ?? current.role, nextLevel);
+    } else if (patch.role !== undefined) {
+      nextLevel = patch.role === "user" ? (current.invitation_level ?? 1) : null;
+      assertInvitationLevel(patch.role, nextLevel);
     }
 
     await db.query(
@@ -449,8 +456,8 @@ export async function updateUser(
         patch.timezone ?? null,
         patch.theme ?? null,
         patch.role ?? null,
-        patch.invitation_level !== undefined,
-        patch.invitation_level ?? null,
+        writesLevel,
+        nextLevel,
       ],
     );
     return getUserFrom(db, id);

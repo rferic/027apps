@@ -346,23 +346,74 @@ describe('updateUser — invitation level', () => {
     ).rejects.toMatchObject({ code: 'validation_failed' });
   });
 
-  it('demands the level be cleared when a member becomes an admin', async () => {
+  it('promotes a member to admin without demanding the level, clearing it', async () => {
     const { deps, profiles } = makeDeps([
       profile('root', { role: 'super_admin' }),
       profile('member', { role: 'user', invite_level: 2 }),
     ]);
 
-    await expect(
-      updateUser(deps, session('root', 'super_admin'), 'member', { role: 'admin' }),
-    ).rejects.toMatchObject({ code: 'validation_failed' });
-
     const updated = await updateUser(deps, session('root', 'super_admin'), 'member', {
       role: 'admin',
-      invitation_level: null,
     });
+
     expect(updated.role).toBe('admin');
     expect(updated.invitation_level).toBeNull();
     expect(profiles.get('member')?.invite_level).toBeNull();
+  });
+
+  it('demotes an admin without a level, starting the member at level 1', async () => {
+    const { deps, profiles } = makeDeps([
+      profile('root', { role: 'super_admin' }),
+      profile('admin', { role: 'admin', invite_level: null }),
+    ]);
+
+    const updated = await updateUser(deps, session('root', 'super_admin'), 'admin', {
+      role: 'user',
+    });
+
+    expect(updated.role).toBe('user');
+    expect(updated.invitation_level).toBe(1);
+    expect(profiles.get('admin')?.invite_level).toBe(1);
+  });
+
+  it('lets an explicit valid level win over the role default', async () => {
+    const { deps, profiles } = makeDeps([
+      profile('root', { role: 'super_admin' }),
+      profile('admin', { role: 'admin', invite_level: null }),
+    ]);
+
+    const updated = await updateUser(deps, session('root', 'super_admin'), 'admin', {
+      role: 'user',
+      invitation_level: 3,
+    });
+
+    expect(updated.invitation_level).toBe(3);
+    expect(profiles.get('admin')?.invite_level).toBe(3);
+  });
+
+  it('refuses an explicit level that contradicts the resulting role', async () => {
+    const { deps, profiles } = makeDeps([
+      profile('root', { role: 'super_admin' }),
+      profile('member', { role: 'user', invite_level: 2 }),
+      profile('admin', { role: 'admin', invite_level: null }),
+    ]);
+
+    await expect(
+      updateUser(deps, session('root', 'super_admin'), 'member', {
+        role: 'admin',
+        invitation_level: 2,
+      }),
+    ).rejects.toMatchObject({ code: 'validation_failed' });
+    await expect(
+      updateUser(deps, session('root', 'super_admin'), 'admin', {
+        role: 'user',
+        invitation_level: null,
+      }),
+    ).rejects.toMatchObject({ code: 'validation_failed' });
+
+    expect(profiles.get('member')?.role).toBe('user');
+    expect(profiles.get('member')?.invite_level).toBe(2);
+    expect(profiles.get('admin')?.role).toBe('admin');
   });
 
   it('refuses a level outside 1..20', async () => {
