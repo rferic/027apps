@@ -851,21 +851,10 @@ export async function redeemInvitation(
   if (!pre) throw new DomainError("not_found");
   assertRedeemable(pre, email, now());
 
-  // The invitee's name: an anonymous invitation takes it from the form; a
-  // named one keeps the invitation's name and ignores `name`/`display_name`.
+  // An anonymous invitation carries no address: the invitee fills both in.
   const anonymous =
     (pre.email === null || pre.email === undefined) &&
     (pre.name === null || pre.name === undefined);
-  let displayName: string;
-  if (anonymous) {
-    const chosen = (input.name ?? "").trim();
-    if (chosen.length === 0 || chosen.length > 80) {
-      throw new DomainError("validation_failed", "name must be 1-80 characters");
-    }
-    displayName = chosen;
-  } else {
-    displayName = String(pre.name).slice(0, 80);
-  }
 
   // The inviter must still be active before any Auth work. Deactivation revokes
   // their pending links (task 2), so this is a defense for a non-revoked row.
@@ -882,6 +871,7 @@ export async function redeemInvitation(
 
   let userId: string;
   let createdUserId: string | null = null;
+  let displayName: string;
   const existing = await deps.auth.findUserByEmail(email);
   if (existing) {
     // Session first (D21): the account holder signs in and the Core only
@@ -891,7 +881,24 @@ export async function redeemInvitation(
       throw new DomainError("existing_account_signin_required");
     }
     userId = existing.id;
+    // An existing account keeps its stored name (`on conflict do nothing`):
+    // this value is never persisted, only a fallback for the redemption event.
+    displayName = anonymous
+      ? (input.name ?? "").trim().slice(0, 80)
+      : String(pre.name).slice(0, 80);
   } else {
+    // The invitee's name: a named invitation carries it; an anonymous one
+    // takes it from the form, which is required to create the account.
+    if (anonymous) {
+      const chosen = (input.name ?? "").trim();
+      if (chosen.length === 0 || chosen.length > 80) {
+        throw new DomainError("validation_failed", "name must be 1-80 characters");
+      }
+      displayName = chosen;
+    } else {
+      displayName = String(pre.name).slice(0, 80);
+    }
+
     if (
       input.password === undefined ||
       input.password.length < 12 ||
@@ -1006,23 +1013,26 @@ export async function redeemInvitation(
         "update public.invitations set used_at = now(), redeemed_by = $2 where id = $1 and used_at is null",
         [invitationId, userId],
       );
+
+      // The resulting profile (stored name and role): an anonymous redemption
+      // by an existing account reports that account's name, not the form name.
+      const { rows: profileRows } = await db.query(
+        "select display_name, role from public.profiles where id = $1",
+        [userId],
+      );
+
       await enqueueEvent(db, {
         type: "invitation.redeemed",
         target: "admins",
         resource: {
           id: invitationId,
           email: anonymous ? email : String(invitation.email),
-          name: anonymous ? displayName : String(invitation.name),
+          name: anonymous
+            ? String(profileRows[0]?.display_name ?? displayName)
+            : String(invitation.name),
         },
         payload: { user_id: userId },
       });
-
-      // Existing accounts keep their stored name and role; new ones use the
-      // invitation's name and role.
-      const { rows: profileRows } = await db.query(
-        "select display_name, role from public.profiles where id = $1",
-        [userId],
-      );
 
       return {
         user: {

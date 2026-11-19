@@ -378,4 +378,45 @@ describe("anonymous redemption", () => {
       }
     });
   });
+
+  it("keeps an existing account's level and inviter on an anonymous redemption", async () => {
+    await withClient(async (c) => {
+      await c.query("BEGIN");
+      try {
+        await setLevels(c, DEFAULT_LEVELS);
+        const inviter = await member(c, { name: "redeem-inviter", level: 2 });
+        const minted = await createMemberInvitation(deps(c), {
+          kind: "session",
+          userId: inviter,
+          role: "user",
+        });
+
+        // An existing account with its own level and a different inviter.
+        const existingEmail = email("existing");
+        const existing = await createTestUser(c, { email: existingEmail });
+        const otherInviter = await member(c, { name: "other-inviter", level: 1 });
+        await query(
+          c,
+          "update public.profiles set invite_level = 7, invited_by = $2 where id = $1",
+          [existing.id, otherInviter],
+        );
+
+        await redeemInvitation(
+          redeemDeps(c),
+          minted.token,
+          { email: existingEmail },
+          { kind: "session", userId: existing.id, role: "user" },
+        );
+
+        const { rows } = await query(
+          c,
+          "select invite_level, invited_by from public.profiles where id = $1",
+          [existing.id],
+        );
+        expect(rows[0]).toMatchObject({ invite_level: 7, invited_by: otherInviter });
+      } finally {
+        await c.query("ROLLBACK");
+      }
+    });
+  });
 });

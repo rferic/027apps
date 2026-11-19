@@ -1238,4 +1238,40 @@ describe("redeemInvitation anonymous and inheritance", () => {
     // The inviter check runs before any Auth work.
     expect(authTouched).toBe(false);
   });
+
+  it("reports the stored name when an existing account redeems an anonymous invitation", async () => {
+    const fake = fakeDb({
+      settings: [],
+      profile: { display_name: "Nombre guardado", role: "user" },
+      invitation: { email: null, name: null, role: "user", created_by: "u-inviter", depth: 2 },
+    });
+    const deps: InvitationsDeps = {
+      db: fake.db,
+      auth: {
+        async findUserByEmail() {
+          return { id: "u-existing" };
+        },
+        async createUser() {
+          throw new Error("an existing account must not be created again");
+        },
+        async deleteUser() {
+          throw new Error("an existing account must not be deleted");
+        },
+      },
+    };
+
+    const result = await redeemInvitation(
+      deps,
+      "027_inv_valid",
+      { email: "existing@example.com" },
+      { kind: "session", userId: "u-existing", role: "user" },
+    );
+
+    expect(result.user.display_name).toBe("Nombre guardado");
+
+    // The redeemed event carries the account's stored name, not the form's.
+    const event = fake.queries.find((entry) => entry.sql.includes("insert into public.event_outbox"));
+    const resource = JSON.parse(String(event?.params?.[5] ?? "{}")) as Record<string, unknown>;
+    expect(resource).toMatchObject({ email: "existing@example.com", name: "Nombre guardado" });
+  });
 });

@@ -118,35 +118,84 @@ async function redeemExisting(ctx: RedeemContext): Promise<SubmitInvitationResul
   return { ok: true, role: redeemed.user.role };
 }
 
-/** New account: redeem with the chosen password, then sign in for a panel role. */
-async function redeemNew(ctx: RedeemContext): Promise<SubmitInvitationResult> {
-  const { token, preview, password, name, email, supabase, serviceDeps } = ctx;
-  // An anonymous invitation takes the address from the form; a named one
-  // carries it in the token (never null once the preview is named).
-  const accountEmail = preview.requires_identity ? email! : preview.email!;
+/** Signs in with the typed password and retries the redemption with the session. */
+async function redeemExistingSession(
+  ctx: RedeemContext,
+  accountEmail: string,
+): Promise<SubmitInvitationResult> {
+  const { token, password, supabase, serviceDeps } = ctx;
+  const { data, error } = await supabase.auth.signInWithPassword({ email: accountEmail, password });
+  if (error || !data.user) return blocked("wrong_credentials");
+
+  const role = await profileRole(serviceDeps, data.user.id);
+  if (!role) {
+    await supabase.auth.signOut({ scope: "local" });
+    return blocked("conflict");
+  }
+
   const redeemed = await redeemInvitation(
     serviceDeps,
     token,
-    {
-      email: accountEmail,
-      ...(preview.requires_identity ? { name } : {}),
-      password,
-    },
-    { kind: "anon" },
+    { email: accountEmail },
+    { kind: "session", userId: data.user.id, role },
   );
+  // The account is already signed in: a plain member signs out, a panel role
+  // stays authenticated without a second sign-in.
+  if (redeemed.user.role === "user") await supabase.auth.signOut({ scope: "local" });
+  return { ok: true, role: redeemed.user.role };
+}
+
+/** Signs out a plain member, signs a panel role in; shared by every new flow. */
+async function finishRedeemed(
+  redeemed: Awaited<ReturnType<typeof redeemInvitation>>,
+  ctx: RedeemContext,
+  accountEmail: string,
+): Promise<SubmitInvitationResult> {
+  const { password, supabase } = ctx;
   const role = redeemed.user.role;
   if (role === "user") {
     await supabase.auth.signOut({ scope: "local" });
     return { ok: true, role };
   }
-
-  const { error } = await supabase.auth.signInWithPassword({
-    email: accountEmail,
-    password,
-  });
-  // The account exists either way: a failed sign-in is a welcome notice, not a
-  // second redemption attempt.
+  const { error } = await supabase.auth.signInWithPassword({ email: accountEmail, password });
   return error ? { ok: true, role, signInFailed: true } : { ok: true, role };
+}
+
+/** New account: redeem with the chosen password, then sign in for a panel role. */
+async function redeemNew(ctx: RedeemContext): Promise<SubmitInvitationResult> {
+  const { token, preview, password, name, email, serviceDeps } = ctx;
+  // An anonymous invitation takes the address from the form; a named one
+  // carries it in the token (never null once the preview is named).
+  const accountEmail = preview.requires_identity ? email! : preview.email!;
+
+  let redeemed: Awaited<ReturnType<typeof redeemInvitation>>;
+  try {
+    redeemed = await redeemInvitation(
+      serviceDeps,
+      token,
+      {
+        email: accountEmail,
+        ...(preview.requires_identity ? { name } : {}),
+        password,
+      },
+      { kind: "anon" },
+    );
+  } catch (error) {
+    // D11: an anonymous invitation redeemed with an email that already has an
+    // account — sign in and retry with the session, so the user completes in
+    // the browser instead of dead-ending. A wrong password leaves the
+    // invitation pending and reports the usual error.
+    if (
+      preview.requires_identity &&
+      error instanceof DomainError &&
+      error.code === "existing_account_signin_required"
+    ) {
+      return redeemExistingSession(ctx, accountEmail);
+    }
+    throw error;
+  }
+
+  return finishRedeemed(redeemed, ctx, accountEmail);
 }
 
 /** Keeps the invitation's language for `/welcome` and the panel after accepting. */
@@ -160,6 +209,26 @@ async function rememberLocale(locale: Locale): Promise<void> {
   });
 }
 
+/** An anonymous invitation needs the name and email the invitee typed. */
+function anonymousIdentityValid(name: string | undefined, email: string | undefined): boolean {
+  const trimmedName = (name ?? "").trim();
+  return trimmedName.length > 0 && trimmedName.length <= 80 && Boolean(email);
+}
+
+/** Resolves a redeemable preview, or the blocked result to return immediately. */
+async function redeemablePreview(
+  token: string,
+): Promise<{ preview: InvitationPreview } | { blocked: SubmitInvitationResult }> {
+  const preview = await loadInvitePreview(token);
+  if (!preview) return { blocked: blocked("not_found") };
+  if (preview.state !== "pending") {
+    return {
+      blocked: blocked(preview.state === "used" ? "invitation_used" : "invitation_expired"),
+    };
+  }
+  return { preview };
+}
+
 /** Server action behind the web form. The token never leaves the server logs. */
 export async function submitInvitation(raw: unknown): Promise<SubmitInvitationResult> {
   const parsed = submitSchema.safeParse(raw);
@@ -171,10 +240,14 @@ export async function submitInvitation(raw: unknown): Promise<SubmitInvitationRe
 
   try {
     // Re-resolve the preview: the client's copy is a hint, never the truth.
-    const preview = await loadInvitePreview(token);
-    if (!preview) return blocked("not_found");
-    if (preview.state !== "pending") {
-      return blocked(preview.state === "used" ? "invitation_used" : "invitation_expired");
+    const resolved = await redeemablePreview(token);
+    if ("blocked" in resolved) return resolved.blocked;
+    const { preview } = resolved;
+
+    // The server action is directly invocable: an anonymous invitation without
+    // a name or email is a validation error, not a TypeError deeper in.
+    if (preview.requires_identity && !anonymousIdentityValid(name, email)) {
+      return blocked("validation_failed");
     }
 
     const supabase = await createSupabaseServerClient();

@@ -43,6 +43,7 @@ vi.mock("next/headers", () => ({
   cookies: async () => ({ set: mocks.setCookie }),
 }));
 
+import { DomainError } from "@027apps/core/errors.js";
 import { submitInvitation } from "./actions";
 
 const TOKEN = "027_inv_abc123";
@@ -167,6 +168,83 @@ describe("submitInvitation", () => {
       { kind: "anon" },
     );
     expect(result).toEqual({ ok: true, role: "admin" });
+  });
+
+  it("signs in and retries with the session when an anonymous email already has an account", async () => {
+    mocks.preview.mockResolvedValue({
+      ...PREVIEW,
+      requires_identity: true,
+      email: null,
+      name: null,
+    });
+    mocks.redeem
+      .mockRejectedValueOnce(new DomainError("existing_account_signin_required"))
+      .mockResolvedValueOnce(redeemed("user"));
+    mocks.signIn.mockResolvedValue({ data: { user: { id: "u-existing" } }, error: null });
+    mocks.profileQuery.mockResolvedValue({ rows: [{ role: "user" }] });
+
+    const result = await submitInvitation({
+      token: TOKEN,
+      password: "current-password",
+      name: "Invitada",
+      email: "existing@example.com",
+    });
+
+    expect(mocks.signIn).toHaveBeenCalledWith({
+      email: "existing@example.com",
+      password: "current-password",
+    });
+    expect(mocks.redeem).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      TOKEN,
+      { email: "existing@example.com", name: "Invitada", password: "current-password" },
+      { kind: "anon" },
+    );
+    expect(mocks.redeem).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      TOKEN,
+      { email: "existing@example.com" },
+      { kind: "session", userId: "u-existing", role: "user" },
+    );
+    expect(result).toEqual({ ok: true, role: "user" });
+  });
+
+  it("returns wrong_credentials when the anonymous email exists and the password is wrong", async () => {
+    mocks.preview.mockResolvedValue({
+      ...PREVIEW,
+      requires_identity: true,
+      email: null,
+      name: null,
+    });
+    mocks.redeem.mockRejectedValueOnce(new DomainError("existing_account_signin_required"));
+    mocks.signIn.mockResolvedValue({ data: { user: null }, error: { message: "Invalid" } });
+
+    const result = await submitInvitation({
+      token: TOKEN,
+      password: "wrong-password",
+      name: "Invitada",
+      email: "existing@example.com",
+    });
+
+    expect(result).toEqual({ ok: false, code: "wrong_credentials" });
+    expect(mocks.redeem).toHaveBeenCalledTimes(1); // no retry: the invitation stays pending
+    expect(mocks.setCookie).not.toHaveBeenCalled();
+  });
+
+  it("rejects an anonymous redemption without a name or email", async () => {
+    mocks.preview.mockResolvedValue({
+      ...PREVIEW,
+      requires_identity: true,
+      email: null,
+      name: null,
+    });
+
+    const result = await submitInvitation({ token: TOKEN, password: "a-new-password" });
+
+    expect(result).toEqual({ ok: false, code: "validation_failed" });
+    expect(mocks.redeem).not.toHaveBeenCalled();
   });
 
   it("does not keep a panel cookie for a plain member", async () => {
