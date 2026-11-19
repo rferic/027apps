@@ -146,6 +146,26 @@ class ApiClientTest {
     }
 
     @Test
+    fun `the public invitation preview never sends the session bearer`() = runTest {
+        var seenAuth: String? = "unset"
+        val engine = MockEngine { request ->
+            seenAuth = request.headers[HttpHeaders.Authorization]
+            respond(
+                content = """{"invitation":{"state":"pending","email":"a@example.test","name":"Ana"}}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        // Pointed at a foreign host while a session token exists.
+        val api = ApiClient("https://evil.example", engine, { "session-jwt" }, { RefreshResult.NoSession }, {})
+
+        val preview = api.invitationPreview("027_inv_abcdefghijklmnop")
+
+        assertEquals(null, seenAuth)
+        assertEquals("a@example.test", preview.email)
+    }
+
+    @Test
     fun `the public join exchange never sends the session bearer`() = runTest {
         var seenAuth: String? = "unset"
         val engine = MockEngine { request ->

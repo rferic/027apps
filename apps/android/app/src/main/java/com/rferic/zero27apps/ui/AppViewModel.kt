@@ -244,7 +244,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 ?: ""
             viewModelScope.launch {
                 val preview = runCatching {
-                    apiFor(link.instance).invitationPreview(link.token)
+                    publicApi(link.instance).use { it.invitationPreview(link.token) }
                 }.getOrNull()
                 _invite.value = InviteState(confirmSwitch = account, preview = preview)
             }
@@ -268,7 +268,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _state.value = AppState.NeedsInvite(link)
         viewModelScope.launch {
             try {
-                val preview = apiFor(link.instance).invitationPreview(link.token)
+                val preview = publicApi(link.instance).use { it.invitationPreview(link.token) }
                 _invite.value = InviteState(preview = preview)
             } catch (error: ApiException) {
                 _invite.value = InviteState(error = inviteError(error))
@@ -285,7 +285,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _invite.value = InviteState(loading = true)
         viewModelScope.launch {
             try {
-                val preview = apiFor(link.instance).invitationPreview(link.token)
+                val preview = publicApi(link.instance).use { it.invitationPreview(link.token) }
                 _invite.value = InviteState(preview = preview)
             } catch (error: ApiException) {
                 _invite.value = InviteState(error = inviteError(error))
