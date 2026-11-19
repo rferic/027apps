@@ -9,7 +9,7 @@ import {
   oweImportCommit,
   oweImportPreview,
 } from "./owe-requests";
-import { createInvitationSchema, redeemInvitationSchema } from "../invitations/api";
+import { createInvitationSchema, redeemInvitationSchema, createMemberInvitationSchema } from "../invitations/api";
 import { maintenanceRunSchema } from "../maintenance/api";
 import {
   moduleSettingSchema,
@@ -58,6 +58,11 @@ import {
   invitationDetailResponseSchema,
   invitationListSchema,
   invitationsQuerySchema,
+  joinCodeCreatedSchema,
+  joinCodeExchangeSchema,
+  joinCodePreviewSchema,
+  memberInvitationCreatedSchema,
+  memberInvitationListSchema,
   maintenanceRunSchema as maintenanceRunResponseSchema,
   maintenanceStatusSchema,
   moduleDetailResponseSchema,
@@ -156,6 +161,7 @@ const categoryCreate = component("UserCategoryCreate", userCategoryCreateSchema)
 const categoryRename = component("UserCategoryRename", userCategoryRenameSchema);
 const invitationCreate = component("InvitationCreate", createInvitationSchema);
 const invitationRedeem = component("InvitationRedeem", redeemInvitationSchema);
+const memberInvitationCreate = component("MemberInvitationCreate", createMemberInvitationSchema);
 const apiKeyCreate = component("ApiKeyCreate", createApiKeySchema);
 const apiKeyUpdate = component("ApiKeyUpdate", updateApiKeySchema);
 // `updateApiKeySchema` refines "at least one field"; publish the equivalent
@@ -734,6 +740,58 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     scopes: [],
     request: invitationRedeem,
     response: redeemResultSchema,
+    auth: "public",
+    status: 201,
+  },
+  {
+    method: "get",
+    path: "/me/invitations",
+    summary: "The caller's invitation quota, their own invitations and direct invitees.",
+    scopes: ["profile:read"],
+    response: memberInvitationListSchema,
+    auth: "session-only",
+  },
+  {
+    method: "post",
+    path: "/me/invitations",
+    summary: "Mint a 48-hour anonymous member invitation; the token is returned once.",
+    scopes: ["profile:write"],
+    request: memberInvitationCreate,
+    response: memberInvitationCreatedSchema,
+    auth: "session-only",
+    status: 201,
+  },
+  {
+    method: "delete",
+    path: "/me/invitations/{id}",
+    summary: "Revoke one of the caller's own pending invitations.",
+    scopes: ["profile:write"],
+    auth: "session-only",
+    status: 204,
+  },
+  {
+    method: "post",
+    path: "/me/join-codes",
+    summary: "Mint a 90-second rotating QR join code; the code is returned once.",
+    scopes: ["profile:write"],
+    response: joinCodeCreatedSchema,
+    auth: "session-only",
+    status: 201,
+  },
+  {
+    method: "get",
+    path: "/join-codes/{code}/preview",
+    summary: "Public preview of a join code (never exchanges it).",
+    scopes: [],
+    response: joinCodePreviewSchema,
+    auth: "public",
+  },
+  {
+    method: "post",
+    path: "/join-codes/{code}/exchange",
+    summary: "Exchange a join code for a 15-minute invitation (single-use).",
+    scopes: [],
+    response: joinCodeExchangeSchema,
     auth: "public",
     status: 201,
   },

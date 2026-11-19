@@ -390,6 +390,108 @@ export const invitationRenewResponseSchema = component(
     .strict(),
 );
 
+export const invitationQuotaSchema = component(
+  "InvitationQuota",
+  z
+    .object({
+      level: z.number().int().nullable(),
+      base: z.number().int(),
+      granted: z.number().int(),
+      used: z.number().int(),
+      reserved: z.number().int(),
+      remaining: z.number().int(),
+      unlimited: z.boolean(),
+    })
+    .strict(),
+);
+
+export const ownInvitationSchema = component(
+  "OwnInvitation",
+  z
+    .object({
+      id: z.uuid(),
+      state: z.enum(["pending", "used", "expired", "revoked"]),
+      source: z.enum(["admin", "member", "qr"]),
+      expires_at: isoDate,
+      path: z.null(),
+      redeemed_by: invitationPersonSchema.nullable(),
+      created_at: isoDate,
+    })
+    .strict(),
+);
+
+export const ownInviteeSchema = component(
+  "OwnInvitee",
+  z
+    .object({
+      id: z.uuid(),
+      display_name: z.string(),
+      level: z.number().int().nullable(),
+      state: z.enum(["active", "deactivated"]),
+      joined_at: isoDate,
+    })
+    .strict(),
+);
+
+export const memberInvitationListSchema = component(
+  "MemberInvitationList",
+  z
+    .object({
+      quota: invitationQuotaSchema.extend({ pending_request: z.null() }).strict(),
+      invitations: z.array(ownInvitationSchema),
+      invitees: z.array(ownInviteeSchema),
+    })
+    .strict(),
+);
+
+export const memberInvitationCreatedSchema = component(
+  "MemberInvitationCreated",
+  z
+    .object({
+      invitation: invitationSchema,
+      token: z.string(),
+      path: z.string(),
+    })
+    .strict(),
+);
+
+export const joinCodeCreatedSchema = component(
+  "JoinCodeCreated",
+  z
+    .object({
+      id: z.uuid(),
+      code: z.string(),
+      expires_at: isoDate,
+      path: z.string(),
+    })
+    .strict(),
+);
+
+export const joinCodePreviewSchema = component(
+  "JoinCodePreview",
+  z
+    .object({
+      join: z
+        .object({
+          state: z.enum(["pending", "expired", "used"]),
+          inviter_name: z.string().nullable(),
+          instance_name: z.string(),
+        })
+        .strict(),
+    })
+    .strict(),
+);
+
+export const joinCodeExchangeSchema = component(
+  "JoinCodeExchange",
+  z
+    .object({
+      token: z.string(),
+      path: z.string(),
+    })
+    .strict(),
+);
+
 export const apiKeySchema = component(
   "ApiKey",
   z

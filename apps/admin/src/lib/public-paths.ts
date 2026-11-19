@@ -24,12 +24,15 @@ const INVITE_PATH = /^\/invite\/([^/]+)$/;
 /** The migration landing page is public too: it only explains and links. */
 const MIGRATE_PATH = /^\/migrate\/([^/]+)$/;
 
+/** The rotating QR landing page: public and session-free, like `/invite`. */
+const JOIN_PATH = /^\/join\/([^/]+)$/;
+
 export function isPublicPath(pathname: string): boolean {
   const normalized = pathname.replace(/\/+$/, "") || "/";
   if (PUBLIC_PAGES.has(normalized)) return true;
   if (PUBLIC_HELP_PATHS.has(normalized)) return true;
 
-  for (const pattern of [INVITE_PATH, MIGRATE_PATH]) {
+  for (const pattern of [INVITE_PATH, MIGRATE_PATH, JOIN_PATH]) {
     const match = pattern.exec(normalized);
     if (!match) continue;
     const segment = match[1];

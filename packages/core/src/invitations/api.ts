@@ -20,6 +20,16 @@ import {
   type RedeemInput,
 } from "./service";
 import { EMAIL_LOCALES, type EmailLocale } from "../email/types";
+import {
+  createMemberInvitation,
+  listOwnInvitations,
+  revokeOwnInvitation,
+} from "./member";
+import {
+  createJoinCode,
+  exchangeJoinCode,
+  previewJoinCode,
+} from "./join-codes";
 
 /**
  * Invitations API (core-api spec §3.5). Admin routes require
@@ -48,7 +58,16 @@ export interface InvitationsRouteDeps {
   invitations: InvitationsDeps;
   mailer?: InvitationsMailer;
   cors?: CorsOptions;
-  rateLimits?: { read?: number; write?: number; redeem?: number; preview?: number };
+  rateLimits?: {
+    read?: number;
+    write?: number;
+    redeem?: number;
+    preview?: number;
+    memberInvite?: number;
+    joinCodeCreate?: number;
+    joinCodePreview?: number;
+    joinCodeExchange?: number;
+  };
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -85,6 +104,9 @@ export const redeemInvitationSchema = z
     display_name: z.string().trim().min(1).max(80).optional(),
   })
   .strict();
+
+/** `POST /me/invitations` body: empty, the server derives every field. */
+export const createMemberInvitationSchema = z.object({}).strict();
 
 function uuid(value: string, field: string): string {
   if (!UUID.test(value)) throw new DomainError("validation_failed", `invalid ${field}`);
@@ -293,5 +315,108 @@ export function redeemInvitationRoute(deps: InvitationsRouteDeps) {
           await redeemInvitation(deps.invitations, token, ctx.body as RedeemInput, ctx.caller),
           201,
         ),
+    );
+}
+
+/**
+ * `GET /me/invitations` — the caller's quota, their own invitations (never the
+ * tokens) and their direct invitees. Session-only, any role.
+ */
+export function memberInvitationsRoute(deps: InvitationsRouteDeps) {
+  return (req: Request): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["profile:read"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.read ?? DEFAULT_READ_LIMIT },
+      },
+      deps.door,
+      async (ctx) => listOwnInvitations(deps.invitations, ctx.caller),
+    );
+}
+
+/** `POST /me/invitations` — mint a 48-hour anonymous member invitation. */
+export function createMemberInvitationRoute(deps: InvitationsRouteDeps) {
+  return (req: Request): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["profile:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        schema: createMemberInvitationSchema,
+        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.memberInvite ?? 10 },
+      },
+      deps.door,
+      async (ctx) => tokenResponse(await createMemberInvitation(deps.invitations, ctx.caller), 201),
+    );
+}
+
+/** `DELETE /me/invitations/{id}` — revoke one of the caller's own invitations. */
+export function revokeMemberInvitationRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["profile:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
+      },
+      deps.door,
+      async (ctx) => {
+        await revokeOwnInvitation(deps.invitations, ctx.caller, uuid(rawId, "invitation id"));
+        return new Response(null, { status: 204 });
+      },
+    );
+}
+
+/** `POST /me/join-codes` — mint a 90-second QR join code; returned once. */
+export function createJoinCodeRoute(deps: InvitationsRouteDeps) {
+  return (req: Request): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["profile:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.joinCodeCreate ?? 6 },
+      },
+      deps.door,
+      async (ctx) => tokenResponse(await createJoinCode(deps.invitations, ctx.caller), 201),
+    );
+}
+
+/** `GET /join-codes/{code}/preview` — public preview that never mutates. */
+export function joinCodePreviewRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawCode: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: [],
+        auth: async () => ({ kind: "anon" as const }),
+        cors: deps.cors,
+        rateLimit: { identity: "ip" as const, limit: deps.rateLimits?.joinCodePreview ?? 60 },
+      },
+      deps.door,
+      async () => tokenResponse({ join: await previewJoinCode(deps.invitations, rawCode) }),
+    );
+}
+
+/** `POST /join-codes/{code}/exchange` — single-use exchange for a 15-min invitation. */
+export function joinCodeExchangeRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawCode: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: [],
+        auth: async () => ({ kind: "anon" as const }),
+        cors: deps.cors,
+        rateLimit: { identity: "ip" as const, limit: deps.rateLimits?.joinCodeExchange ?? 10 },
+      },
+      deps.door,
+      async () => tokenResponse(await exchangeJoinCode(deps.invitations, rawCode), 201),
     );
 }

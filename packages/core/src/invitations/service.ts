@@ -1,9 +1,9 @@
-import { createHash, randomBytes } from "node:crypto";
 import { DomainError } from "../errors";
 import { enqueueEvent } from "../realtime/service";
 import type { Caller } from "../api/types";
 import type { QueryClient } from "../api/rate-limit-storage";
 import { isEmailLocale, type EmailLocale } from "../email/types";
+import { hashInviteToken, newInviteToken, withInviteTx } from "./shared";
 
 /**
  * Invitations (core-data-model §3.4, auth spec §3): the only self-service way
@@ -179,11 +179,11 @@ function assertCanInviteRole(caller: Caller, role: InvitationRole): void {
 }
 
 export function hashInvitationToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
+  return hashInviteToken(token);
 }
 
 function newInvitationToken(): string {
-  return `${TOKEN_PREFIX}${randomBytes(32).toString("base64url")}`;
+  return newInviteToken(TOKEN_PREFIX);
 }
 
 function actorFor(caller: Caller): { by: string | null; byKey: string | null } {
@@ -216,18 +216,7 @@ async function withTx<T>(
   deps: InvitationsDeps,
   fn: (db: QueryClient) => Promise<T>,
 ): Promise<T> {
-  if (!deps.withTransaction) return fn(deps.db);
-  return deps.withTransaction(async (db) => {
-    await db.query("BEGIN");
-    try {
-      const result = await fn(db);
-      await db.query("COMMIT");
-      return result;
-    } catch (err) {
-      await db.query("ROLLBACK").catch(() => undefined);
-      throw err;
-    }
-  });
+  return withInviteTx(deps, fn);
 }
 
 async function modulesFor(
