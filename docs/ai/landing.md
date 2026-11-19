@@ -68,7 +68,7 @@ declaradas como simuladas; la app publicada no se presenta como «en desarrollo�
 |---|---|---|---|
 | OweNo | Sí | Grupos, gastos, balances, liquidación e importador de Splitwise | app `available` (APK firmado), panel `available` |
 | Categorías | Sí (previsto) | Grupos y permisos | app `planned`, panel `available` |
-| Miembros | Sí (previsto) | Roles, invitaciones, bajas | app `planned`, panel `available` |
+| Miembros | Invitaciones (QR y enlace); roles y bajas previstos | Roles, invitaciones, bajas | app `in-development` (invitaciones), panel `available` |
 | Módulos | Sí (previsto) | Activar y conceder | app `planned`, panel `available` |
 | API v1 | — | Claves con permisos | `available` |
 | MCP | — | Agentes con OAuth | `available` |
@@ -86,6 +86,11 @@ y `/self-host`.
 Las notificaciones push ya no son una promesa: viajan como notificación del sistema, sin importe
 mientras el ojo está cerrado, y al tocarlas abren el grupo. La sección Android lo dice así; antes
 avisaba de que eran «planned».
+
+La app ya puede **invitar**: pantalla de invitación con barra de cuota, QR rotativo y enlace, y
+solicitud de más plazas al administrador. Es solo la parte de **invitaciones** del módulo Miembros:
+los roles y las bajas siguen siendo cosa del panel, así que la fila de Miembros no pasa a
+`available` en la app.
 
 ## Cuándo actualizar
 
