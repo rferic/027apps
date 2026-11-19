@@ -404,7 +404,7 @@ export const SETTINGS_CATALOG: SettingMeta[] = [
   },
   {
     key: 'invitations.levels', category: 'invitations', type: 'json',
-    label: 'Invitation levels', help: 'JSON array of {level, quota}; level 1 is an admin invitee.',
+    label: 'Invitation levels', help: 'How many people each level may invite. Level 1 is invited by an administrator; level 2 by a level-1 member, and so on.',
     isSecret: false, isPublic: false, mcpAccess: 'none', sortOrder: 10,
     superAdminOnly: false, readOnly: false,
     schema: invitationLevelsSchema,

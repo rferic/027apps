@@ -113,7 +113,7 @@ insert into public.settings
   (category_key, key, label, help, value, is_secret, is_public, mcp_access, sort_order)
 values
   ('invitations', 'invitations.levels', 'Invitation levels',
-   'JSON array of {level, quota}; level 1 is an admin invitee.',
+   'How many people each level may invite. Level 1 is invited by an administrator; level 2 by a level-1 member, and so on.',
    '[{"level":1,"quota":5},{"level":2,"quota":2},{"level":3,"quota":1}]'::jsonb,
    false, false, 'none', 10)
 on conflict (category_key, key) do nothing;

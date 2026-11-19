@@ -70,7 +70,10 @@ const SETTING_HELPS: Record<string, Translator> = {
   "rate_limit.write_per_min": (messages) => t("Write requests per minute.", messages),
   "rate_limit.public_per_min": (messages) => t("Requests per minute for public doors.", messages),
   "invitations.levels": (messages) =>
-    t("JSON array of {level, quota}; level 1 is an admin invitee.", messages),
+    t(
+      "How many people each level may invite. Level 1 is invited by an administrator; level 2 by a level-1 member, and so on.",
+      messages,
+    ),
 };
 
 const CATEGORY_LABELS: Record<string, Translator> = {
