@@ -235,7 +235,7 @@ export function SelfHostLanding({ locale }: { locale: Locale }) {
                 </svg>
               </div>
               <h3>{t("Members")}</h3>
-              <p>{t("Roles, invitations and deactivation from one list.")}</p>
+              <p>{t("Roles, invitations, levels and a live quota from one list.")}</p>
             </article>
             <article className="module">
               <div className="ico">

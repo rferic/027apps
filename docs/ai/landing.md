@@ -68,7 +68,7 @@ declaradas como simuladas; la app publicada no se presenta como «en desarrollo�
 |---|---|---|---|
 | OweNo | Sí | Grupos, gastos, balances, liquidación e importador de Splitwise | app `available` (APK firmado), panel `available` |
 | Categorías | Sí (previsto) | Grupos y permisos | app `planned`, panel `available` |
-| Miembros | Invitaciones (QR y enlace); roles y bajas previstos | Roles, invitaciones, bajas | app `in-development` (invitaciones), panel `available` |
+| Miembros | Invitaciones (niveles, cuota, QR y enlace); roles y bajas previstos | Roles, invitaciones, niveles, cuota, solicitudes, árbol | app `in-development` (invitaciones), panel `available` |
 | Módulos | Sí (previsto) | Activar y conceder | app `planned`, panel `available` |
 | API v1 | — | Claves con permisos | `available` |
 | MCP | — | Agentes con OAuth | `available` |

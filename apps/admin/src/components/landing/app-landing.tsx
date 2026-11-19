@@ -305,9 +305,9 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
                 <p className="eyebrow">
                   <strong>03</strong>{" / "}{t("MEMBERS")}
                 </p>
-                <h3>{t("Invite, don't create by hand.")}</h3>
-                <p>{t("Your family joins with an invitation. Pick their role and category; the rest comes with it.")}{" "}</p>
-                <ul className="check-list"><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Invite by email or link")}</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Roles: admin and user")}</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Deactivate without deleting")}</li></ul>
+                <h3>{t("A private club, not an open signup.")}</h3>
+                <p>{t("The admin invites the first people; each member can bring a few more, with a level and a live quota. Access is a rotating QR or a shareable link.")}{" "}</p>
+                <ul className="check-list"><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Levels with a live quota")}</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Rotating QR or shareable link")}</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Ask the admin for more seats")}</li></ul>
               </div>
               <div className="visual">
                 <div className="phone">
