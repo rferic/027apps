@@ -219,7 +219,7 @@ export type OwnInvitee = {
 };
 
 export type OwnInvitationsView = {
-  quota: InvitationQuota;
+  quota: InvitationQuota & { pending_request: null };
   invitations: OwnInvitationListItem[];
   invitees: OwnInvitee[];
 };
@@ -240,7 +240,7 @@ function invitationState(row: Record<string, unknown>, now: Date): InvitationSta
 export async function listOwnInvitations(
   deps: InvitationsDeps,
   caller: Caller,
-): Promise<OwnInvitationsView & { pending_request: null }> {
+): Promise<OwnInvitationsView> {
   if (caller.kind !== "session") throw new DomainError("unauthorized");
   const uid = caller.userId;
   const now = deps.now?.() ?? new Date();
@@ -264,8 +264,7 @@ export async function listOwnInvitations(
   );
 
   return {
-    quota,
-    pending_request: null,
+    quota: { ...quota, pending_request: null },
     invitations: invitationRows.map((row) => ({
       id: String(row.id),
       state: invitationState(row, now),

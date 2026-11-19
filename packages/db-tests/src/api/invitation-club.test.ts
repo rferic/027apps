@@ -165,7 +165,7 @@ describe("member invitations", () => {
 
         const own = await listOwnInvitations(deps(c), caller);
         expect(own.quota.remaining).toBe(1); // base 2 - the one pending reservation
-        expect(own.pending_request).toBeNull();
+        expect(own.quota.pending_request).toBeNull();
         expect(own.invitations).toHaveLength(1);
         expect(own.invitations[0]).toMatchObject({ source: "member", path: null });
         expect(own.invitations[0]).not.toHaveProperty("token");
