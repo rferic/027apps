@@ -56,6 +56,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.rferic.zero27apps.StartAction
+import com.rferic.zero27apps.StartTarget
 import com.rferic.zero27apps.ui.components.AppAlertDialog
 import com.rferic.zero27apps.ui.components.BrandWordmark
 import com.rferic.zero27apps.ui.components.GridIcon
@@ -92,6 +94,7 @@ fun AppRoot(
     deepLink: String? = null,
     startAction: String? = null,
     startGroup: String? = null,
+    onStartConsumed: () -> Unit = {},
     viewModel: AppViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -116,9 +119,13 @@ fun AppRoot(
 
     // A push for an invitation request or its resolution opens the invitation
     // screen; no role check here because the server only sends the request push
-    // to administrators.
+    // to administrators. The action is one-shot: consuming it lets an identical
+    // next push re-fire this effect instead of being swallowed by the same value.
     LaunchedEffect(startAction) {
-        if (startAction == "invite") showingInviteMembers = true
+        if (StartAction.targetOf(startAction) == StartTarget.INVITE) {
+            showingInviteMembers = true
+            onStartConsumed()
+        }
     }
 
     // Coming back to the app is the natural moment to ask for a newer build and
@@ -220,6 +227,7 @@ fun AppRoot(
                             update,
                             startAction,
                             startGroup,
+                            onStartConsumed = onStartConsumed,
                             onMigrate = { showingMigrationQr = true },
                             onOpenInviteMembers = { showingInviteMembers = true },
                         )
@@ -455,6 +463,7 @@ private fun Shell(
     update: UpdateState,
     initialAction: String? = null,
     initialGroup: String? = null,
+    onStartConsumed: () -> Unit = {},
     onMigrate: () -> Unit,
     onOpenInviteMembers: () -> Unit,
 ) {
@@ -503,16 +512,21 @@ private fun Shell(
     var showActions by remember { mutableStateOf(false) }
     var startAction by remember { mutableStateOf<String?>(null) }
     var targetGroup by remember { mutableStateOf<String?>(null) }
+    // A one-shot action: consuming it lets an identical next action re-fire the
+    // effect (the widget's "+" and group notifications repeat without a new UUID).
     LaunchedEffect(initialAction, initialGroup) {
-        when (initialAction) {
-            "owe_expense" -> {
+        when (StartAction.targetOf(initialAction)) {
+            StartTarget.OWE_EXPENSE -> {
                 startAction = "expense"
                 openModule = "owe-no"
+                onStartConsumed()
             }
-            "owe_group" -> {
+            StartTarget.OWE_GROUP -> {
                 targetGroup = initialGroup
                 openModule = "owe-no"
+                onStartConsumed()
             }
+            StartTarget.INVITE, null -> Unit
         }
     }
     val snackbar = remember { SnackbarHostState() }

@@ -38,8 +38,20 @@ class MainActivity : ComponentActivity() {
                 deepLink = deepLink.value,
                 startAction = startAction.value,
                 startGroup = startGroup.value,
+                onStartConsumed = ::consumeStart,
             )
         }
+    }
+
+    /**
+     * A `start` extra is one-shot: the navigation effect consumes it so the
+     * next push with the identical action (a second invitation request, another
+     * tap of the widget's "+") still re-fires instead of being swallowed by the
+     * unchanged state value.
+     */
+    private fun consumeStart() {
+        startAction.value = null
+        startGroup.value = null
     }
 
     /**
@@ -50,7 +62,7 @@ class MainActivity : ComponentActivity() {
     private fun consumeIntent(intent: Intent?) {
         val group = intent?.getStringExtra(EXTRA_GROUP)?.takeIf(::isUuid)
         deepLink.value = freshDeepLink(intent?.dataString)
-        startAction.value = intent?.getStringExtra(EXTRA_START)?.takeIf { it in START_ACTIONS }
+        startAction.value = intent?.getStringExtra(EXTRA_START)?.takeIf { it in StartAction.accepted }
         startGroup.value = group
         intent?.removeExtra(EXTRA_START)
         intent?.removeExtra(EXTRA_GROUP)
@@ -82,7 +94,6 @@ class MainActivity : ComponentActivity() {
         const val LINK_KEY = "handled_deep_link"
         const val LINK_AT_KEY = "handled_deep_link_at"
         const val LINK_REPLAY_MS = 15_000L
-        val START_ACTIONS = setOf("owe_group", "owe_expense", "modules", "settings", "invite")
         val UUID_PATTERN =
             Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
     }
