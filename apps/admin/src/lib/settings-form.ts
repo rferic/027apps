@@ -6,14 +6,85 @@ export type SettingsDraft = Record<string, string>;
 /** Origins the API door accepts, as an exact-match string array. */
 export const CORS_SETTING_KEY = "security.cors_allowlist";
 
+/** One configured invitation level `{ level, quota }` (spec §5.7). */
+export type InvitationLevel = { level: number; quota: number };
+
+export const INVITATION_LEVELS_KEY = "invitations.levels";
+
 function listToText(value: unknown, separator: string): string {
   if (!Array.isArray(value)) return "";
   return value.filter((entry): entry is string => typeof entry === "string").join(separator);
 }
 
+/**
+ * Maximum accounts a single admin invitation can produce for a level table:
+ * `1 + q1 + q1*q2 + q1*q2*q3 + …`. An empty table means "only admins invite",
+ * so the answer is 1 (the admin themselves).
+ */
+export function maxAccounts(levels: readonly InvitationLevel[]): number {
+  let total = 1;
+  let product = 1;
+  for (const { quota } of levels) {
+    product *= quota;
+    total += product;
+  }
+  return total;
+}
+
+/** The draft's JSON string as level rows; a malformed draft reads as empty. */
+export function parseInvitationLevels(raw: string): InvitationLevel[] {
+  if (raw.trim() === "") return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const levels: InvitationLevel[] = [];
+  for (const row of parsed) {
+    if (row === null || typeof row !== "object") return [];
+    const record = row as Record<string, unknown>;
+    if (typeof record.level !== "number" || typeof record.quota !== "number") return [];
+    levels.push({ level: record.level, quota: record.quota });
+  }
+  return levels;
+}
+
+/** The draft form of the levels table: a compact JSON array. */
+export function serializeInvitationLevels(levels: readonly InvitationLevel[]): string {
+  return JSON.stringify(levels);
+}
+
+export const MAX_INVITATION_LEVELS = 20;
+export const MAX_INVITATION_QUOTA = 100;
+
+/** A seat count a member level may hold: an integer in 0..100. */
+export function clampInvitationQuota(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(MAX_INVITATION_QUOTA, Math.max(0, Math.round(value)));
+}
+
+/** Appends the next level (contiguous from 1); capped at 20 rows. */
+export function addInvitationLevel(levels: readonly InvitationLevel[]): InvitationLevel[] {
+  if (levels.length >= MAX_INVITATION_LEVELS) return [...levels];
+  return [...levels, { level: levels.length + 1, quota: 0 }];
+}
+
+/** Removes a row and renumbers the survivors contiguously from 1, no gaps. */
+export function removeInvitationLevel(
+  levels: readonly InvitationLevel[],
+  index: number,
+): InvitationLevel[] {
+  return levels
+    .filter((_, i) => i !== index)
+    .map((row, i) => ({ level: i + 1, quota: row.quota }));
+}
+
 /** Text the form edits for a setting; secrets always start empty. */
 export function encodeSettingValue(setting: SettingRow): string {
   if (setting.isSecret) return "";
+  if (setting.key === INVITATION_LEVELS_KEY) return JSON.stringify(setting.value ?? []);
   if (setting.type === "locales") return listToText(setting.value, ", ");
   if (setting.type === "array") return listToText(setting.value, "\n");
   if (setting.type === "boolean") return setting.value === true ? "true" : "false";
@@ -47,6 +118,13 @@ function locales(value: string): string[] {
  * the key (the form never silently drops a user edit).
  */
 export function parseSettingValue(setting: SettingRow, raw: string): unknown {
+  if (setting.key === INVITATION_LEVELS_KEY) {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return raw;
+    }
+  }
   if (setting.type === "locales") return locales(raw);
   if (setting.type === "array") return lines(raw);
   if (setting.type === "boolean") return raw === "true";

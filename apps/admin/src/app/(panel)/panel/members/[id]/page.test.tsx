@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const requirePanelMock = vi.fn();
 const loadMemberMock = vi.fn();
+const loadMemberInvitationMock = vi.fn();
 const notFoundMock = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
 });
@@ -33,6 +34,10 @@ vi.mock("@/lib/panel-members", () => ({
   loadMember: (id: string) => loadMemberMock(id),
 }));
 
+vi.mock("@/lib/invitation-grants", () => ({
+  loadMemberInvitation: (id: string) => loadMemberInvitationMock(id),
+}));
+
 vi.mock("@/app/(auth)/actions", () => ({
   signOutAction: "sign-out",
 }));
@@ -46,6 +51,7 @@ const MEMBER = {
   locale: "es",
   timezone: "Europe/Madrid",
   role: "super_admin" as const,
+  invitation_level: null,
   created_at: "2026-01-01T00:00:00.000Z",
   deactivated_at: null,
   categories: [
@@ -74,6 +80,12 @@ beforeEach(() => {
     user: { id: "u1", email: "admin@example.com", displayName: "Admin", role: "super_admin" },
   });
   loadMemberMock.mockReset();
+  loadMemberInvitationMock.mockReset();
+  loadMemberInvitationMock.mockResolvedValue({
+    ok: true,
+    grants: [],
+    quota: { level: null, base: 0, granted: 0, used: 0, reserved: 0, remaining: 0, unlimited: true },
+  });
   notFoundMock.mockClear();
 });
 

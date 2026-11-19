@@ -74,6 +74,7 @@ const SETTINGS_ICONS: Record<SettingsSectionSlug, PanelIconComponent> = {
   security: ShieldIcon,
   notifications: BellIcon,
   "rate-limits": GaugeIcon,
+  invitations: UsersIcon,
 };
 
 function NavGlyph({ item, Icon }: { item: NavItem; Icon: PanelIconComponent }) {

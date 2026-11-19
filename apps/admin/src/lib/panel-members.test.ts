@@ -39,6 +39,7 @@ const USERS = [
     locale: "es",
     timezone: "Europe/Madrid",
     role: "super_admin",
+    invitation_level: null,
     created_at: "2026-01-01T00:00:00.000Z",
     deactivated_at: null,
     categories: [
@@ -52,6 +53,7 @@ const USERS = [
     locale: "en",
     timezone: "UTC",
     role: "admin",
+    invitation_level: null,
     created_at: "2026-02-01T00:00:00.000Z",
     deactivated_at: "2026-03-01T00:00:00.000Z",
     categories: [],

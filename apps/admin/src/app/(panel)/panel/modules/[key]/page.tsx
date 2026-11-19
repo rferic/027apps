@@ -6,6 +6,7 @@ import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { ModuleActions } from "@/components/module-actions";
 import { ModuleAccess } from "@/components/module-access";
+import { ModuleDelegable } from "@/components/module-delegable";
 import { ModuleDemoCard } from "@/components/module-demo-card";
 import { ModuleJobRunButton } from "@/components/module-job-run-button";
 import { PanelError } from "@/components/panel-error";
@@ -578,6 +579,13 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
       <ModuleAccess
         moduleKey={installedModule.key}
         isPublic={installedModule.is_public}
+        messages={messages}
+      />
+
+      <ModuleDelegable
+        moduleKey={installedModule.key}
+        isPublic={installedModule.is_public}
+        delegable={installedModule.delegable}
         messages={messages}
       />
 

@@ -351,4 +351,31 @@ describe("SettingsForm", () => {
     expect(html).toContain("Request ID");
     expect(html).toContain("req-coherence");
   });
+
+  it("renders the levels editor instead of a textarea for invitations.levels", () => {
+    const html = renderToStaticMarkup(
+      <SettingField
+        setting={{
+          ...NAME,
+          key: "invitations.levels",
+          category: "invitations",
+          label: "Invitation levels",
+          help: "JSON array of {level, quota}; level 1 is an admin invitee.",
+          type: "json",
+          value: [
+            { level: 1, quota: 5 },
+            { level: 2, quota: 2 },
+          ],
+        }}
+        draft={{ "invitations.levels": '[{"level":1,"quota":5},{"level":2,"quota":2}]' }}
+        onChange={() => {}}
+        error={null}
+        messages={{}}
+      />,
+    );
+
+    expect(html).toContain('type="number"');
+    expect(html).toContain("Add level");
+    expect(html).not.toContain("<textarea");
+  });
 });

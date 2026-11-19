@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { MemberDangerZone } from "@/components/member-danger-zone";
+import { MemberInvitationPanel } from "@/components/member-invitation-panel";
 import { MemberProfileForm } from "@/components/member-profile-form";
 import { MemberPurgeAction } from "@/components/member-purge-action";
 import { MemberRestoreAction } from "@/components/member-restore-action";
@@ -11,6 +12,7 @@ import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { formatDate } from "@/lib/format-date";
+import { loadMemberInvitation } from "@/lib/invitation-grants";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { loadPanelTimeZone } from "@/lib/panel-settings";
 import { requirePanel } from "@/lib/panel-guard";
@@ -162,11 +164,29 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
 
   const member = result.member;
   const isSelf = gate.user.id === member.id;
+  const invitation = await loadMemberInvitation(member.id);
   return (
     <section className="flex flex-col gap-5">
       <MemberBreadcrumb name={memberName(member)} messages={messages} />
       <MemberHeader member={member} locale={locale} timeZone={timeZone} messages={messages} />
       <MemberCategories member={member} messages={messages} />
+      {invitation.ok ? (
+        <MemberInvitationPanel
+          member={member}
+          quota={invitation.quota}
+          grants={invitation.grants}
+          locale={locale}
+          timeZone={timeZone}
+          messages={messages}
+        />
+      ) : (
+        <PanelError
+          error={invitation}
+          heading={t("We couldn't load the invitation quota.", messages)}
+          retryHref={`/panel/members/${encodeURIComponent(id)}`}
+          messages={messages}
+        />
+      )}
       <MemberProfileForm
         member={member}
         viewerRole={gate.user.role}

@@ -6519,6 +6519,9 @@
             ],
             "type": "object"
           },
+          "delegable": {
+            "type": "boolean"
+          },
           "demo": {
             "anyOf": [
               {
@@ -6590,6 +6593,7 @@
           "version",
           "state",
           "is_public",
+          "delegable",
           "mcp_exposed",
           "manifest_digest",
           "installed_at",
@@ -6688,6 +6692,9 @@
               "icon"
             ],
             "type": "object"
+          },
+          "delegable": {
+            "type": "boolean"
           },
           "demo": {
             "anyOf": [
@@ -6834,6 +6841,7 @@
           "version",
           "state",
           "is_public",
+          "delegable",
           "mcp_exposed",
           "manifest_digest",
           "installed_at",
@@ -6924,6 +6932,9 @@
                   "icon"
                 ],
                 "type": "object"
+              },
+              "delegable": {
+                "type": "boolean"
               },
               "demo": {
                 "anyOf": [
@@ -7070,6 +7081,7 @@
               "version",
               "state",
               "is_public",
+              "delegable",
               "mcp_exposed",
               "manifest_digest",
               "installed_at",
@@ -7401,6 +7413,9 @@
                   ],
                   "type": "object"
                 },
+                "delegable": {
+                  "type": "boolean"
+                },
                 "demo": {
                   "anyOf": [
                     {
@@ -7472,6 +7487,7 @@
                 "version",
                 "state",
                 "is_public",
+                "delegable",
                 "mcp_exposed",
                 "manifest_digest",
                 "installed_at",
@@ -7555,6 +7571,9 @@
                 ],
                 "type": "object"
               },
+              "delegable": {
+                "type": "boolean"
+              },
               "demo": {
                 "anyOf": [
                   {
@@ -7626,6 +7645,7 @@
               "version",
               "state",
               "is_public",
+              "delegable",
               "mcp_exposed",
               "manifest_digest",
               "installed_at",
@@ -7988,6 +8008,9 @@
       "ModuleUpdate": {
         "additionalProperties": false,
         "properties": {
+          "delegable": {
+            "type": "boolean"
+          },
           "is_public": {
             "type": "boolean"
           },

@@ -704,6 +704,7 @@ export const moduleSchema = component(
       version: z.string(),
       state: z.enum(["installed", "active", "disabled"]),
       is_public: z.boolean(),
+      delegable: z.boolean(),
       mcp_exposed: z.enum(["none", "read", "read_write"]),
       manifest_digest: z.string(),
       installed_at: isoDate,

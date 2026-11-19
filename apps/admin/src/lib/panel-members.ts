@@ -28,6 +28,8 @@ export interface MemberRow {
   locale: string;
   timezone: string;
   role: MemberRole;
+  /** Club level; `null` for an administrator or a member without one. */
+  invitation_level: number | null;
   created_at: string;
   deactivated_at: string | null;
   categories: MemberCategory[];
@@ -72,6 +74,12 @@ function readCount(value: unknown): number | null {
 
 function readRole(value: unknown): MemberRole | null {
   return value === "super_admin" || value === "admin" || value === "user" ? value : null;
+}
+
+/** `null` is a valid value (an administrator); anything else reads as `null`. */
+function readLevel(value: unknown): number | null {
+  if (value === null) return null;
+  return typeof value === "number" && Number.isInteger(value) ? value : null;
 }
 
 /** Public envelope fields only: the API never returns internals here. */
@@ -174,6 +182,7 @@ function readUser(value: unknown): UserFields | null {
   const createdAt = readString(value.created_at);
   const deactivatedAt = readDate(value.deactivated_at);
   const categories = readCategories(value.categories);
+  const invitationLevel = readLevel(value.invitation_level);
   if (!id) return null;
   if (displayName === undefined) return null;
   if (!role) return null;
@@ -188,6 +197,7 @@ function readUser(value: unknown): UserFields | null {
     locale,
     timezone,
     role,
+    invitation_level: invitationLevel,
     created_at: createdAt,
     deactivated_at: deactivatedAt,
     categories,

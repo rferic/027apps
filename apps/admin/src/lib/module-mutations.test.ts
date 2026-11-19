@@ -3,6 +3,7 @@ import {
   activateModule,
   deactivateModule,
   runModuleJob,
+  setModuleDelegable,
   setModulePublic,
   uninstallModule,
   upgradeModule,
@@ -178,5 +179,19 @@ describe("setModulePublic", () => {
       code: "insufficient_scope",
       requestId: "req-403",
     });
+  });
+});
+
+describe("setModuleDelegable", () => {
+  it("PATCHes the module with the delegable flag", async () => {
+    const fetcher = vi.fn(async () => json({ module: { key: "owe-no" } }));
+
+    await expect(setModuleDelegable("owe-no", true, fetcher)).resolves.toEqual({ ok: true });
+
+    const [url, init] = call(fetcher);
+    expect(url).toBe("/api/v1/modules/owe-no");
+    expect(init.method).toBe("PATCH");
+    expect(init.credentials).toBe("same-origin");
+    expect(init.body).toBe(JSON.stringify({ delegable: true }));
   });
 });

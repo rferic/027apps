@@ -39,6 +39,7 @@ const MODULE = {
   version: "1.0.0",
   state: "active",
   is_public: false,
+  delegable: false,
   mcp_exposed: "read",
   manifest_digest: "a".repeat(64),
   installed_at: "2026-10-01T10:00:00.000Z",

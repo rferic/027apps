@@ -11,6 +11,7 @@ import { FormActions, FormAlert, FormField, FormSection } from "@/components/ui/
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Select } from "@/components/ui/select";
 import { TimeZoneInput } from "@/components/ui/time-zone-input";
+import { InvitationLevelsEditor } from "@/components/invitation-levels-editor";
 import { LOCALE_LABELS, localeOptions } from "@/lib/locale";
 import type { MutationFailure } from "@/lib/mutation-result";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
@@ -18,9 +19,12 @@ import { categoryHelp, categoryLabel, settingHelp, settingLabel } from "@/lib/se
 import type { RestrictedSetting, SettingRow, SettingsCategoryRow } from "@/lib/setting-types";
 import {
   CORS_SETTING_KEY,
+  INVITATION_LEVELS_KEY,
   encodeSettingValue,
   initialSettingsDraft,
+  parseInvitationLevels,
   revertEnabledLocales,
+  serializeInvitationLevels,
   submitSettings,
   updatesFromDraft,
   type SettingsDraft,
@@ -384,6 +388,34 @@ function ReadOnlySetting({ setting, messages }: { setting: SettingRow; messages:
   );
 }
 
+/** The `invitations.levels` row editor: the draft holds its JSON as text. */
+function LevelsEditorField({
+  setting,
+  value,
+  onChange,
+  messages,
+}: {
+  setting: SettingRow;
+  value: string;
+  onChange: (next: string) => void;
+  messages: TranslationMap;
+}) {
+  const levels = parseInvitationLevels(value);
+  return (
+    <FormField
+      id={fieldId(setting.key)}
+      label={settingLabel(setting.key, messages, setting.label)}
+      hint={settingHelp(setting.key, messages, setting.help)}
+    >
+      <InvitationLevelsEditor
+        value={levels}
+        onChange={(next) => onChange(serializeInvitationLevels(next))}
+        messages={messages}
+      />
+    </FormField>
+  );
+}
+
 export function SettingField({
   setting,
   draft,
@@ -416,7 +448,14 @@ export function SettingField({
 
   return (
     <div className="flex flex-col gap-1">
-      {setting.type === "locales" ? (
+      {setting.key === INVITATION_LEVELS_KEY ? (
+        <LevelsEditorField
+          setting={setting}
+          value={value}
+          onChange={(next) => onChange(setting.key, next)}
+          messages={messages}
+        />
+      ) : setting.type === "locales" ? (
         <LocaleInput
           setting={setting}
           value={value}

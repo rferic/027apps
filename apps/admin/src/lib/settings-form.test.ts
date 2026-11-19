@@ -2,13 +2,20 @@ import { describe, expect, it, vi } from "vitest";
 import { failureFrom } from "./mutation-result";
 import type { SettingRow } from "./setting-types";
 import {
+  addInvitationLevel,
+  clampInvitationQuota,
   CORS_SETTING_KEY,
   corsRemovals,
   corsUpdateRemovals,
   encodeSettingValue,
   initialSettingsDraft,
+  INVITATION_LEVELS_KEY,
+  maxAccounts,
+  parseInvitationLevels,
   parseSettingValue,
+  removeInvitationLevel,
   revertEnabledLocales,
+  serializeInvitationLevels,
   submitSettings,
   updatesFromDraft,
 } from "./settings-form";
@@ -322,5 +329,102 @@ describe("failureFrom", () => {
         fieldErrors: {},
       },
     });
+  });
+});
+
+const LEVELS = setting({
+  key: INVITATION_LEVELS_KEY,
+  category: "invitations",
+  type: "json",
+  isPublic: false,
+  value: [
+    { level: 1, quota: 5 },
+    { level: 2, quota: 2 },
+    { level: 3, quota: 1 },
+  ],
+});
+
+describe("invitation levels", () => {
+  it("encodes the levels table as a JSON string, not [object Object]", () => {
+    expect(encodeSettingValue(LEVELS)).toBe(
+      '[{"level":1,"quota":5},{"level":2,"quota":2},{"level":3,"quota":1}]',
+    );
+  });
+
+  it("parses a JSON string back into the array and rejects a malformed one as text", () => {
+    expect(
+      parseSettingValue(LEVELS, '[{"level":1,"quota":5},{"level":2,"quota":2}]'),
+    ).toEqual([
+      { level: 1, quota: 5 },
+      { level: 2, quota: 2 },
+    ]);
+    expect(parseSettingValue(LEVELS, "not-json")).toBe("not-json");
+  });
+
+  it("serializes the levels array and sends it in the batch", () => {
+    const draft = initialSettingsDraft([LEVELS]);
+    draft[INVITATION_LEVELS_KEY] = '[{"level":1,"quota":5}]';
+
+    expect(updatesFromDraft([LEVELS], draft)).toEqual([
+      { key: INVITATION_LEVELS_KEY, value: [{ level: 1, quota: 5 }] },
+    ]);
+  });
+
+  it("does not send the levels key when nothing changed", () => {
+    expect(updatesFromDraft([LEVELS], initialSettingsDraft([LEVELS]))).toEqual([]);
+  });
+
+  it("adds and removes levels keeping the numbering contiguous from 1", () => {
+    const levels = [
+      { level: 1, quota: 5 },
+      { level: 2, quota: 2 },
+      { level: 3, quota: 1 },
+    ];
+
+    expect(addInvitationLevel(levels)).toEqual([
+      { level: 1, quota: 5 },
+      { level: 2, quota: 2 },
+      { level: 3, quota: 1 },
+      { level: 4, quota: 0 },
+    ]);
+
+    // Removing the middle row renumbers the third to 2, leaving no gap.
+    expect(removeInvitationLevel(levels, 1)).toEqual([
+      { level: 1, quota: 5 },
+      { level: 2, quota: 1 },
+    ]);
+  });
+
+  it("blocks a twenty-first level", () => {
+    const full = Array.from({ length: 20 }, (_, i) => ({ level: i + 1, quota: 1 }));
+    expect(addInvitationLevel(full)).toHaveLength(20);
+  });
+
+  it("clamps the quota to 0..100 and rounds it", () => {
+    expect(clampInvitationQuota(-3)).toBe(0);
+    expect(clampInvitationQuota(101)).toBe(100);
+    expect(clampInvitationQuota(2.7)).toBe(3);
+    expect(clampInvitationQuota(Number.NaN)).toBe(0);
+  });
+
+  it("computes the maximum accounts as 1 + q1 + q1*q2 + …", () => {
+    expect(maxAccounts([])).toBe(1);
+    expect(
+      maxAccounts([
+        { level: 1, quota: 5 },
+        { level: 2, quota: 2 },
+        { level: 3, quota: 1 },
+      ]),
+    ).toBe(26);
+  });
+
+  it("round-trips the editor serialization through the draft parser", () => {
+    const levels = [
+      { level: 1, quota: 5 },
+      { level: 2, quota: 2 },
+    ];
+    expect(parseInvitationLevels(serializeInvitationLevels(levels))).toEqual(levels);
+    expect(parseInvitationLevels("garbage")).toEqual([]);
+    expect(parseInvitationLevels("")).toEqual([]);
   });
 });

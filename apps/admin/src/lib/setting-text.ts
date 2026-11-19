@@ -32,6 +32,7 @@ const SETTING_LABELS: Record<string, Translator> = {
   "rate_limit.api_key_per_min": (messages) => t("API key per minute", messages),
   "rate_limit.write_per_min": (messages) => t("Write per minute", messages),
   "rate_limit.public_per_min": (messages) => t("Public per minute", messages),
+  "invitations.levels": (messages) => t("Invitation levels", messages),
 };
 
 /** One help line per setting key in the same catalog. */
@@ -68,6 +69,8 @@ const SETTING_HELPS: Record<string, Translator> = {
   "rate_limit.api_key_per_min": (messages) => t("Requests per minute per service key.", messages),
   "rate_limit.write_per_min": (messages) => t("Write requests per minute.", messages),
   "rate_limit.public_per_min": (messages) => t("Requests per minute for public doors.", messages),
+  "invitations.levels": (messages) =>
+    t("JSON array of {level, quota}; level 1 is an admin invitee.", messages),
 };
 
 const CATEGORY_LABELS: Record<string, Translator> = {
@@ -76,6 +79,7 @@ const CATEGORY_LABELS: Record<string, Translator> = {
   security: (messages) => t("Security", messages),
   notifications: (messages) => t("Notifications", messages),
   rate_limit: (messages) => t("Rate limits", messages),
+  invitations: (messages) => t("Invitations", messages),
 };
 
 const CATEGORY_HELPS: Record<string, Translator> = {
@@ -84,6 +88,8 @@ const CATEGORY_HELPS: Record<string, Translator> = {
   security: (messages) => t("JWT, CORS and other security-relevant values.", messages),
   notifications: (messages) => t("Push notification provider (FCM).", messages),
   rate_limit: (messages) => t("Per-identity request limits (per minute).", messages),
+  invitations: (messages) =>
+    t("Who can join and how many people each member may bring.", messages),
 };
 
 export function settingLabel(
