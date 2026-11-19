@@ -65,6 +65,16 @@ export function clampInvitationQuota(value: number): number {
   return Math.min(MAX_INVITATION_QUOTA, Math.max(0, Math.round(value)));
 }
 
+/**
+ * A quota field in the levels editor. The empty string means "not typed yet",
+ * not zero: clearing the field must stay empty instead of snapping to 0 and
+ * turning the next digit into "02". Invalid text is ignored while typing.
+ */
+export function parseQuotaDraft(raw: string): number | null {
+  if (!/^\d{1,3}$/.test(raw)) return null;
+  return clampInvitationQuota(Number(raw));
+}
+
 /** Appends the next level (contiguous from 1); capped at 20 rows. */
 export function addInvitationLevel(levels: readonly InvitationLevel[]): InvitationLevel[] {
   if (levels.length >= MAX_INVITATION_LEVELS) return [...levels];

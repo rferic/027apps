@@ -12,6 +12,7 @@ import {
   INVITATION_LEVELS_KEY,
   maxAccounts,
   parseInvitationLevels,
+  parseQuotaDraft,
   parseSettingValue,
   removeInvitationLevel,
   revertEnabledLocales,
@@ -426,5 +427,22 @@ describe("invitation levels", () => {
     expect(parseInvitationLevels(serializeInvitationLevels(levels))).toEqual(levels);
     expect(parseInvitationLevels("garbage")).toEqual([]);
     expect(parseInvitationLevels("")).toEqual([]);
+  });
+});
+
+describe("parseQuotaDraft", () => {
+  it("keeps the empty field empty instead of turning it into zero", () => {
+    expect(parseQuotaDraft("")).toBeNull();
+  });
+
+  it("parses a typed quota and clamps it", () => {
+    expect(parseQuotaDraft("2")).toBe(2);
+    expect(parseQuotaDraft("02")).toBe(2);
+    expect(parseQuotaDraft("101")).toBe(100);
+  });
+
+  it("ignores text that is not a number", () => {
+    expect(parseQuotaDraft("abc")).toBeNull();
+    expect(parseQuotaDraft("-1")).toBeNull();
   });
 });

@@ -1,14 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import {
   addInvitationLevel,
   clampInvitationQuota,
   maxAccounts,
+  parseQuotaDraft,
   removeInvitationLevel,
   MAX_INVITATION_LEVELS,
-  MAX_INVITATION_QUOTA,
   type InvitationLevel,
 } from "@/lib/settings-form";
 
@@ -42,6 +43,9 @@ export function InvitationLevelsEditor({
   }
 
   const accounts = maxAccounts(value);
+  // The raw text per row while the user types. The empty string must stay
+  // empty: coercing it to 0 on every keystroke turns the next digit into "02".
+  const [quotaDrafts, setQuotaDrafts] = useState<Record<number, string>>({});
 
   return (
     <div className="flex flex-col gap-2">
@@ -57,17 +61,37 @@ export function InvitationLevelsEditor({
                 {t("Level {level}", messages, { level: row.level })}
               </span>
               <input
-                type="number"
-                min={0}
-                max={MAX_INVITATION_QUOTA}
-                value={row.quota}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={3}
+                value={quotaDrafts[index] ?? String(row.quota)}
                 aria-label={t("Level {level} seats", messages, { level: row.level })}
-                onChange={(event) => updateQuota(index, Number(event.target.value))}
+                onChange={(event) => {
+                  const raw = event.target.value;
+                  if (!/^\d{0,3}$/.test(raw)) return;
+                  setQuotaDrafts((current) => ({ ...current, [index]: raw }));
+                  const quota = parseQuotaDraft(raw);
+                  if (quota !== null) updateQuota(index, quota);
+                }}
+                onBlur={() => {
+                  setQuotaDrafts((current) => {
+                    const raw = current[index];
+                    if (raw === undefined) return current;
+                    const next = { ...current };
+                    if (raw === "") delete next[index];
+                    else next[index] = String(parseQuotaDraft(raw) ?? row.quota);
+                    return next;
+                  });
+                }}
                 className={inputClass}
               />
               <button
                 type="button"
-                onClick={() => onChange(removeInvitationLevel(value, index))}
+                onClick={() => {
+                  setQuotaDrafts({});
+                  onChange(removeInvitationLevel(value, index));
+                }}
                 className={buttonClass}
               >
                 {t("Remove", messages)}
