@@ -44,6 +44,8 @@ export type UserView = {
   timezone: string;
   theme: "system" | "light" | "dark";
   role: Role;
+  /** Club level of a member; null for an administrator. */
+  invitation_level: number | null;
   created_at: string;
   deactivated_at: string | null;
   /** Categories the profile belongs to, ordered by name. */
@@ -60,6 +62,8 @@ export interface UserListFilters {
   state?: UserStateFilter;
   /** Only profiles that belong to this category (already validated as a uuid). */
   category?: string;
+  /** Only the direct invitees of this profile: the panel's tree per member. */
+  invited_by?: string;
   limit: number;
   offset: number;
 }
@@ -86,6 +90,8 @@ export interface UserPatch {
   locale?: string;
   timezone?: string;
   role?: Role;
+  /** Club level; a member always has one and an administrator never does. */
+  invitation_level?: number | null;
 }
 
 const ROLE_LOCK = "select pg_advisory_xact_lock(hashtext('core_users_roles'))";
@@ -131,6 +137,10 @@ function toView(row: Record<string, unknown>): UserView {
     timezone: String(row.timezone),
     theme: themeOf(row.theme),
     role: row.role as Role,
+    invitation_level:
+      row.invite_level === null || row.invite_level === undefined
+        ? null
+        : Number(row.invite_level),
     created_at: toIso(row.created_at) ?? new Date(0).toISOString(),
     deactivated_at: toIso(row.deactivated_at),
     categories: toCategories(row.categories),
@@ -145,7 +155,8 @@ function likePattern(q: string): string {
 /** One profile plus its categories, aggregated in the same query (no N+1). */
 async function getUserFrom(db: QueryClient, id: string): Promise<UserView> {
   const { rows } = await db.query(
-    `select p.id, p.display_name, p.locale, p.timezone, p.theme, p.role, p.created_at, p.deactivated_at,
+    `select p.id, p.display_name, p.locale, p.timezone, p.theme, p.role, p.invite_level,
+            p.created_at, p.deactivated_at,
             coalesce(
               json_agg(json_build_object('id', c.id, 'name', c.name) order by c.name asc)
                 filter (where c.id is not null),
@@ -210,12 +221,14 @@ export async function listUsers(
   const state = filters.state ?? "active";
   const active = state === "all" ? null : state === "active";
   const category = filters.category ?? null;
+  const invitedBy = filters.invited_by ?? null;
   const emailSearch = callerIsSuperAdmin(caller);
   // Categories reach the page in the same query: one row per profile, never a
   // read per user. The `exists` subquery keeps the membership filter separate
   // from the join that feeds the aggregate.
   const { rows } = await deps.db.query(
-    `select p.id, p.display_name, p.locale, p.timezone, p.theme, p.role, p.created_at, p.deactivated_at,
+    `select p.id, p.display_name, p.locale, p.timezone, p.theme, p.role, p.invite_level,
+            p.created_at, p.deactivated_at,
             coalesce(
               json_agg(json_build_object('id', c.id, 'name', c.name) order by c.name asc)
                 filter (where c.id is not null),
@@ -232,10 +245,11 @@ export async function listUsers(
         and ($4::uuid is null or exists (
               select 1 from public.user_category_members cm
                where cm.user_id = p.id and cm.user_category_id = $4))
+        and ($8::uuid is null or p.invited_by = $8)
       group by p.id
       order by p.created_at asc, p.id asc
       limit $5 offset $6`,
-    [pattern, filters.role ?? null, active, category, filters.limit, filters.offset, emailSearch],
+    [pattern, filters.role ?? null, active, category, filters.limit, filters.offset, emailSearch, invitedBy],
   );
   const { rows: countRows } = await deps.db.query(
     `select count(*) filter (where ($3::boolean is null or (p.deactivated_at is null) = $3))::int as n,
@@ -247,8 +261,9 @@ export async function listUsers(
         and ($2::text is null or p.role = $2)
         and ($4::uuid is null or exists (
               select 1 from public.user_category_members cm
-               where cm.user_id = p.id and cm.user_category_id = $4))`,
-    [pattern, filters.role ?? null, active, category, emailSearch],
+               where cm.user_id = p.id and cm.user_category_id = $4))
+        and ($6::uuid is null or p.invited_by = $6)`,
+    [pattern, filters.role ?? null, active, category, emailSearch, invitedBy],
   );
   return {
     users: rows.map(toView),
@@ -308,6 +323,26 @@ export async function listUserModules(
     modules.push({ key: row.key, name: row.name });
   }
   return modules;
+}
+
+/**
+ * A level belongs to a member: a `user` always has one and an `admin`/
+ * `super_admin` never does (R6). Checked on the resulting profile, so a role
+ * change and a level change are validated together.
+ */
+function assertInvitationLevel(role: Role, level: number | null): void {
+  if (role !== "user") {
+    if (level !== null) {
+      throw new DomainError("validation_failed", "Only a member can have an invitation level");
+    }
+    return;
+  }
+  if (level === null) {
+    throw new DomainError("validation_failed", "A member needs an invitation level");
+  }
+  if (!Number.isInteger(level) || level < 1 || level > 20) {
+    throw new DomainError("validation_failed", "invitation_level must be an integer between 1 and 20");
+  }
 }
 
 async function assertRoleChangeAllowed(
@@ -376,6 +411,9 @@ export async function updateUser(
     scopes.includes('profile:write');
   if (!canEditSelf && !canManageUsers) throw new DomainError('insufficient_scope');
   if (patch.role !== undefined && !canManageUsers) throw new DomainError('insufficient_scope');
+  if (patch.invitation_level !== undefined && !canManageUsers) {
+    throw new DomainError('insufficient_scope');
+  }
 
   return withRoleLock(deps, async (db) => {
     const current = await getUserFrom(db, id);
@@ -385,6 +423,14 @@ export async function updateUser(
       throw new DomainError("conflict", "You cannot change your own role");
     }
     if (patch.role !== undefined) await assertRoleChangeAllowed(db, caller, current, patch.role);
+    // Only a patch that speaks about the role or the level is validated: an
+    // unrelated edit (theme, name) never fails on a profile whose level predates
+    // the club tables.
+    if (patch.role !== undefined || patch.invitation_level !== undefined) {
+      const nextLevel =
+        patch.invitation_level !== undefined ? patch.invitation_level : current.invitation_level;
+      assertInvitationLevel(patch.role ?? current.role, nextLevel);
+    }
 
     await db.query(
       `update public.profiles
@@ -393,6 +439,7 @@ export async function updateUser(
               timezone = coalesce($4, timezone),
               theme = coalesce($5, theme),
               role = coalesce($6, role),
+              invite_level = case when $7::boolean then $8::integer else invite_level end,
               updated_at = now()
         where id = $1`,
       [
@@ -402,6 +449,8 @@ export async function updateUser(
         patch.timezone ?? null,
         patch.theme ?? null,
         patch.role ?? null,
+        patch.invitation_level !== undefined,
+        patch.invitation_level ?? null,
       ],
     );
     return getUserFrom(db, id);
@@ -442,6 +491,18 @@ export async function deactivateUser(
     );
     await db.query(
       "update public.devices set revoked_at = coalesce(revoked_at, now()) where user_id = $1 and revoked_at is null",
+      [id],
+    );
+    // A deactivated member cannot invite: their pending links and live QR codes
+    // die inside the same transaction. Their invitees keep their accounts and
+    // levels, and their grants are left alone (spec §7.6).
+    await db.query(
+      `update public.invitations set revoked_at = now()
+        where created_by = $1 and used_at is null and revoked_at is null`,
+      [id],
+    );
+    await db.query(
+      "update public.join_codes set used_at = now() where inviter_id = $1 and used_at is null",
       [id],
     );
     const view = await getUserFrom(db, id);
@@ -525,6 +586,19 @@ export async function purgeUser(
     if (current.deactivated_at === null) {
       throw new DomainError("conflict", "Deactivate the member before deleting it");
     }
+
+    // Before the attribution is nulled: pending invitations are revoked and
+    // live QR codes are consumed. Their invitees stay behind with
+    // `invited_by = null` when the profile row disappears (spec §7.6).
+    await db.query(
+      `update public.invitations set revoked_at = now()
+        where created_by = $1 and used_at is null and revoked_at is null`,
+      [id],
+    );
+    await db.query(
+      "update public.join_codes set used_at = now() where inviter_id = $1 and used_at is null",
+      [id],
+    );
 
     // Null every actor reference that has no ON DELETE action. A single
     // transaction keeps the database from being left half-purged on failure.

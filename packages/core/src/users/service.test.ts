@@ -21,6 +21,8 @@ type ProfileRow = {
   timezone: string;
   theme: string;
   role: Role;
+  invite_level?: number | null;
+  invited_by?: string | null;
   created_at: string;
   deactivated_at: string | null;
 };
@@ -79,9 +81,9 @@ function makeDeps(
         .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
       return { rows: roots[0] ? [{ id: roots[0].id }] : [] };
     }
-    // Paginated list: q, role, state, category, limit, offset, email search.
+    // Paginated list: q, role, state, category, limit, offset, email search, inviter.
     if (sql.startsWith('select p.id')) {
-      const [pattern, role, state, category, limit, offset, emailSearch] = params as [
+      const [pattern, role, state, category, limit, offset, emailSearch, invitedBy] = params as [
         string | null,
         Role | null,
         boolean | null,
@@ -89,6 +91,7 @@ function makeDeps(
         number,
         number,
         boolean,
+        string | null,
       ];
       const needle = pattern ? pattern.replace(/[\\%_]/g, '').toLowerCase() : null;
       const rows = [...profiles.values()]
@@ -101,6 +104,7 @@ function makeDeps(
         .filter((row) => !role || row.role === role)
         .filter((row) => state === null || (row.deactivated_at === null) === state)
         .filter((row) => !category || categoriesOf(row.id).some((c) => c.id === category))
+        .filter((row) => !invitedBy || row.invited_by === invitedBy)
         .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
         .slice(offset, offset + limit)
         .map((row) => ({ ...row, categories: categoriesOf(row.id) }));
@@ -109,12 +113,13 @@ function makeDeps(
     // Totals: q, role and category; `state` filters the page and `total`,
     // while `active_total` keeps counting active profiles among the matches.
     if (sql.startsWith('select count(*) filter')) {
-      const [pattern, role, state, category, emailSearch] = params as [
+      const [pattern, role, state, category, emailSearch, invitedBy] = params as [
         string | null,
         Role | null,
         boolean | null,
         string | null,
         boolean,
+        string | null,
       ];
       const needle = pattern ? pattern.replace(/[\\%_]/g, '').toLowerCase() : null;
       const matching = [...profiles.values()]
@@ -125,7 +130,8 @@ function makeDeps(
             (emailSearch && row.email.toLowerCase().includes(needle)),
         )
         .filter((row) => !role || row.role === role)
-        .filter((row) => !category || categoriesOf(row.id).some((c) => c.id === category));
+        .filter((row) => !category || categoriesOf(row.id).some((c) => c.id === category))
+        .filter((row) => !invitedBy || row.invited_by === invitedBy);
       const filtered = matching.filter(
         (row) => state === null || (row.deactivated_at === null) === state,
       );
@@ -155,7 +161,7 @@ function makeDeps(
       return { rows: [] };
     }
     if (sql.startsWith('update public.profiles')) {
-      const [id, display_name, locale, timezone, theme, role] = params;
+      const [id, display_name, locale, timezone, theme, role, setLevel, level] = params;
       const row = profiles.get(String(id));
       if (row) {
         if (display_name !== null) row.display_name = String(display_name);
@@ -163,6 +169,7 @@ function makeDeps(
         if (timezone !== null) row.timezone = String(timezone);
         if (theme !== null) row.theme = String(theme);
         if (role !== null) row.role = role as Role;
+        if (setLevel === true) row.invite_level = level === null ? null : Number(level);
       }
       return { rows: [] };
     }
@@ -171,6 +178,7 @@ function makeDeps(
       sql.startsWith('update public.devices') ||
       sql.startsWith('update public.settings') ||
       sql.startsWith('update public.invitations') ||
+      sql.startsWith('update public.join_codes') ||
       sql.startsWith('update public.translations') ||
       sql.startsWith('update public.user_categories') ||
       sql.startsWith('update public.user_modules') ||
@@ -300,6 +308,86 @@ describe('updateUser — self role changes', () => {
   });
 });
 
+describe('updateUser — invitation level', () => {
+  it('persists the level of a member and exposes it in the view', async () => {
+    const { deps, profiles } = makeDeps([
+      profile('root', { role: 'super_admin' }),
+      profile('member', { role: 'user', invite_level: 2 }),
+    ]);
+
+    const updated = await updateUser(deps, session('root', 'super_admin'), 'member', {
+      invitation_level: 3,
+    });
+
+    expect(updated.invitation_level).toBe(3);
+    expect(profiles.get('member')?.invite_level).toBe(3);
+  });
+
+  it('refuses a member without a level', async () => {
+    const { deps, profiles } = makeDeps([
+      profile('root', { role: 'super_admin' }),
+      profile('member', { role: 'user', invite_level: 2 }),
+    ]);
+
+    await expect(
+      updateUser(deps, session('root', 'super_admin'), 'member', { invitation_level: null }),
+    ).rejects.toMatchObject({ code: 'validation_failed' });
+    expect(profiles.get('member')?.invite_level).toBe(2);
+  });
+
+  it('refuses a level on an administrator', async () => {
+    const { deps } = makeDeps([
+      profile('root', { role: 'super_admin' }),
+      profile('admin', { role: 'admin' }),
+    ]);
+
+    await expect(
+      updateUser(deps, session('root', 'super_admin'), 'admin', { invitation_level: 2 }),
+    ).rejects.toMatchObject({ code: 'validation_failed' });
+  });
+
+  it('demands the level be cleared when a member becomes an admin', async () => {
+    const { deps, profiles } = makeDeps([
+      profile('root', { role: 'super_admin' }),
+      profile('member', { role: 'user', invite_level: 2 }),
+    ]);
+
+    await expect(
+      updateUser(deps, session('root', 'super_admin'), 'member', { role: 'admin' }),
+    ).rejects.toMatchObject({ code: 'validation_failed' });
+
+    const updated = await updateUser(deps, session('root', 'super_admin'), 'member', {
+      role: 'admin',
+      invitation_level: null,
+    });
+    expect(updated.role).toBe('admin');
+    expect(updated.invitation_level).toBeNull();
+    expect(profiles.get('member')?.invite_level).toBeNull();
+  });
+
+  it('refuses a level outside 1..20', async () => {
+    const { deps } = makeDeps([
+      profile('root', { role: 'super_admin' }),
+      profile('member', { role: 'user', invite_level: 2 }),
+    ]);
+
+    for (const invitation_level of [0, 21, 2.5]) {
+      await expect(
+        updateUser(deps, session('root', 'super_admin'), 'member', { invitation_level }),
+      ).rejects.toMatchObject({ code: 'validation_failed' });
+    }
+  });
+
+  it('refuses a self-service edit that sets the level', async () => {
+    const { deps, profiles } = makeDeps([profile('self', { role: 'user', invite_level: 1 })]);
+
+    await expect(
+      updateUser(deps, session('self', 'user'), 'self', { invitation_level: 5 }),
+    ).rejects.toMatchObject({ code: 'insufficient_scope' });
+    expect(profiles.get('self')?.invite_level).toBe(1);
+  });
+});
+
 describe('deactivateUser — self deactivation', () => {
   it('rejects a super_admin deactivating their own account', async () => {
     const { deps, profiles } = makeDeps([
@@ -332,6 +420,27 @@ describe('deactivateUser — self deactivation', () => {
 
     expect(updated.deactivated_at).not.toBeNull();
     expect(profiles.get('other')?.deactivated_at).not.toBeNull();
+  });
+
+  it('revokes the pending invitations and live join codes of the affected member', async () => {
+    const { deps, query } = makeDeps([
+      profile('root', { role: 'super_admin', created_at: '2025-01-01T00:00:00.000Z' }),
+      profile('other', { role: 'user', invite_level: 1 }),
+    ]);
+
+    await deactivateUser(deps, session('root', 'super_admin'), 'other');
+
+    const statements = query.mock.calls.map(([sql]) => String(sql));
+    expect(
+      statements.some(
+        (sql) =>
+          sql.includes('update public.invitations set revoked_at = now()') &&
+          sql.includes('created_by = $1'),
+      ),
+    ).toBe(true);
+    expect(
+      statements.some((sql) => sql.includes('update public.join_codes set used_at = now()')),
+    ).toBe(true);
   });
 
   it('drops the auth sessions after the deactivation commits', async () => {
@@ -643,6 +752,58 @@ describe('listUsers — email search', () => {
 
     expect(result.users).toEqual([]);
     expect(result.total).toBe(0);
+  });
+});
+
+describe('listUsers — invited_by', () => {
+  const PEOPLE = [
+    profile('root', { role: 'super_admin' }),
+    profile('ana', { role: 'user', invite_level: 1 }),
+    profile('luis', { role: 'user', invite_level: 2, invited_by: 'ana', created_at: '2026-01-02T00:00:00.000Z' }),
+    profile('marta', { role: 'user', invite_level: 2, invited_by: 'ana', created_at: '2026-01-03T00:00:00.000Z' }),
+    profile('pablo', { role: 'user', invite_level: 3, invited_by: 'luis', created_at: '2026-01-04T00:00:00.000Z' }),
+  ];
+
+  it('lists only the direct invitees of a member', async () => {
+    const { deps } = makeDeps(PEOPLE);
+
+    const result = await listUsers(deps, session('root', 'super_admin'), {
+      invited_by: 'ana',
+      state: 'all',
+      limit: 20,
+      offset: 0,
+    });
+
+    expect(result.users.map((user) => user.id)).toEqual(['luis', 'marta']);
+    expect(result.total).toBe(2);
+    expect(result.active_total).toBe(2);
+  });
+
+  it('paginates the invitees and keeps the total of the whole subtree page', async () => {
+    const { deps } = makeDeps(PEOPLE);
+
+    const result = await listUsers(deps, session('root', 'super_admin'), {
+      invited_by: 'ana',
+      limit: 1,
+      offset: 0,
+    });
+
+    expect(result.users.map((user) => user.id)).toEqual(['luis']);
+    expect(result.total).toBe(2);
+  });
+
+  it('combines the inviter with the member level column', async () => {
+    const { deps } = makeDeps(PEOPLE);
+
+    const result = await listUsers(deps, session('root', 'super_admin'), {
+      invited_by: 'luis',
+      state: 'all',
+      limit: 20,
+      offset: 0,
+    });
+
+    expect(result.users).toHaveLength(1);
+    expect(result.users[0]?.invitation_level).toBe(3);
   });
 });
 

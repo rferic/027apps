@@ -185,8 +185,12 @@ const fcmServiceAccountSchema = z
 
 const intInRange = (min: number, max: number) => z.number().int().min(min).max(max);
 
-/** `[{level, quota}]`, contiguous from 1: the panel assigns profiles 1..20. */
-const invitationLevelsSchema = z
+/**
+ * `[{level, quota}]`, contiguous from 1: the panel assigns profiles 1..20.
+ * Exported so the live quota read parses a stored value with the same rules the
+ * write path enforced (`invitations/quota.ts`).
+ */
+export const invitationLevelsSchema = z
   .array(
     z.object({
       level: z.number().int().min(1).max(20),

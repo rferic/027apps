@@ -42,12 +42,14 @@ export const userPatchSchema = z
     timezone: timezoneSchema.optional(),
     theme: z.enum(["system", "light", "dark"]).optional(),
     role: z.enum(["super_admin", "admin", "user"]).optional(),
+    invitation_level: z.number().int().min(1).max(20).nullable().optional(),
   })
   .strict()
   .refine((value) => Object.keys(value).length > 0, { message: "at least one field is required" });
 
 /**
- * `GET /users` filters beyond `q`: role, activation state and category.
+ * `GET /users` filters beyond `q`: role, activation state, category and the
+ * inviting profile.
  * Validated with zod at the edge, like every other filter, so an unknown value
  * is a 400 instead of silently returning the unfiltered list. Omitting `state`
  * means `active`; `all` is the explicit opt-out.
@@ -57,6 +59,7 @@ export const userListFiltersSchema = z
     role: z.enum(["super_admin", "admin", "user"]).optional(),
     state: z.enum(["active", "deactivated", "all"]).optional(),
     category: z.uuid().optional(),
+    invited_by: z.uuid().optional(),
   })
   .strict();
 
@@ -72,9 +75,10 @@ function pageParams(searchParams: URLSearchParams): UserListFilters {
     role: searchParams.get("role") || undefined,
     state: searchParams.get("state") || undefined,
     category: searchParams.get("category") || undefined,
+    invited_by: searchParams.get("invited_by") || undefined,
   });
   if (!filters.success) {
-    throw new DomainError("validation_failed", "invalid role, state or category filter");
+    throw new DomainError("validation_failed", "invalid role, state, category or invited_by filter");
   }
 
   return {
@@ -82,6 +86,7 @@ function pageParams(searchParams: URLSearchParams): UserListFilters {
     ...(filters.data.role ? { role: filters.data.role } : {}),
     ...(filters.data.state ? { state: filters.data.state } : {}),
     ...(filters.data.category ? { category: filters.data.category } : {}),
+    ...(filters.data.invited_by ? { invited_by: filters.data.invited_by } : {}),
     limit,
     offset,
   };
@@ -146,7 +151,7 @@ export function mePatchRoute(deps: UsersRouteDeps) {
     );
 }
 
-/** GET /api/v1/users — list with `q`, `role`, `state`, `category`, `limit`, `offset`. */
+/** GET /api/v1/users — list with `q`, `role`, `state`, `category`, `invited_by`, `limit`, `offset`. */
 export function usersRoute(deps: UsersRouteDeps) {
   return (req: Request): Promise<Response> =>
     withDoor(

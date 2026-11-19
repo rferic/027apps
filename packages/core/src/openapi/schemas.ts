@@ -90,6 +90,7 @@ export const userSchema = component(
       timezone: z.string(),
       theme: z.enum(["system", "light", "dark"]),
       role,
+      invitation_level: z.number().int().nullable(),
       created_at: isoDate,
       deactivated_at: nullableDate,
       categories: z.array(userCategoryRefSchema),
@@ -130,6 +131,10 @@ export const usersQuerySchema = paginationQuerySchema.extend({
     .uuid()
     .optional()
     .describe("Only members of this category id; the total reflects the filter."),
+  invited_by: z
+    .uuid()
+    .optional()
+    .describe("Only the direct invitees of this profile; the total reflects the filter."),
 });
 
 export const modulesQuerySchema = paginationQuerySchema.extend({
