@@ -13,6 +13,8 @@
     "db:backup": "bash scripts/db-local-backup.sh",
     "db:reset": "bash scripts/db-reset-local.sh",
     "db:restore": "bash scripts/db-local-restore.sh",
-    "db:shim": "bash scripts/install-supabase-guard.sh"
+    "db:shim": "bash scripts/install-supabase-guard.sh",
+    "qa:invitations": "bash scripts/qa-invitations.sh",
+    "qa:android": "bash scripts/e2e-android-invite.sh"
   }
 }

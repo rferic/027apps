@@ -23,6 +23,28 @@ verdad), no contra mocks. Un test unitario en verde no demuestra que la página 
 
 Los puntos 1, 5 y 6 los automatiza el script; el resto es manual y se pega igual.
 
+## 1.b Flujos de invitaciones (club)
+
+Dos scripts cubren lo que más se rompe y lo que el propietario no debe descubrir:
+
+```bash
+pnpm qa:invitations          # API real: enlace, canje nuevo, email existente, rotar, revocar, QR
+pnpm qa:android              # la app real en el emulador/móvil conectado
+```
+
+- **`scripts/qa-invitations.sh`** levanta una sesión de verdad contra el panel local y recorre el
+  ciclo completo por HTTP: acuñar y listar, preview anónimo, canje con cuenta nueva (perfil, nivel,
+  plaza), canje con email ya registrado (debe ser **409** y la invitación sigue pendiente), aceptación
+  confirmada con esa cuenta (sin duplicado y sin gastar plaza), reacuñar el enlace (el viejo muere),
+  revocar (la plaza vuelve), QR (preview, canje único) y el presupuesto de creación tras 15
+  lecturas. Limpia sus `qa-invite-*@test.local` al terminar.
+- **`scripts/e2e-android-invite.sh`** instala el APK debug y conduce la app con `adb`: comprueba que
+  el enlace pinta el formulario, que un email registrado **no** entra y deja la invitación pendiente,
+  y que un email nuevo canjea desde la app con su nombre, nivel e invitador. Necesita un
+  emulador/móvil conectado (`INSTANCE_URL` para un móvil en la LAN).
+
+Los dos deben estar en verde **antes** de decirle al propietario que pruebe algo del club.
+
 ## 2. `scripts/verify-local.sh`
 
 ```bash
