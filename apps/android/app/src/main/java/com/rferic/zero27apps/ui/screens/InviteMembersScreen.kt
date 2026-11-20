@@ -99,9 +99,29 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-private fun hoursUntil(iso: String, nowMillis: Long = System.currentTimeMillis()): Long? {
-    val end = runCatching { Instant.parse(iso) }.getOrNull() ?: return null
-    return ((end.toEpochMilli() - nowMillis) / 3_600_000L).coerceAtLeast(0)
+/**
+ * How long a pending link has left, as the row shows it: hours and minutes for
+ * a day-scale link ("47 h 30 min"), minutes alone under an hour, and the bare
+ * hours when the remainder is zero so a fresh 48-hour link reads "48 h" instead
+ * of "47 h 59 min". Everything rounds up: truncating printed "0 h" for a
+ * one-hour link the second it was minted.
+ */
+internal fun expiryLabel(
+    remainingMillis: Long,
+    hoursMinutes: String,
+    hours: String,
+    minutes: String,
+): String {
+    val totalMinutes = ((remainingMillis.coerceAtLeast(0) + 59_999) / 60_000).coerceAtLeast(1)
+    val wholeHours = totalMinutes / 60
+    val restMinutes = totalMinutes % 60
+    return when {
+        wholeHours == 0L -> minutes.replace("{minutes}", restMinutes.toString())
+        restMinutes == 0L -> hours.replace("{hours}", wholeHours.toString())
+        else -> hoursMinutes
+            .replace("{hours}", wholeHours.toString())
+            .replace("{minutes}", restMinutes.toString())
+    }
 }
 
 /**
@@ -415,10 +435,20 @@ private fun InvitedCard(
                 }
                 Column(Modifier.weight(1f)) {
                     Text(strings.invitePendingLink, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                    val hours = hoursUntil(invitation.expiresAt)
+                    val remaining = runCatching {
+                        Instant.parse(invitation.expiresAt).toEpochMilli() - System.currentTimeMillis()
+                    }.getOrNull()
                     Text(
-                        if (hours != null) strings.inviteExpiresInHours.replace("{hours}", "$hours")
-                        else strings.invitePendingLink,
+                        if (remaining != null) {
+                            expiryLabel(
+                                remaining,
+                                strings.inviteExpiresInHoursMinutes,
+                                strings.inviteExpiresInHours,
+                                strings.inviteExpiresInMinutes,
+                            )
+                        } else {
+                            strings.invitePendingLink
+                        },
                         color = palette.mutedForeground,
                         fontSize = 12.sp,
                     )

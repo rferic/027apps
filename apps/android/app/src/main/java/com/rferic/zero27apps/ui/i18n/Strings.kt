@@ -301,6 +301,8 @@ class Strings(private val values: Map<String, String>) {
     val inviteLevelChip: String get() = values.getValue("inviteLevelChip")
     val invitePendingLink: String get() = values.getValue("invitePendingLink")
     val inviteExpiresInHours: String get() = values.getValue("inviteExpiresInHours")
+    val inviteExpiresInMinutes: String get() = values.getValue("inviteExpiresInMinutes")
+    val inviteExpiresInHoursMinutes: String get() = values.getValue("inviteExpiresInHoursMinutes")
     val inviteRevoke: String get() = values.getValue("inviteRevoke")
     val inviteQuotaNote: String get() = values.getValue("inviteQuotaNote")
     val inviteNoSeatsHint: String get() = values.getValue("inviteNoSeatsHint")
@@ -658,6 +660,8 @@ object AppStrings {
         "inviteLevelChip" to "Level {level}",
         "invitePendingLink" to "Pending link",
         "inviteExpiresInHours" to "Expires in {hours} h",
+        "inviteExpiresInHoursMinutes" to "Expires in {hours} h {minutes} min",
+        "inviteExpiresInMinutes" to "Expires in {minutes} min",
         "inviteRevoke" to "Revoke",
         "inviteQuotaNote" to "An administrator sets the level and seats. You don't choose role, level or modules.",
         "inviteNoSeatsHint" to "You have used every seat. Ask the administrator for more.",
@@ -1002,6 +1006,8 @@ object AppStrings {
         "inviteLevelChip" to "Nivel {level}",
         "invitePendingLink" to "Enlace pendiente",
         "inviteExpiresInHours" to "Caduca en {hours} h",
+        "inviteExpiresInHoursMinutes" to "Caduca en {hours} h {minutes} min",
+        "inviteExpiresInMinutes" to "Caduca en {minutes} min",
         "inviteRevoke" to "Revocar",
         "inviteQuotaNote" to "El nivel y las plazas los fija el administrador. Tú no eliges rol, nivel ni módulos.",
         "inviteNoSeatsHint" to "Has usado todas tus plazas. Pide más al administrador.",
@@ -1346,6 +1352,8 @@ object AppStrings {
         "inviteLevelChip" to "Nivell {level}",
         "invitePendingLink" to "Enllaç pendent",
         "inviteExpiresInHours" to "Caduca en {hours} h",
+        "inviteExpiresInHoursMinutes" to "Caduca en {hours} h {minutes} min",
+        "inviteExpiresInMinutes" to "Caduca en {minutes} min",
         "inviteRevoke" to "Revoca",
         "inviteQuotaNote" to "El nivell i les places els fixa l'administrador. Tu no tries rol, nivell ni mòduls.",
         "inviteNoSeatsHint" to "Has fet servir totes les places. Demana'n més a l'administrador.",
@@ -1690,6 +1698,8 @@ object AppStrings {
         "inviteLevelChip" to "Livello {level}",
         "invitePendingLink" to "Link in sospeso",
         "inviteExpiresInHours" to "Scade tra {hours} h",
+        "inviteExpiresInHoursMinutes" to "Scade tra {hours} h {minutes} min",
+        "inviteExpiresInMinutes" to "Scade tra {minutes} min",
         "inviteRevoke" to "Revoca",
         "inviteQuotaNote" to "Livello e posti li stabilisce l'amministratore. Non scegli tu ruolo, livello o moduli.",
         "inviteNoSeatsHint" to "Hai usato tutti i posti. Chiedine altri all'amministratore.",
@@ -2034,6 +2044,8 @@ object AppStrings {
         "inviteLevelChip" to "Niveau {level}",
         "invitePendingLink" to "Lien en attente",
         "inviteExpiresInHours" to "Expire dans {hours} h",
+        "inviteExpiresInHoursMinutes" to "Expire dans {hours} h {minutes} min",
+        "inviteExpiresInMinutes" to "Expire dans {minutes} min",
         "inviteRevoke" to "Révoquer",
         "inviteQuotaNote" to "Le niveau et les places sont fixés par l'administrateur. Vous ne choisissez ni rôle, ni niveau, ni modules.",
         "inviteNoSeatsHint" to "Vous avez utilisé toutes vos places. Demandez-en plus à l'administrateur.",
@@ -2378,6 +2390,8 @@ object AppStrings {
         "inviteLevelChip" to "Stufe {level}",
         "invitePendingLink" to "Link ausstehend",
         "inviteExpiresInHours" to "Läuft in {hours} h ab",
+        "inviteExpiresInHoursMinutes" to "Läuft in {hours} Std. {minutes} Min. ab",
+        "inviteExpiresInMinutes" to "Läuft in {minutes} Min. ab",
         "inviteRevoke" to "Widerrufen",
         "inviteQuotaNote" to "Stufe und Plätze legt der Administrator fest. Du wählst weder Rolle, Stufe noch Module.",
         "inviteNoSeatsHint" to "Du hast alle Plätze genutzt. Bitte den Administrator um mehr.",
@@ -2722,6 +2736,8 @@ object AppStrings {
         "inviteLevelChip" to "Nível {level}",
         "invitePendingLink" to "Ligação pendente",
         "inviteExpiresInHours" to "Expira em {hours} h",
+        "inviteExpiresInHoursMinutes" to "Expira em {hours} h {minutes} min",
+        "inviteExpiresInMinutes" to "Expira em {minutes} min",
         "inviteRevoke" to "Revogar",
         "inviteQuotaNote" to "O nível e os lugares são definidos pelo administrador. Não escolhes papel, nível nem módulos.",
         "inviteNoSeatsHint" to "Usaste todos os lugares. Pede mais ao administrador.",
@@ -3066,6 +3082,8 @@ object AppStrings {
         "inviteLevelChip" to "Nivel {level}",
         "invitePendingLink" to "Ligazón pendente",
         "inviteExpiresInHours" to "Caduca en {hours} h",
+        "inviteExpiresInHoursMinutes" to "Caduca en {hours} h {minutes} min",
+        "inviteExpiresInMinutes" to "Caduca en {minutes} min",
         "inviteRevoke" to "Revogar",
         "inviteQuotaNote" to "O nivel e as prazas os fixa o administrador. Ti non elixes rol, nivel nin módulos.",
         "inviteNoSeatsHint" to "Usaches todas as prazas. Pide máis ao administrador.",
@@ -3410,6 +3428,8 @@ object AppStrings {
         "inviteLevelChip" to "{level} maila",
         "invitePendingLink" to "Esteka zain",
         "inviteExpiresInHours" to "Iraungitzen da {hours} h barru",
+        "inviteExpiresInHoursMinutes" to "Iraungitzen da {hours} h {minutes} min barru",
+        "inviteExpiresInMinutes" to "Iraungitzen da {minutes} min barru",
         "inviteRevoke" to "Ezeztatu",
         "inviteQuotaNote" to "Maila eta tokiak administratzaileak ezartzen ditu. Zuk ez duzu rol, maila edo modulurik aukeratzen.",
         "inviteNoSeatsHint" to "Toki guztiak erabili dituzu. Eskatu gehiago administratzaileari.",
