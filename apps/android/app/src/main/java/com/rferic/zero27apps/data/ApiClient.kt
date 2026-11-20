@@ -255,6 +255,10 @@ class ApiClient(
             request(HttpMethod.Get, "/api/v1/invitations/$token/preview", authenticated = false),
         ).invitation
 
+    /** Re-issues the link of one of the caller's own pending invitations. */
+    suspend fun rotateMemberInvitationLink(id: String): CreatedInvitationResponse =
+        read(request(HttpMethod.Post, "/api/v1/me/invitations/$id/link"))
+
     suspend fun redeemInvitation(token: String, request: RedeemRequest): RedeemResponse =
         read(request(HttpMethod.Post, "/api/v1/invitations/$token/redeem", request))
 

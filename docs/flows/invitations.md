@@ -104,6 +104,11 @@ invitado queda en nivel 1, rol `user`): sirve para «ven, entra ahora». La invi
 email, rol de administrador, categoría y días sigue viviendo solo en el panel, porque esas
 decisiones no caben en el flujo anónimo.
 
+Crear un enlace abre en la app un **modal con el QR y un botón de copiar**. Como el servidor solo
+guarda el hash del token, reabrir una pendiente **reacuña** el enlace (`POST
+/me/invitations/{id}/link`): el modal avisa de que el anterior deja de valer y la caducidad no se
+alarga.
+
 El invitador no elige ni ve una lista editable; el panel sí muestra el paquete resultante. Un
 privado solo se hereda si el administrador lo marcó **delegable**. Si se pierde el enlace, se
 revoca y se crea otro (no hay «renovar» de miembro). La app no envía correo: el enlace se comparte

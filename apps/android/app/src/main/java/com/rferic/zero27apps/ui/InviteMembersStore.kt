@@ -32,9 +32,13 @@ class InviteMembersStore(
     private val _joinCode = MutableStateFlow(JoinCodeState())
     val joinCode: StateFlow<JoinCodeState> = _joinCode.asStateFlow()
 
-    /** The full link to copy after `POST /me/invitations`; consumed by the screen. */
-    private val _createdLink = MutableStateFlow<String?>(null)
-    val createdLink: StateFlow<String?> = _createdLink.asStateFlow()
+    /**
+     * The link the screen shows in its dialog: just minted (`regenerated` false)
+     * or re-issued for a pending invitation (`regenerated` true, the previous
+     * link stopped working).
+     */
+    private val _shareLink = MutableStateFlow<InvitationShareLink?>(null)
+    val shareLink: StateFlow<InvitationShareLink?> = _shareLink.asStateFlow()
 
     /** Loads the quota, invitations, invitees and requests (and admin list). */
     fun load() {
@@ -72,13 +76,13 @@ class InviteMembersStore(
         scope.launch { runCatching { fetch(client) } }
     }
 
-    /** `POST /me/invitations`: mints a link and exposes its URL exactly once. */
+    /** `POST /me/invitations`: mints a link and opens its QR dialog. */
     fun createLink() {
         val client = api() ?: return
         scope.launch {
             try {
                 val created = client.createMemberInvitation()
-                _createdLink.value = instanceBase().trimEnd('/') + created.path
+                _shareLink.value = InvitationShareLink(instanceBase().trimEnd('/') + created.path)
                 reload()
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
@@ -87,9 +91,31 @@ class InviteMembersStore(
         }
     }
 
-    /** Consumes the link the screen copied, so a re-open does not copy it twice. */
-    fun consumeCreatedLink() {
-        _createdLink.value = null
+    /**
+     * Re-issues the link of a pending invitation so its QR can be shown again.
+     * The server only keeps the token hashed, so this mints a new one and the
+     * previous link stops working.
+     */
+    fun revealLink(id: String) {
+        val client = api() ?: return
+        scope.launch {
+            try {
+                val rotated = client.rotateMemberInvitationLink(id)
+                _shareLink.value = InvitationShareLink(
+                    instanceBase().trimEnd('/') + rotated.path,
+                    regenerated = true,
+                )
+                reload()
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                _state.value = _state.value.copy(error = inviteError(error))
+            }
+        }
+    }
+
+    /** Closes the link dialog; the token is not kept anywhere else. */
+    fun dismissShareLink() {
+        _shareLink.value = null
     }
 
     /**

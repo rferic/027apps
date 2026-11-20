@@ -794,6 +794,15 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     status: 201,
   },
   {
+    method: "post",
+    path: "/me/invitations/{id}/link",
+    summary: "Re-issue the link of the caller's own pending invitation; the token is returned once.",
+    scopes: ["profile:write"],
+    response: memberInvitationCreatedSchema,
+    auth: "session-only",
+    status: 200,
+  },
+  {
     method: "delete",
     path: "/me/invitations/{id}",
     summary: "Revoke one of the caller's own pending invitations.",

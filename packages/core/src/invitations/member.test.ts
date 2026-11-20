@@ -23,6 +23,7 @@ import {
   createMemberInvitation,
   inheritPackage,
   revokeOwnInvitation,
+  rotateOwnInvitationLink,
 } from "./member.js";
 
 const SESSION: Caller = { kind: "session", userId: "u-1", role: "user" };
@@ -257,5 +258,38 @@ describe("revokeOwnInvitation", () => {
     await expect(revokeOwnInvitation(deps(db), SESSION, "inv-1")).rejects.toMatchObject({
       code: "not_found",
     });
+  });
+});
+
+describe("rotateOwnInvitationLink", () => {
+  it("mints a new token for the caller's own pending invitation", async () => {
+    const { db, queries } = fakeDb({
+      "update public.invitations set token_hash": () => [{ id: "inv-1" }],
+    });
+
+    const result = await rotateOwnInvitationLink(deps(db), SESSION, "inv-1");
+
+    expect(result.token).toMatch(/^027_inv_/);
+    expect(result.path).toBe(`/invite/${result.token}`);
+    const update = queries.find((q) => q.sql.includes("update public.invitations set token_hash"));
+    // id, owner and the new hash: the previous link stops working.
+    expect(update!.params[1]).toBe("inv-1");
+    expect(update!.params[2]).toBe("u-1");
+    expect(update!.params[0]).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("hides another person's, a used or an expired invitation behind not_found", async () => {
+    const { db } = fakeDb({});
+
+    await expect(rotateOwnInvitationLink(deps(db), SESSION, "inv-1")).rejects.toMatchObject({
+      code: "not_found",
+    });
+  });
+
+  it("rejects a caller without a session", async () => {
+    const { db } = fakeDb({});
+    await expect(
+      rotateOwnInvitationLink(deps(db), { kind: "anon" }, "inv-1"),
+    ).rejects.toMatchObject({ code: "unauthorized" });
   });
 });

@@ -24,6 +24,7 @@ import {
   createMemberInvitation,
   listOwnInvitations,
   revokeOwnInvitation,
+  rotateOwnInvitationLink,
 } from "./member";
 import {
   createJoinCode,
@@ -419,6 +420,33 @@ export function createMemberInvitationRoute(deps: InvitationsRouteDeps) {
       },
       deps.door,
       async (ctx) => tokenResponse(await createMemberInvitation(deps.invitations, ctx.caller), 201),
+    );
+}
+
+/**
+ * `POST /me/invitations/{id}/link` — re-issue the link of one of the caller's
+ * own pending invitations. The token is only stored hashed, so this is how the
+ * app shows the QR again: the previous link stops working.
+ */
+export function rotateMemberInvitationLinkRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["profile:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: {
+          identity: "user" as const,
+          limit: deps.rateLimits?.memberInvite ?? 10,
+          bucket: "member-invite",
+        },
+      },
+      deps.door,
+      async (ctx) =>
+        tokenResponse(
+          await rotateOwnInvitationLink(deps.invitations, ctx.caller, uuid(rawId, "invitation id")),
+        ),
     );
 }
 

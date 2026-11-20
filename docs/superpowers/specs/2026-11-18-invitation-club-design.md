@@ -394,6 +394,14 @@ desviarse):
 - `409 invitation_quota_exhausted` si ya no queda ninguna plaza (no se enseña un QR que no puede
   acuñar).
 
+**`POST /api/v1/me/invitations/{id}/link`** · sesión · 10/min (misma cubeta que crear).
+
+- Reacuña el token de una invitación propia pendiente: 200 `{ token, path }`, devuelto **una vez**.
+  El servidor solo guarda el hash, así que esta es la forma de volver a enseñar el QR; el enlace
+  anterior deja de funcionar.
+- No toca `expires_at`: reabrir no alarga la invitación.
+- Usada, revocada, caducada o de otro usuario → `404` (no se distingue).
+
 **`DELETE /api/v1/me/invitations/{id}`** · sesión.
 
 - Revoca una invitación propia pendiente; libera la reserva. De otro usuario → `404`.
@@ -500,8 +508,12 @@ desviarse):
 **Renovar, rotar y reenviar** (contratos existentes, acotados).
 
 - `POST /invitations/{id}/renew`, `POST /invitations/{id}/link` y `POST
-  /invitations/{id}/resend-email` responden `409 invitation_not_renewable` cuando
-  `source in ('member','qr')`; el panel oculta esas acciones en esas filas. Solo se revocan.
+  /invitations/{id}/resend-email` (los de administración) responden `409
+  invitation_not_renewable` cuando `source in ('member','qr')`; el panel oculta esas acciones en
+  esas filas. Solo se revocan.
+- La reapertura de una invitación de miembro usa el endpoint de miembro
+  (`POST /me/invitations/{id}/link`), que sí rota el token: es el mismo invitador y la misma
+  invitación, no una renovación de correo.
 - La unicidad de invitación pendiente por email no se aplica a las anónimas (`email` NULL): dos
   invitaciones anónimas del mismo invitador son válidas si la cuota lo permite.
 

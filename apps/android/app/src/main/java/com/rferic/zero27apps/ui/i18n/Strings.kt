@@ -319,6 +319,8 @@ class Strings(private val values: Map<String, String>) {
     val inviteQrExpiresIn: String get() = values.getValue("inviteQrExpiresIn")
     val inviteQrRenews: String get() = values.getValue("inviteQrRenews")
     val inviteQrCopyLink: String get() = values.getValue("inviteQrCopyLink")
+    val inviteLinkTitle: String get() = values.getValue("inviteLinkTitle")
+    val inviteLinkRegenerated: String get() = values.getValue("inviteLinkRegenerated")
     val inviteQrNote: String get() = values.getValue("inviteQrNote")
     val inviteQrSecure: String get() = values.getValue("inviteQrSecure")
     val inviteQrDescription: String get() = values.getValue("inviteQrDescription")
@@ -681,6 +683,8 @@ object AppStrings {
         "inviteQrExpiresIn" to "Expires in",
         "inviteQrRenews" to "It renews itself. The QR expires in 90 seconds.",
         "inviteQrCopyLink" to "Copy link",
+        "inviteLinkTitle" to "Invitation link",
+        "inviteLinkRegenerated" to "New link: the previous one no longer works.",
         "inviteQrNote" to "The QR creates a 15-minute invitation to fill the registration. If it is not used, the seat frees itself.",
         "inviteQrSecure" to "Protected screen: no screenshots",
         "inviteQrDescription" to "QR code to invite a new member",
@@ -1030,6 +1034,8 @@ object AppStrings {
         "inviteQrExpiresIn" to "Caduca en",
         "inviteQrRenews" to "Se renueva solo. El QR caduca en 90 segundos.",
         "inviteQrCopyLink" to "Copiar enlace",
+        "inviteLinkTitle" to "Enlace de invitación",
+        "inviteLinkRegenerated" to "Enlace nuevo: el anterior ya no funciona.",
         "inviteQrNote" to "El QR crea una invitación de 15 minutos para rellenar el registro. Si no se usa, la plaza se libera sola.",
         "inviteQrSecure" to "Pantalla protegida: sin capturas",
         "inviteQrDescription" to "Código QR para invitar a un nuevo miembro",
@@ -1379,6 +1385,8 @@ object AppStrings {
         "inviteQrExpiresIn" to "Caduca en",
         "inviteQrRenews" to "Es renova sol. El QR caduca en 90 segons.",
         "inviteQrCopyLink" to "Copia l'enllaç",
+        "inviteLinkTitle" to "Enllaç d'invitació",
+        "inviteLinkRegenerated" to "Enllaç nou: l'anterior ja no funciona.",
         "inviteQrNote" to "El QR crea una invitació de 15 minuts per emplenar el registre. Si no es fa servir, la plaça s'allibera sola.",
         "inviteQrSecure" to "Pantalla protegida: sense captures",
         "inviteQrDescription" to "Codi QR per convidar un membre nou",
@@ -1728,6 +1736,8 @@ object AppStrings {
         "inviteQrExpiresIn" to "Scade tra",
         "inviteQrRenews" to "Si rinnova da solo. Il QR scade in 90 secondi.",
         "inviteQrCopyLink" to "Copia link",
+        "inviteLinkTitle" to "Link dell'invito",
+        "inviteLinkRegenerated" to "Nuovo link: il precedente non funziona più.",
         "inviteQrNote" to "Il QR crea un invito di 15 minuti per completare la registrazione. Se non viene usato, il posto si libera da solo.",
         "inviteQrSecure" to "Schermata protetta: niente screenshot",
         "inviteQrDescription" to "Codice QR per invitare un nuovo membro",
@@ -2077,6 +2087,8 @@ object AppStrings {
         "inviteQrExpiresIn" to "Expire dans",
         "inviteQrRenews" to "Il se renouvelle tout seul. Le QR expire en 90 secondes.",
         "inviteQrCopyLink" to "Copier le lien",
+        "inviteLinkTitle" to "Lien d'invitation",
+        "inviteLinkRegenerated" to "Nouveau lien : le précédent ne fonctionne plus.",
         "inviteQrNote" to "Le QR crée une invitation de 15 minutes pour remplir l'inscription. S'il n'est pas utilisé, la place se libère seule.",
         "inviteQrSecure" to "Écran protégé : pas de captures",
         "inviteQrDescription" to "Code QR pour inviter un nouveau membre",
@@ -2426,6 +2438,8 @@ object AppStrings {
         "inviteQrExpiresIn" to "Läuft ab in",
         "inviteQrRenews" to "Er erneuert sich selbst. Der QR läuft in 90 Sekunden ab.",
         "inviteQrCopyLink" to "Link kopieren",
+        "inviteLinkTitle" to "Einladungslink",
+        "inviteLinkRegenerated" to "Neuer Link: der vorherige funktioniert nicht mehr.",
         "inviteQrNote" to "Der QR erstellt eine 15-minütige Einladung zum Ausfüllen der Registrierung. Wird sie nicht genutzt, wird der Platz von selbst frei.",
         "inviteQrSecure" to "Geschützter Bildschirm: keine Screenshots",
         "inviteQrDescription" to "QR-Code zum Einladen eines neuen Mitglieds",
@@ -2775,6 +2789,8 @@ object AppStrings {
         "inviteQrExpiresIn" to "Expira em",
         "inviteQrRenews" to "Renova-se sozinho. O QR expira em 90 segundos.",
         "inviteQrCopyLink" to "Copiar ligação",
+        "inviteLinkTitle" to "Ligação do convite",
+        "inviteLinkRegenerated" to "Ligação nova: a anterior já não funciona.",
         "inviteQrNote" to "O QR cria um convite de 15 minutos para preencher o registo. Se não for usado, o lugar liberta-se sozinho.",
         "inviteQrSecure" to "Ecrã protegido: sem capturas",
         "inviteQrDescription" to "Código QR para convidar um novo membro",
@@ -3124,6 +3140,8 @@ object AppStrings {
         "inviteQrExpiresIn" to "Caduca en",
         "inviteQrRenews" to "Renvóvase só. O QR caduca en 90 segundos.",
         "inviteQrCopyLink" to "Copiar ligazón",
+        "inviteLinkTitle" to "Ligazón da invitación",
+        "inviteLinkRegenerated" to "Ligazón nova: a anterior xa non funciona.",
         "inviteQrNote" to "O QR crea unha invitación de 15 minutos para encher o rexistro. Se non se usa, a praza libérase soa.",
         "inviteQrSecure" to "Pantalla protexida: sen capturas",
         "inviteQrDescription" to "Código QR para convidar un novo membro",
@@ -3473,6 +3491,8 @@ object AppStrings {
         "inviteQrExpiresIn" to "Iraungitzen da",
         "inviteQrRenews" to "Bere kabuz berritzen da. QR-a 90 segundotan iraungitzen da.",
         "inviteQrCopyLink" to "Kopiatu esteka",
+        "inviteLinkTitle" to "Gonbidapen esteka",
+        "inviteLinkRegenerated" to "Esteka berria: aurrekoak ez du jada balio.",
         "inviteQrNote" to "QR-ak 15 minutuko gonbidapena sortzen du erregistroa betetzeko. Erabiltzen ez bada, tokia berez askatzen da.",
         "inviteQrSecure" to "Pantaila babestua: pantaila-argazkirik ez",
         "inviteQrDescription" to "Kide berria gonbidatzeko QR kodea",

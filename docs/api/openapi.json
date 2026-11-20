@@ -12957,6 +12957,51 @@
         ]
       }
     },
+    "/me/invitations/{id}/link": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberInvitationCreated"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "summary": "Re-issue the link of the caller's own pending invitation; the token is returned once.",
+        "x-027-scopes": [
+          "profile:write"
+        ]
+      }
+    },
     "/me/join-codes": {
       "post": {
         "responses": {

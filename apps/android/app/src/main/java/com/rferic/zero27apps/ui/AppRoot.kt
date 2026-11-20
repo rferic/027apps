@@ -106,7 +106,7 @@ fun AppRoot(
     val migration by viewModel.migration.collectAsStateWithLifecycle()
     val inviteMembers by viewModel.inviteMembers.collectAsStateWithLifecycle()
     val joinCode by viewModel.joinCode.collectAsStateWithLifecycle()
-    val createdLink by viewModel.createdLink.collectAsStateWithLifecycle()
+    val shareLink by viewModel.shareLink.collectAsStateWithLifecycle()
     val joinLink by viewModel.joinLink.collectAsStateWithLifecycle()
     var scanningMigration by rememberSaveable { mutableStateOf(false) }
     var showingMigrationQr by rememberSaveable { mutableStateOf(false) }
@@ -199,11 +199,12 @@ fun AppRoot(
                             user = current.user,
                             state = inviteMembers,
                             joinCode = joinCode,
-                            createdLink = createdLink,
+                            shareLink = shareLink,
                             onBack = { showingInviteMembers = false },
                             onRefresh = viewModel::loadInvitations,
                             onCreateLink = viewModel::createInviteLink,
-                            onConsumeCreatedLink = viewModel::consumeCreatedLink,
+                            onRevealLink = viewModel::revealInvitationLink,
+                            onDismissShareLink = viewModel::dismissShareLink,
                             onRevoke = viewModel::revokeInvitation,
                             onRequest = viewModel::requestQuota,
                             onCancelRequest = viewModel::cancelRequest,

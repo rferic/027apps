@@ -115,6 +115,13 @@ data class InviteMembersState(
     val error: InviteMembersError? = null,
 )
 
+/**
+ * The shareable link on screen. `regenerated` is true when it was re-issued for
+ * a pending invitation: the previous link no longer works, and the dialog says
+ * so.
+ */
+data class InvitationShareLink(val url: String, val regenerated: Boolean = false)
+
 /** The rotating QR join code, minted and renewed by the view model. */
 enum class InviteJoinError { NETWORK, QUOTA_EXHAUSTED, RATE_LIMITED, GENERIC }
 

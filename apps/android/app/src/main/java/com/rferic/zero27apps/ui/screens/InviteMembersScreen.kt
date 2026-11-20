@@ -55,17 +55,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.rferic.zero27apps.data.AdminInvitationRequestDto
 import com.rferic.zero27apps.data.InvitationQuotaDto
 import com.rferic.zero27apps.data.InvitationRequestDto
 import com.rferic.zero27apps.data.InviteeDto
 import com.rferic.zero27apps.data.MemberInvitationDto
 import com.rferic.zero27apps.data.UserDto
+import com.rferic.zero27apps.ui.InvitationShareLink
+import com.rferic.zero27apps.ui.InviteJoinError
 import com.rferic.zero27apps.ui.InviteMembersError
 import com.rferic.zero27apps.ui.InviteMembersState
-import com.rferic.zero27apps.ui.InviteJoinError
 import com.rferic.zero27apps.ui.JoinCodeState
 import com.rferic.zero27apps.ui.components.AppAlertDialog
 import com.rferic.zero27apps.ui.components.BrandWordmark
@@ -145,11 +148,12 @@ fun InviteMembersScreen(
     user: UserDto,
     state: InviteMembersState,
     joinCode: JoinCodeState,
-    createdLink: String?,
+    shareLink: InvitationShareLink?,
     onBack: () -> Unit,
     onRefresh: () -> Unit,
     onCreateLink: () -> Unit,
-    onConsumeCreatedLink: () -> Unit,
+    onRevealLink: (String) -> Unit,
+    onDismissShareLink: () -> Unit,
     onRevoke: (String) -> Unit,
     onRequest: (Int, String?) -> Unit,
     onCancelRequest: (String) -> Unit,
@@ -166,12 +170,13 @@ fun InviteMembersScreen(
 
     LaunchedEffect(Unit) { onRefresh() }
 
-    // A link minted by "Crear enlace" is handed to the clipboard exactly once.
-    LaunchedEffect(createdLink) {
-        val link = createdLink ?: return@LaunchedEffect
-        copyToClipboard(context, link)
-        onConsumeCreatedLink()
-        scope.launch { snackbar.showSnackbar(strings.inviteCopied) }
+    // The freshly minted or re-issued link is shown as a QR with a copy button.
+    shareLink?.let { link ->
+        ShareLinkDialog(
+            link = link,
+            onCopy = { copyToClipboard(context, link.url) },
+            onDismiss = onDismissShareLink,
+        )
     }
 
     // A failed action used to be silent once the quota was loaded: the error was
@@ -228,7 +233,7 @@ fun InviteMembersScreen(
                         onShowQr = { showQr = true },
                         onCreateLink = onCreateLink,
                     )
-                    InvitedCard(state.invitees, state.invitations, onRevoke)
+                    InvitedCard(state.invitees, state.invitations, onRevoke, onRevealLink)
                     AdminRequestsSection(
                         requests = state.adminRequests,
                         onManagePanel = { openUrl(context, "$instance/panel/requests") },
@@ -243,6 +248,7 @@ fun InviteMembersScreen(
                     onShowQr = { showQr = true },
                     onCreateLink = onCreateLink,
                     onRevoke = onRevoke,
+                    onRevealLink = onRevealLink,
                     onRequest = onRequest,
                     onCancelRequest = onCancelRequest,
                 )
@@ -267,6 +273,7 @@ private fun MemberContent(
     onShowQr: () -> Unit,
     onCreateLink: () -> Unit,
     onRevoke: (String) -> Unit,
+    onRevealLink: (String) -> Unit,
     onRequest: (Int, String?) -> Unit,
     onCancelRequest: (String) -> Unit,
 ) {
@@ -286,7 +293,7 @@ private fun MemberContent(
         }
     }
 
-    InvitedCard(invitees, invitations, onRevoke)
+    InvitedCard(invitees, invitations, onRevoke, onRevealLink)
 
     val resolved = requests.filter { it.state != "pending" }
     if (resolved.isNotEmpty()) {
@@ -298,6 +305,68 @@ private fun MemberContent(
         fontSize = 12.sp,
         color = palette.mutedForeground,
     )
+}
+
+/**
+ * The invitation link as a QR with a copy button. Reopening a pending
+ * invitation re-issues its token (the server only keeps the hash), so the
+ * dialog says so when the previous link stopped working.
+ */
+@Composable
+private fun ShareLinkDialog(
+    link: InvitationShareLink,
+    onCopy: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val strings = LocalStrings.current
+    val palette = LocalPalette.current
+    val bitmap = remember(link.url) { runCatching { qrBitmap(link.url) }.getOrNull() }
+    var copied by remember(link.url) { mutableStateOf(false) }
+    LaunchedEffect(copied) {
+        if (!copied) return@LaunchedEffect
+        delay(2_000)
+        copied = false
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(palette.surface, RoundedCornerShape(20.dp))
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(strings.inviteLinkTitle, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text(
+                link.url,
+                fontSize = 11.sp,
+                color = palette.mutedForeground,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = strings.inviteLinkTitle,
+                    modifier = Modifier.size(220.dp),
+                )
+            }
+            if (link.regenerated) {
+                Text(
+                    strings.inviteLinkRegenerated,
+                    fontSize = 12.sp,
+                    color = palette.mutedForeground,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            Button(onClick = { copied = true; onCopy() }, modifier = Modifier.fillMaxWidth()) {
+                Text(if (copied) strings.inviteCopied else strings.inviteQrCopyLink)
+            }
+            TextButton(onClick = onDismiss) { Text(strings.inviteClose) }
+        }
+    }
 }
 
 /** The two ways to bring somebody in: a rotating QR and a shareable link. */
@@ -445,6 +514,7 @@ private fun InvitedCard(
     invitees: List<InviteeDto>,
     invitations: List<MemberInvitationDto>,
     onRevoke: (String) -> Unit,
+    onRevealLink: (String) -> Unit,
 ) {
     val strings = LocalStrings.current
     val palette = LocalPalette.current
@@ -512,6 +582,9 @@ private fun InvitedCard(
                         color = palette.mutedForeground,
                         fontSize = 12.sp,
                     )
+                }
+                TextButton(onClick = { onRevealLink(invitation.id) }) {
+                    Text(strings.inviteShowQr, color = palette.accent, fontSize = 12.sp)
                 }
                 TextButton(onClick = { revokeTarget = invitation.id }) {
                     Text(strings.inviteRevoke, color = palette.destructive, fontSize = 12.sp)

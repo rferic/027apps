@@ -81,11 +81,12 @@ class InviteMembersStoreTest {
 
         store.createLink()
 
-        val link = withTimeout(timeoutMs) { store.createdLink.first { it != null } }
+        val link = withTimeout(timeoutMs) { store.shareLink.first { it != null } }!!
         assertEquals(1, posts)
-        assertEquals("https://example.test/invite/027_inv_new", link)
-        store.consumeCreatedLink()
-        assertNull(store.createdLink.value)
+        assertEquals("https://example.test/invite/027_inv_new", link.url)
+        assertEquals(false, link.regenerated)
+        store.dismissShareLink()
+        assertNull(store.shareLink.value)
 
         withTimeout(timeoutMs) { store.state.first { it.invitations.size == 1 } }
         assertEquals(1, gets)
@@ -265,5 +266,40 @@ class InviteMembersStoreTest {
 
         assertFalse(adminCalled)
         assertTrue(store.state.value.adminRequests.isEmpty())
+    }
+
+    @Test
+    fun `reopening a pending invitation re-issues its link`() = runBlocking {
+        var rotated = 0
+        val engine = MockEngine { request ->
+            when {
+                request.method == HttpMethod.Post &&
+                    request.url.encodedPath == "/api/v1/me/invitations/i2/link" -> {
+                    rotated++
+                    respond(
+                        """{"invitation":{"id":"i2"},"token":"027_inv_new","path":"/invite/027_inv_new"}""",
+                        HttpStatusCode.OK,
+                        json,
+                    )
+                }
+                request.url.encodedPath == "/api/v1/me/invitations" -> respond(
+                    """{"quota":{"base":5,"granted":0,"used":0,"reserved":1,"remaining":4,"unlimited":false},
+                        "invitations":[{"id":"i2","state":"pending","source":"member"}],"invitees":[],"requests":[]}""",
+                    HttpStatusCode.OK,
+                    json,
+                )
+                else -> respond("{}", HttpStatusCode.OK, json)
+            }
+        }
+        val store = store(engine, this)
+
+        store.revealLink("i2")
+
+        val link = withTimeout(timeoutMs) { store.shareLink.first { it != null } }!!
+        assertEquals(1, rotated)
+        assertEquals("https://example.test/invite/027_inv_new", link.url)
+        // The server only keeps the token hashed: the dialog warns that the
+        // previous link stopped working.
+        assertEquals(true, link.regenerated)
     }
 }

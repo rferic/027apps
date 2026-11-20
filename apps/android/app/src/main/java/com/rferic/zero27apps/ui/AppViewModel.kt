@@ -103,7 +103,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     )
     val inviteMembers: StateFlow<InviteMembersState> = inviteStore.state
     val joinCode: StateFlow<JoinCodeState> = inviteStore.joinCode
-    val createdLink: StateFlow<String?> = inviteStore.createdLink
+    val shareLink: StateFlow<InvitationShareLink?> = inviteStore.shareLink
 
     private var pendingLink: InvitationLink? = null
     /** The boot in flight; a deep link cancels it so it cannot overwrite the invite. */
@@ -869,7 +869,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun createInviteLink() = inviteStore.createLink()
 
     /** Consumes the link the screen copied, so a re-open does not copy it twice. */
-    fun consumeCreatedLink() = inviteStore.consumeCreatedLink()
+    /** Re-issues a pending invitation's link so the screen can show its QR. */
+    fun revealInvitationLink(id: String) = inviteStore.revealLink(id)
+
+    fun dismissShareLink() = inviteStore.dismissShareLink()
 
     /** Clears the one-shot failure the invitation screen has already shown. */
     fun consumeInviteError() = inviteStore.consumeError()
