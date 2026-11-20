@@ -374,7 +374,9 @@ describe("SettingsForm", () => {
       />,
     );
 
-    expect(html).toContain('type="number"');
+    // The quota input is a numeric text field so a cleared draft never reads
+    // back as 0; `type="number"` would fight the local draft.
+    expect(html).toContain('pattern="[0-9]*"');
     expect(html).toContain("Add level");
     expect(html).not.toContain("<textarea");
   });

@@ -14,14 +14,35 @@ import {
 } from "./service";
 
 /**
- * Member invitations (sprint 18 spec §6.2/§7.2): an anonymous 48-hour link an
- * active member mints from their own quota. The package the invitee inherits is
- * a server-side snapshot, never something the inviter chooses: every category
+ * Member invitations (sprint 18 spec §6.2/§7.2): an anonymous link an active
+ * member mints from their own quota. The package the invitee inherits is a
+ * server-side snapshot, never something the inviter chooses: every category
  * plus the modules that are public or that an admin marked delegable.
  */
 
+/** Default link lifetime, used when the setting is missing or unusable. */
 export const MEMBER_TTL_MS = 48 * 60 * 60 * 1000;
+const MEMBER_TTL_SETTING = "invitations.member_ttl_hours";
+/** Mirrors the catalog bound (1..720); guards a value written outside the API. */
+const MEMBER_TTL_MAX_HOURS = 720;
 const INVITE_TOKEN_PREFIX = "027_inv_";
+
+/**
+ * Link lifetime from `invitations.member_ttl_hours`, in milliseconds. An admin
+ * may change it in the panel; invitations already created keep the `expires_at`
+ * they were minted with, so a change never revives or kills a live link. A
+ * missing or unreadable value means the 48-hour default, never a zero TTL.
+ */
+async function memberTtlMs(db: QueryClient): Promise<number> {
+  const { rows } = await db.query(
+    "select value from public.settings where key = $1",
+    [MEMBER_TTL_SETTING],
+  );
+  const stored = rows[0]?.value;
+  const hours = typeof stored === "number" ? stored : Number(stored);
+  if (!Number.isFinite(hours) || hours < 1 || hours > MEMBER_TTL_MAX_HOURS) return MEMBER_TTL_MS;
+  return Math.round(hours) * 60 * 60 * 1000;
+}
 
 /** The access an invitee inherits from their inviter (spec §5.3/§7.7). */
 export type InheritedPackage = { categories: string[]; modules: string[] };
@@ -122,9 +143,10 @@ export async function insertClubInvitation(
 }
 
 /**
- * Creates an anonymous 48-hour member invitation (`POST /me/invitations`).
- * Session-only; role is always `user`; the quota check and the insert share one
- * transaction under `pg_advisory_xact_lock('invite:' || uid)`.
+ * Creates an anonymous member invitation (`POST /me/invitations`) whose link
+ * lives for the configured `invitations.member_ttl_hours`. Session-only; role is
+ * always `user`; the quota check and the insert share one transaction under
+ * `pg_advisory_xact_lock('invite:' || uid)`.
  */
 export async function createMemberInvitation(
   deps: InvitationsDeps,
@@ -143,7 +165,7 @@ export async function createMemberInvitation(
   if (!inviter) throw new DomainError("unauthorized");
   const depth = depthOf(inviter);
   const locale = inviterLocale(inviter);
-  const expiresAt = new Date(now.getTime() + MEMBER_TTL_MS);
+  const expiresAt = new Date(now.getTime() + (await memberTtlMs(deps.db)));
 
   const invitationId = await withInviteTx(deps, async (db) => {
     await db.query("select pg_advisory_xact_lock(hashtext('invite:' || $1))", [uid]);

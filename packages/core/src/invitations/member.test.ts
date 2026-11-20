@@ -168,6 +168,44 @@ describe("createMemberInvitation", () => {
     expect(invitationQuotaMock).toHaveBeenCalled();
   });
 
+  it("uses the lifetime configured in the panel", async () => {
+    const { db, queries } = fakeDb({
+      "select invite_level, locale from public.profiles": () => [
+        { invite_level: 1, locale: "es" },
+      ],
+      "select value from public.settings": () => [{ value: 6 }],
+      "insert into public.invitations": () => [{ id: "inv-1" }],
+    });
+
+    await createMemberInvitation(deps(db), SESSION);
+
+    expect(invitationsInsert(queries)!.params[4]).toBe(
+      new Date(NOW.getTime() + 6 * 60 * 60 * 1000).toISOString(),
+    );
+  });
+
+  it("reads a jsonb number, a numeric string or the default", async () => {
+    const expiresWith = async (value: unknown): Promise<unknown> => {
+      const { db, queries } = fakeDb({
+        "select invite_level, locale from public.profiles": () => [
+          { invite_level: 1, locale: "es" },
+        ],
+        "select value from public.settings": () => [{ value }],
+        "insert into public.invitations": () => [{ id: "inv-1" }],
+      });
+      await createMemberInvitation(deps(db), SESSION);
+      return invitationsInsert(queries)!.params[4];
+    };
+    const after = (hours: number) => new Date(NOW.getTime() + hours * 60 * 60 * 1000).toISOString();
+
+    expect(await expiresWith("12")).toBe(after(12));
+    // Missing, unusable or out of range always means the 48-hour default.
+    expect(await expiresWith(null)).toBe(after(48));
+    expect(await expiresWith(0)).toBe(after(48));
+    expect(await expiresWith(721)).toBe(after(48));
+    expect(await expiresWith("soon")).toBe(after(48));
+  });
+
   it("refuses when the inviter has no seats left", async () => {
     invitationQuotaMock.mockResolvedValue({
       level: 1,

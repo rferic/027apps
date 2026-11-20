@@ -409,6 +409,13 @@ export const SETTINGS_CATALOG: SettingMeta[] = [
     superAdminOnly: false, readOnly: false,
     schema: invitationLevelsSchema,
   },
+  {
+    key: 'invitations.member_ttl_hours', category: 'invitations', type: 'int',
+    label: 'Member link validity (hours)', help: 'How long a member invitation link stays valid before it expires. 48 hours by default. Links already handed out keep the lifetime they were created with.',
+    isSecret: false, isPublic: false, mcpAccess: 'none', sortOrder: 20,
+    superAdminOnly: false, readOnly: false,
+    schema: intInRange(1, 720),
+  },
 ];
 
 const CATALOG_BY_KEY: Map<string, SettingMeta> = new Map(
@@ -445,4 +452,5 @@ export const CATALOG_DEFAULTS: Record<string, unknown> = {
     { level: 2, quota: 2 },
     { level: 3, quota: 1 },
   ],
+  'invitations.member_ttl_hours': 48,
 };

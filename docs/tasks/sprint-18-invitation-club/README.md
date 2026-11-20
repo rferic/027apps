@@ -43,7 +43,7 @@ administrador. El acceso se entrega con un QR rotativo o con un enlace compartib
 ## Criterios de aceptación
 
 - Un miembro con plazas crea un enlace y un QR; el QR caduca a los 90 s y acuña una invitación de
-  15 min; el enlace dura 48 h.
+  15 min; el enlace dura 48 h por defecto, configurable en Ajustes → Invitaciones.
 - La barra muestra «usadas + reservadas / base + concedidas»; desactivar ocupa, purgar libera y una
   pendiente reserva.
 - Sin plazas, la app y el panel ofrecen solicitar; el administrador recibe push, aprueba con una

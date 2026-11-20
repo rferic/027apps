@@ -39,8 +39,9 @@ La conversación con el propietario (2026-11-18) cerró el «qué». Esta spec f
 - **Cuota viva**: `base del nivel + concedidas − (cuentas traídas + invitaciones pendientes
   vigentes)`. Una cuenta desactivada ocupa; una purgada libera; una invitación pendiente reserva
   hasta que caduca o se revoca.
-- **Invitación de miembro** (enlace, 48 h) y **QR rotativo** (código de 90 s que acuña una
-  invitación de 15 min). El rol de toda invitación de miembro es siempre `user`.
+- **Invitación de miembro** (enlace, 48 h por defecto, ajustable en Ajustes) y **QR rotativo**
+  (código de 90 s que acuña una invitación de 15 min). El rol de toda invitación de miembro es
+  siempre `user`.
 - **Herencia limitada**: el invitado recibe los módulos públicos del invitador, los privados que el
   administrador haya marcado como delegables y sus categorías. Nunca recibe un privilegio que el
   invitador no tenga.
@@ -110,7 +111,7 @@ La conversación con el propietario (2026-11-18) cerró el «qué». Esta spec f
 | # | Decisión | Alternativas | Propuesta |
 |---|---|---|---|
 | D1 | Forma del modelo | dominio paralelo · ledger de plazas · extender lo existente | **Extender** `invitations`, `profiles` y el canje; solo cuatro tablas nuevas (`join_codes`, `invitation_categories`, `invitation_requests`, `invitation_quota_grants`). |
-| D2 | TTL de cada puerta | 15 min para todo · 48 h para todo · dos relojes | **Dos relojes**: el código del QR vive 90 s; la invitación que acuña, 15 min; el enlace que se comparte, 48 h. |
+| D2 | TTL de cada puerta | 15 min para todo · 48 h para todo · dos relojes | **Dos relojes**: el código del QR vive 90 s; la invitación que acuña, 15 min; el enlace que se comparte, 48 h por defecto **y configurable** en Ajustes → Invitaciones (`invitations.member_ttl_hours`, 1..720 h). |
 | D3 | Intercambio del QR | canjear al abrir la página · botón «Continuar» que canjea · acuñar y redirigir idempotente | **Botón «Continuar» que canjea una sola vez**: el GET solo pinta el preview, así un prefetch de WhatsApp no acuña nada; el segundo canje responde `join_code_used`. No se guarda el token en claro para reproducirlo. |
 | D4 | Alcance del árbol | cada miembro ve todo el árbol · solo sus invitados directos | **Directos para el miembro; subárbol completo para el administrador.** |
 | D5 | La barra de cuota | invitaciones históricas · ocupación viva | **Ocupación viva** (`usadas + reservadas / base + concedidas`), con las concedidas separadas. |
@@ -278,7 +279,7 @@ alter table public.module_registry
 - Los módulos con `is_public = true` se heredan siempre, sin mirar `delegable`.
 - Un módulo privado con `delegable = false` no se hereda aunque el invitador lo tenga.
 
-### 5.7 Ajustes de niveles
+### 5.7 Ajustes de invitaciones
 
 Categoría nueva `invitations` y clave `invitations.levels` (tipo `json`):
 
@@ -293,6 +294,15 @@ Categoría nueva `invitations` y clave `invitations.levels` (tipo `json`):
   personas cuyo nivel coincide.
 - La semilla, el catálogo de `packages/core/src/settings/catalog.ts` y la prueba de sincronía
   `db-tests` se actualizan a la vez.
+
+Clave `invitations.member_ttl_hours` (tipo `int`, por defecto `48`): cuántas horas vive el enlace de
+una invitación de miembro.
+
+- Rango 1..720; un valor ausente o fuera de rango cae al defecto de 48 h, nunca a un TTL de cero.
+- Se lee al **acuñar**: `expires_at` se calcula una vez y no se recalcula. Cambiar el ajuste no
+  alarga ni mata un enlace ya entregado, solo afecta a los siguientes.
+- No toca el QR: el código sigue viviendo 90 s y la invitación que acuña, 15 min (D2).
+- La migración `0038_invitation_ttl_setting.sql` siembra la fila con `48`.
 
 ### 5.8 RLS y privilegios
 
@@ -372,8 +382,8 @@ desviarse):
 
 **`POST /api/v1/me/invitations`** · sesión · 10/min · body `{}`.
 
-- Crea una invitación anónima `source = 'member'`, TTL **48 h**, `depth = nivel + 1`, rol `user`,
-  módulos y categorías heredados.
+- Crea una invitación anónima `source = 'member'`, TTL `invitations.member_ttl_hours` (48 h por
+  defecto), `depth = nivel + 1`, rol `user`, módulos y categorías heredados.
 - 201: `{ invitation, token, path: "/invite/<token>" }`. El token se devuelve **una vez**.
 - `409 invitation_quota_exhausted` si no quedan plazas.
 
@@ -544,11 +554,12 @@ desviarse):
 
 ### 7.2 Invitar a alguien que no está (enlace)
 
-1. El miembro pulsa **Crear enlace**. `POST /me/invitations` reserva una plaza y devuelve el enlace
-   de 48 h.
+1. El miembro pulsa **Crear enlace**. `POST /me/invitations` reserva una plaza y devuelve el enlace,
+   que vive las horas de `invitations.member_ttl_hours` (48 por defecto).
 2. Lo comparte por WhatsApp, email o como quiera. La app no envía correo.
 3. El invitado abre `/invite/<token>` y sigue el mismo formulario. Si caduca, el invitador revoca y
-   crea otro (no hay «renovar» de miembro).
+   crea otro (no hay «renovar» de miembro). Caducar libera la reserva: la plaza vuelve a estar
+   disponible sin contar como usada.
 
 ### 7.3 Canje anónimo
 

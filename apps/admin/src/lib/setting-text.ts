@@ -33,6 +33,7 @@ const SETTING_LABELS: Record<string, Translator> = {
   "rate_limit.write_per_min": (messages) => t("Write per minute", messages),
   "rate_limit.public_per_min": (messages) => t("Public per minute", messages),
   "invitations.levels": (messages) => t("Invitation levels", messages),
+  "invitations.member_ttl_hours": (messages) => t("Member link validity (hours)", messages),
 };
 
 /** One help line per setting key in the same catalog. */
@@ -72,6 +73,11 @@ const SETTING_HELPS: Record<string, Translator> = {
   "invitations.levels": (messages) =>
     t(
       "How many people each level may invite. Level 1 is invited by an administrator; level 2 by a level-1 member, and so on.",
+      messages,
+    ),
+  "invitations.member_ttl_hours": (messages) =>
+    t(
+      "How long a member invitation link stays valid before it expires. 48 hours by default. Links already handed out keep the lifetime they were created with.",
       messages,
     ),
 };

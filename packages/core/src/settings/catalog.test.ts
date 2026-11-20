@@ -7,8 +7,12 @@ describe('catalog shape', () => {
     expect(SETTINGS_CATEGORIES.map((category) => category.categoryKey)).toContain('invitations');
   });
 
-  it('registers the 20 canonical keys', () => {
-    expect(SETTINGS_CATALOG).toHaveLength(20);
+  it('registers the 21 canonical keys', () => {
+    expect(SETTINGS_CATALOG).toHaveLength(21);
+  });
+
+  it('defaults the member link to 48 hours', () => {
+    expect(CATALOG_DEFAULTS['invitations.member_ttl_hours']).toBe(48);
   });
 
   it('seeds the club levels as an admin invitee starts at level 1', () => {

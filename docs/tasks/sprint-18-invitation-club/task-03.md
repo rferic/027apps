@@ -12,7 +12,8 @@ adrs: [0004, 0007, 0009]
 
 **Alcance**
 
-- `shared.ts` (token, hash y transacción), `member.ts` (enlace de 48 h, herencia, revocación) y
+- `shared.ts` (token, hash y transacción), `member.ts` (enlace de 48 h por defecto, ajustable en
+  Ajustes, herencia, revocación) y
   `join-codes.ts` (código de 90 s, invitación de 15 min, intercambio de un solo uso).
 - Handlers y rutas: `GET/POST /me/invitations`, `DELETE /me/invitations/{id}`,
   `POST /me/join-codes`, `GET /join-codes/{code}/preview`, `POST /join-codes/{code}/exchange`.

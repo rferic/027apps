@@ -12,8 +12,9 @@ web y desde la app, y qué pasa cuando caduca o se agotan las plazas. Contratos 
 Un administrador invita a cualquiera, sin límite; **cada miembro** invita a un número limitado de
 personas según su **nivel**. El acceso se entrega de dos formas: un **QR rotativo** para quien está
 delante (código de 90 s que acuña una invitación de 15 min) y un **enlace compartible** de 48 h para
-quien no lo está. La invitación de miembro nace **sin email ni nombre**: los rellena quien se
-registra. Cuando a alguien se le acaban las plazas, **pide al administrador** que le amplíe la cuota
+quien no lo está (48 es el defecto; el administrador puede ampliarlo o reducirlo en Ajustes →
+Invitaciones, clave `invitations.member_ttl_hours`). La invitación de miembro nace **sin email ni
+nombre**: los rellena quien se registra. Cuando a alguien se le acaban las plazas, **pide al administrador** que le amplíe la cuota
 (una suma permanente y revocable), y el administrador lo gestiona desde el panel con aviso push.
 
 La app es el camino preferido para invitar y aceptar; la web es siempre un camino completo, no un
@@ -86,11 +87,13 @@ Una sola `pending` por persona (índice único parcial); aprobada o rechazada, p
   **rota** (`/invitations/{id}/link`) en vez de reutilizarlo.
 - El email sale en el idioma de la invitación (`locale`) con el nombre de la instancia y del grupo.
 
-## Invitar de miembro (enlace, 48 h)
+## Invitar de miembro (enlace, 48 h por defecto)
 
 `POST /api/v1/me/invitations` (10/min) reserva una plaza y devuelve **una vez** el enlace
 (`/invite/<token>`). La invitación es anónima: `source = 'member'`, rol `user`,
-`depth = nivel del invitador + 1`, TTL 48 h, sin email ni nombre. El invitado hereda:
+`depth = nivel del invitador + 1`, TTL `invitations.member_ttl_hours` (48 h por defecto, 1..720 h,
+configurable en Ajustes → Invitaciones), sin email ni nombre. El TTL se fija al acuñar: cambiar el
+ajuste no alarga ni mata un enlace ya entregado. El invitado hereda:
 
 - **categorías**: todas las del invitador;
 - **módulos**: los `user_modules` activos del invitador que sean `is_public = true` o
