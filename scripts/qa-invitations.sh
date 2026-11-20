@@ -159,29 +159,29 @@ psql(
 
 print("\n-- un administrador crea un enlace")
 status, minted = call("POST", api("/me/invitations"), {}, token=admin_token)
-check(status == 201, "POST /me/invitations answers 201", f"{status} {minted}")
+check(status == 201, "crear el enlace responde 201", f"{status} {minted}")
 token = (minted or {}).get("token", "")
 invitation_id = ((minted or {}).get("invitation") or {}).get("id", "")
 if not token.startswith("027_inv_"):
     sys.exit("no invitation token was minted; stopping before the rest of the flow")
-check((minted or {}).get("path") == f"/invite/{token}", "the path carries the token")
-check(bool(invitation_id), "the response names the invitation")
+check((minted or {}).get("path") == f"/invite/{token}", "la ruta lleva el token")
+check(bool(invitation_id), "la respuesta nombra la invitación")
 
 status, own = call("GET", api("/me/invitations"), token=admin_token)
 quota = (own or {}).get("quota") or {}
-check(status == 200, "GET /me/invitations answers 200", str(status))
-check(quota.get("reserved") == 1, "the pending link reserves one seat", json.dumps(quota))
+check(status == 200, "listar mis invitaciones responde 200", str(status))
+check(quota.get("reserved") == 1, "el enlace pendiente reserva una plaza", json.dumps(quota))
 check(any(i.get("id") == invitation_id for i in (own or {}).get("invitations", [])),
-      "the new invitation is listed")
+      "la invitación nueva aparece en la lista")
 
 print("\n-- la invitación anónima se previsualiza sin sesión")
 status, preview = call("GET", api(f"/invitations/{token}/preview"))
-check(status == 200, "the public preview answers 200", str(status))
+check(status == 200, "la vista previa pública responde 200", str(status))
 invitation = (preview or {}).get("invitation") or {}
-check(invitation.get("requires_identity") is True, "it requires a name and an email")
+check(invitation.get("requires_identity") is True, "pide nombre y correo")
 check(invitation.get("email") is None and invitation.get("name") is None,
-      "it carries no email or name yet")
-check(invitation.get("account_exists") is False, "the preview never reveals an existing account")
+      "todavía no lleva correo ni nombre")
+check(invitation.get("account_exists") is False, "la vista previa no revela si la cuenta existe")
 
 print("\n-- canje con una cuenta nueva")
 invitee_email = f"qa-invite-new-{uuid.uuid4().hex[:8]}@test.local"
@@ -190,18 +190,18 @@ status, redeemed = call(
     "POST", api(f"/invitations/{token}/redeem"),
     {"email": invitee_email, "name": "QA Invitada", "password": invitee_password},
 )
-check(status == 201, "the redemption answers 201", f"{status} {redeemed}")
+check(status == 201, "el canje responde 201", f"{status} {redeemed}")
 invitee_id = ((redeemed or {}).get("user") or {}).get("id", "")
 
 status, own = call("GET", api("/me/invitations"), token=admin_token)
 quota = (own or {}).get("quota") or {}
-check(quota.get("used") == 1, "the new profile consumes one seat", json.dumps(quota))
-check(quota.get("reserved") == 0, "the reservation became an account", json.dumps(quota))
+check(quota.get("used") == 1, "el perfil nuevo consume una plaza", json.dumps(quota))
+check(quota.get("reserved") == 0, "la reserva se convirtió en cuenta", json.dumps(quota))
 
 level, role = (psql(f"select invite_level, role from public.profiles where id = '{invitee_id}'")
                .split("|") + ["", ""])[:2]
-check(level == "1", "an admin invitee lands on level 1", f"level={level}")
-check(role == "user", "the invitation role is user", f"role={role}")
+check(level == "1", "el invitado de un administrador queda en nivel 1", f"nivel={level}")
+check(role == "user", "el rol de la invitación es user", f"rol={role}")
 
 print("\n-- canje con un email ya registrado: no se firma por nadie")
 status, minted2 = call("POST", api("/me/invitations"), {}, token=admin_token)
@@ -211,31 +211,31 @@ status, refused = call(
     "POST", api(f"/invitations/{token2}/redeem"),
     {"email": invitee_email, "name": "Otra vez", "password": invitee_password},
 )
-check(status == 409, "the redeem refuses the existing email with 409", f"{status} {refused}")
+check(status == 409, "el canje rechaza el correo ya registrado con 409", f"{status} {refused}")
 check(code_of(refused) == "existing_account_signin_required",
-      "the code says the account must sign in", code_of(refused))
+      "el código pide entrar con esa cuenta", code_of(refused))
 state = psql(f"select coalesce(used_at::text, '-') from public.invitations where id = '{second_id}'")
-check(state == "-", "the invitation stays pending", f"used_at={state}")
+check(state == "-", "la invitación sigue pendiente", f"used_at={state}")
 
 print("\n-- la misma invitación, aceptada con la sesión de esa cuenta")
 status, invitee_session = call(
     "POST", f"{supabase}/auth/v1/token?grant_type=password",
     {"email": invitee_email, "password": invitee_password},
 )
-check("access_token" in invitee_session, "the existing account signs in", str(invitee_session)[:120])
+check("access_token" in invitee_session, "la cuenta existente inicia sesión", str(invitee_session)[:120])
 status, accepted = call(
     "POST", api(f"/invitations/{token2}/redeem"),
     {"email": invitee_email},
     token=invitee_session.get("access_token"),
 )
-check(status == 201, "the confirmed account redeems the invitation", f"{status} {accepted}")
+check(status == 201, "la cuenta confirmada canjea la invitación", f"{status} {accepted}")
 
 status, own = call("GET", api("/me/invitations"), token=admin_token)
 quota_after = (own or {}).get("quota") or {}
-check(quota_after.get("used") == 1, "no new seat is spent for an existing account",
+check(quota_after.get("used") == 1, "una cuenta existente no gasta plaza nueva",
       json.dumps(quota_after))
 still = psql(f"select invite_level from public.profiles where id = '{invitee_id}'")
-check(still == "1", "the account keeps its level", f"level={still}")
+check(still == "1", "la cuenta conserva su nivel", f"nivel={still}")
 
 print("\n-- reabrir una pendiente reacuña el enlace")
 status, minted3 = call("POST", api("/me/invitations"), {}, token=admin_token)
@@ -243,13 +243,13 @@ third_id = ((minted3 or {}).get("invitation") or {}).get("id", "")
 old_token = (minted3 or {}).get("token", "")
 status, rotated = call("POST", api(f"/me/invitations/{third_id}/link"), {}, token=admin_token)
 new_token = (rotated or {}).get("token", "")
-check(status == 200, "the re-issue answers 200", f"{status} {rotated}")
-check(new_token.startswith("027_inv_") and new_token != old_token, "it mints a different token")
+check(status == 200, "reañadir el enlace responde 200", f"{status} {rotated}")
+check(new_token.startswith("027_inv_") and new_token != old_token, "acuña un token distinto")
 
 status, _ = call("GET", api(f"/invitations/{old_token}/preview"))
-check(status == 404, "the previous link stops working", str(status))
+check(status == 404, "el enlace anterior deja de funcionar", str(status))
 status, _ = call("GET", api(f"/invitations/{new_token}/preview"))
-check(status == 200, "the new link previews", str(status))
+check(status == 200, "el enlace nuevo se previsualiza", str(status))
 
 print("\n-- la caducidad configurable manda en el enlace nuevo")
 original_ttl = psql("select value::text from public.settings where key = 'invitations.member_ttl_hours'")
@@ -257,11 +257,11 @@ psql("update public.settings set value = '1'::jsonb where key = 'invitations.mem
 try:
     status, short_link = call("POST", api("/me/invitations"), {}, token=admin_token)
     expires = ((short_link or {}).get("invitation") or {}).get("expires_at", "")
-    check(status == 201, "a link is minted with a 1-hour setting", str(status))
+    check(status == 201, "se acuña un enlace con el ajuste en 1 hora", str(status))
     from datetime import datetime, timezone
     expires_at = datetime.fromisoformat(expires.replace("Z", "+00:00"))
     hours = (expires_at - datetime.now(timezone.utc)).total_seconds() / 3600
-    check(0.9 <= hours <= 1.05, "the link lives one hour, not the old 48", f"{hours:.2f} h")
+    check(0.9 <= hours <= 1.05, "el enlace vive una hora, no las 48 de antes", f"{hours:.2f} h")
     # Leave no extra pending link behind: the quota checks below count them.
     call("DELETE", api(f"/me/invitations/{((short_link or {}).get('invitation') or {}).get('id')}"),
          token=admin_token)
@@ -269,7 +269,7 @@ finally:
     psql(f"update public.settings set value = '{original_ttl}'::jsonb "
          "where key = 'invitations.member_ttl_hours'")
 status, own = call("GET", api("/me/invitations"), token=admin_token)
-check(status == 200, "the original lifetime is restored", str(status))
+check(status == 200, "la caducidad original queda restaurada", str(status))
 
 print("\n-- una invitación con nombre no se rota desde la app")
 status, named = call(
@@ -278,37 +278,37 @@ status, named = call(
     token=admin_token,
 )
 named_id = ((named or {}).get("invitation") or {}).get("id", "")
-check(status == 201 and bool(named_id), "the panel mints a named invitation", f"{status} {named}")
+check(status == 201 and bool(named_id), "el panel acuña una invitación con nombre", f"{status} {named}")
 status, refused_rotate = call("POST", api(f"/me/invitations/{named_id}/link"), {}, token=admin_token)
-check(status == 404, "rotating it is refused with 404", f"{status} {refused_rotate}")
+check(status == 404, "rotarla desde la app se rechaza con 404", f"{status} {refused_rotate}")
 
 print("\n-- revocar libera la plaza")
 status, _ = call("DELETE", api(f"/me/invitations/{third_id}"), token=admin_token)
-check(status == 204, "the revoke answers 204", str(status))
+check(status == 204, "revocar responde 204", str(status))
 status, _ = call("GET", api(f"/invitations/{new_token}/preview"))
-check(status == 404, "the revoked link is gone", str(status))
+check(status == 404, "el enlace revocado ya no existe", str(status))
 status, own = call("GET", api("/me/invitations"), token=admin_token)
-check(((own or {}).get("quota") or {}).get("reserved") == 0, "the seat comes back",
+check(((own or {}).get("quota") or {}).get("reserved") == 0, "la plaza vuelve",
       json.dumps((own or {}).get("quota")))
 
 print("\n-- QR rotativo")
 status, code = call("POST", api("/me/join-codes"), {}, token=admin_token)
 join_code = (code or {}).get("code", "")
-check(status == 201 and join_code.startswith("027_join_"), "the QR code is minted", str(status))
+check(status == 201 and join_code.startswith("027_join_"), "se acuña el código del QR", str(status))
 status, _ = call("GET", api(f"/join-codes/{join_code}/preview"))
-check(status == 200, "the code previews without exchanging", str(status))
+check(status == 200, "el código se previsualiza sin canjearlo", str(status))
 status, exchanged = call("POST", api(f"/join-codes/{join_code}/exchange"), {})
 check(status == 201 and (exchanged or {}).get("token", "").startswith("027_inv_"),
-      "the exchange mints a 15-minute invitation", f"{status} {exchanged}")
+      "el canje acuña una invitación de 15 minutos", f"{status} {exchanged}")
 status, twice = call("POST", api(f"/join-codes/{join_code}/exchange"), {})
-check(status == 410 and code_of(twice) == "join_code_used", "the code is single use",
+check(status == 410 and code_of(twice) == "join_code_used", "el código es de un solo uso",
       f"{status} {twice}")
 
 print("\n-- presupuesto: las lecturas no gastan el de crear")
 for _ in range(15):
     call("GET", api("/me/invitations"), token=admin_token)
 status, after_reads = call("POST", api("/me/invitations"), {}, token=admin_token)
-check(status == 201, "15 reads later, creating still works", f"{status} {after_reads}")
+check(status == 201, "tras 15 lecturas, crear sigue funcionando", f"{status} {after_reads}")
 
 if failures:
     print(f"\n{len(failures)} comprobación(es) fallida(s)")
