@@ -88,6 +88,7 @@ class Strings(private val values: Map<String, String>) {
     val inviteAccept: String get() = values.getValue("inviteAccept")
     val inviteWrongPassword: String get() = values.getValue("inviteWrongPassword")
     val inviteSignInRequired: String get() = values.getValue("inviteSignInRequired")
+    val inviteValidation: String get() = values.getValue("inviteValidation")
     val inviteRateLimited: String get() = values.getValue("inviteRateLimited")
     val inviteAccountDeactivated: String get() = values.getValue("inviteAccountDeactivated")
     val home: String get() = values.getValue("home")
@@ -447,6 +448,7 @@ object AppStrings {
         "inviteAccept" to "Accept invitation",
         "inviteWrongPassword" to "The password is not correct.",
         "inviteSignInRequired" to "That email already has an account. Enter its current password to accept the invitation.",
+        "inviteValidation" to "Check the name, the email and the password: it needs at least 12 characters.",
         "inviteRateLimited" to "Too many attempts. Wait a minute and try again.",
         "inviteAccountDeactivated" to "This account is deactivated. Contact an administrator.",
         "home" to "Home",
@@ -795,6 +797,7 @@ object AppStrings {
         "inviteAccept" to "Aceptar invitación",
         "inviteWrongPassword" to "La contraseña no es correcta.",
         "inviteSignInRequired" to "Ese correo ya tiene una cuenta. Escribe su contraseña actual para aceptar la invitación.",
+        "inviteValidation" to "Revisa el nombre, el correo y la contraseña: necesita 12 caracteres como mínimo.",
         "inviteRateLimited" to "Demasiados intentos. Espera un minuto y vuelve a intentarlo.",
         "inviteAccountDeactivated" to "Esta cuenta está desactivada. Contacta con un administrador.",
         "home" to "Inicio",
@@ -1143,6 +1146,7 @@ object AppStrings {
         "inviteAccept" to "Accepta la invitació",
         "inviteWrongPassword" to "La contrasenya no és correcta.",
         "inviteSignInRequired" to "Aquest correu ja té un compte. Escriu-ne la contrasenya actual per acceptar la invitació.",
+        "inviteValidation" to "Revisa el nom, el correu i la contrasenya: calen 12 caràcters com a mínim.",
         "inviteRateLimited" to "Massa intents. Espera un minut i torna-ho a provar.",
         "inviteAccountDeactivated" to "Aquest compte està desactivat. Contacta amb un administrador.",
         "home" to "Inici",
@@ -1491,6 +1495,7 @@ object AppStrings {
         "inviteAccept" to "Accetta l'invito",
         "inviteWrongPassword" to "La password non è corretta.",
         "inviteSignInRequired" to "Quell'email ha già un account. Inserisci la password attuale per accettare l'invito.",
+        "inviteValidation" to "Controlla nome, email e password: servono almeno 12 caratteri.",
         "inviteRateLimited" to "Troppi tentativi. Attendi un minuto e riprova.",
         "inviteAccountDeactivated" to "Questo account è disattivato. Contatta un amministratore.",
         "home" to "Home",
@@ -1839,6 +1844,7 @@ object AppStrings {
         "inviteAccept" to "Accepter l'invitation",
         "inviteWrongPassword" to "Le mot de passe n'est pas correct.",
         "inviteSignInRequired" to "Cet e-mail a déjà un compte. Saisissez son mot de passe actuel pour accepter l'invitation.",
+        "inviteValidation" to "Vérifiez le nom, l'email et le mot de passe : il faut au moins 12 caractères.",
         "inviteRateLimited" to "Trop de tentatives. Attendez une minute et réessayez.",
         "inviteAccountDeactivated" to "Ce compte est désactivé. Contactez un administrateur.",
         "home" to "Accueil",
@@ -2187,6 +2193,7 @@ object AppStrings {
         "inviteAccept" to "Einladung annehmen",
         "inviteWrongPassword" to "Das Passwort ist nicht korrekt.",
         "inviteSignInRequired" to "Diese E-Mail hat bereits ein Konto. Gib das aktuelle Passwort ein, um die Einladung anzunehmen.",
+        "inviteValidation" to "Prüfe Name, E-Mail und Passwort: es braucht mindestens 12 Zeichen.",
         "inviteRateLimited" to "Zu viele Versuche. Warte eine Minute und versuche es erneut.",
         "inviteAccountDeactivated" to "Dieses Konto ist deaktiviert. Wende dich an einen Administrator.",
         "home" to "Start",
@@ -2535,6 +2542,7 @@ object AppStrings {
         "inviteAccept" to "Aceitar convite",
         "inviteWrongPassword" to "A palavra-passe não está correta.",
         "inviteSignInRequired" to "Esse e-mail já tem uma conta. Introduz a palavra-passe atual para aceitar o convite.",
+        "inviteValidation" to "Verifica o nome, o email e a palavra-passe: precisa de 12 caracteres no mínimo.",
         "inviteRateLimited" to "Demasiadas tentativas. Espera um minuto e tenta novamente.",
         "inviteAccountDeactivated" to "Esta conta está desativada. Contacta um administrador.",
         "home" to "Início",
@@ -2883,6 +2891,7 @@ object AppStrings {
         "inviteAccept" to "Aceptar a invitación",
         "inviteWrongPassword" to "O contrasinal non é correcto.",
         "inviteSignInRequired" to "Ese correo xa ten unha conta. Escribe o seu contrasinal actual para aceptar a invitación.",
+        "inviteValidation" to "Revisa o nome, o correo e o contrasinal: precisa 12 caracteres como mínimo.",
         "inviteRateLimited" to "Demasiados intentos. Espera un minuto e téntao de novo.",
         "inviteAccountDeactivated" to "Esta conta está desactivada. Contacta cunha persoa administradora.",
         "home" to "Inicio",
@@ -3231,6 +3240,7 @@ object AppStrings {
         "inviteAccept" to "Gonbidapena onartu",
         "inviteWrongPassword" to "Pasahitza ez da zuzena.",
         "inviteSignInRequired" to "Posta elektroniko horrek badauka kontu bat. Idatzi uneko pasahitza gonbidapena onartzeko.",
+        "inviteValidation" to "Egiaztatu izena, emaila eta pasahitza: gutxienez 12 karaktere behar ditu.",
         "inviteRateLimited" to "Saiakera gehiegi. Itxaron minutu bat eta saiatu berriro.",
         "inviteAccountDeactivated" to "Kontu hau desaktibatuta dago. Jarri harremanetan administratzaile batekin.",
         "home" to "Hasiera",

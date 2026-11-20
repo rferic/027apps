@@ -51,6 +51,8 @@ enum class InviteError {
     NETWORK,
     WRONG_CREDENTIALS,
     EXISTING_SIGNIN_REQUIRED,
+    /** The server refused the form: name, email or password out of range. */
+    VALIDATION,
     RATE_LIMITED,
     CONFLICT,
     GENERIC,

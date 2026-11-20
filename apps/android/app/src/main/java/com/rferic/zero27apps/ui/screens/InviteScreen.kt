@@ -69,6 +69,7 @@ private fun inviteErrorText(error: InviteError, strings: Strings): String = when
     InviteError.NETWORK -> strings.failureNetwork
     InviteError.WRONG_CREDENTIALS -> strings.inviteWrongPassword
     InviteError.EXISTING_SIGNIN_REQUIRED -> strings.inviteSignInRequired
+    InviteError.VALIDATION -> strings.inviteValidation
     InviteError.RATE_LIMITED -> strings.inviteRateLimited
     InviteError.CONFLICT -> strings.inviteAccountDeactivated
     InviteError.GENERIC -> strings.inviteFailed

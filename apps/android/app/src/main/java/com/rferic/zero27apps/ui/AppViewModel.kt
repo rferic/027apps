@@ -1070,6 +1070,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         error.code == "invitation_used" -> InviteError.USED
         error.code == "not_found" -> InviteError.NOT_FOUND
         error.code == "existing_account_signin_required" -> InviteError.EXISTING_SIGNIN_REQUIRED
+        error.code == "validation_failed" -> InviteError.VALIDATION
         error.code == "rate_limited" -> InviteError.RATE_LIMITED
         error.code == "conflict" -> InviteError.CONFLICT
         error.network -> InviteError.NETWORK
