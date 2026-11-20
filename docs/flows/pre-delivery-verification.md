@@ -29,6 +29,7 @@ Dos scripts cubren lo que más se rompe y lo que el propietario no debe descubri
 
 ```bash
 pnpm qa:invitations          # API real: enlace, canje nuevo, email existente, rotar, revocar, QR
+pnpm qa:web                  # navegador real: página de invitación y pantallas del panel
 pnpm qa:android              # la app real en el emulador/móvil conectado
 ```
 
@@ -38,6 +39,10 @@ pnpm qa:android              # la app real en el emulador/móvil conectado
   confirmada con esa cuenta (sin duplicado y sin gastar plaza), reacuñar el enlace (el viejo muere),
   revocar (la plaza vuelve), QR (preview, canje único) y el presupuesto de creación tras 15
   lecturas. Limpia sus `qa-invite-*@test.local` al terminar.
+- **`pnpm qa:web`** (Playwright, `apps/admin/e2e`) abre la página de invitación en un navegador de
+  verdad: canje con cuenta nueva hasta `/welcome`, email ya registrado que se para y pide la
+  contraseña de esa cuenta, y enlace inexistente con su mensaje. En el panel inicia sesión, lista
+  miembros y guarda un nivel. Crea sus cuentas `qa-e2e-*@test.local` y las borra al terminar.
 - **`scripts/e2e-android-invite.sh`** instala el APK debug y conduce la app con `adb`: comprueba que
   el enlace pinta el formulario, que un email registrado **no** entra y deja la invitación pendiente,
   y que un email nuevo canjea desde la app con su nombre, nivel e invitador. Necesita un

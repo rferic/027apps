@@ -162,6 +162,14 @@ jobs:
         run: bash scripts/qa-invitations.sh http://127.0.0.1:3003
         env:
           SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      # The same panel, now through a browser: the invitation page and the panel
+      # screens a rendered-HTML check cannot prove.
+      - name: Install the test browser
+        run: pnpm --filter admin exec playwright install --with-deps chromium
+      - name: Invitation and panel flows in a browser
+        run: pnpm --filter admin e2e
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3003
 
   # Squash merge: the PR title is the commit message on main.
   commitlint:
