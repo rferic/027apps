@@ -225,6 +225,7 @@ class Strings(private val values: Map<String, String>) {
     val pending: String get() = values.getValue("pending")
     val blocked: String get() = values.getValue("blocked")
     val stateActive: String get() = values.getValue("stateActive")
+    val stateInactive: String get() = values.getValue("stateInactive")
     val confirmQuestion: String get() = values.getValue("confirmQuestion")
     val importTitle: String get() = values.getValue("importTitle")
     val chooseCsv: String get() = values.getValue("chooseCsv")
@@ -567,6 +568,7 @@ object AppStrings {
         "pending" to "Pending",
         "blocked" to "Blocked",
         "stateActive" to "Active",
+        "stateInactive" to "Deactivated",
 
         "confirmQuestion" to "Are you sure?",
         "importTitle" to "Import from Splitwise",
@@ -910,6 +912,7 @@ object AppStrings {
         "pending" to "Pendiente",
         "blocked" to "Bloqueado",
         "stateActive" to "Activo",
+        "stateInactive" to "Desactivado",
 
         "confirmQuestion" to "¿Seguro?",
         "importTitle" to "Importar de Splitwise",
@@ -1253,6 +1256,7 @@ object AppStrings {
         "pending" to "Pendent",
         "blocked" to "Bloquejat",
         "stateActive" to "Actiu",
+        "stateInactive" to "Desactivat",
 
         "confirmQuestion" to "Segur?",
         "importTitle" to "Importa de Splitwise",
@@ -1596,6 +1600,7 @@ object AppStrings {
         "pending" to "In sospeso",
         "blocked" to "Bloccato",
         "stateActive" to "Attivo",
+        "stateInactive" to "Disattivato",
 
         "confirmQuestion" to "Sei sicuro?",
         "importTitle" to "Importa da Splitwise",
@@ -1939,6 +1944,7 @@ object AppStrings {
         "pending" to "En attente",
         "blocked" to "Bloqué",
         "stateActive" to "Actif",
+        "stateInactive" to "Désactivé",
 
         "confirmQuestion" to "Êtes-vous sûr ?",
         "importTitle" to "Importer depuis Splitwise",
@@ -2282,6 +2288,7 @@ object AppStrings {
         "pending" to "Offen",
         "blocked" to "Blockiert",
         "stateActive" to "Aktiv",
+        "stateInactive" to "Deaktiviert",
 
         "confirmQuestion" to "Sicher?",
         "importTitle" to "Aus Splitwise importieren",
@@ -2625,6 +2632,7 @@ object AppStrings {
         "pending" to "Pendente",
         "blocked" to "Bloqueado",
         "stateActive" to "Ativo",
+        "stateInactive" to "Desativado",
 
         "confirmQuestion" to "Tens a certeza?",
         "importTitle" to "Importar do Splitwise",
@@ -2968,6 +2976,7 @@ object AppStrings {
         "pending" to "Pendente",
         "blocked" to "Bloqueado",
         "stateActive" to "Activo",
+        "stateInactive" to "Desactivado",
 
         "confirmQuestion" to "Seguro?",
         "importTitle" to "Importar de Splitwise",
@@ -3311,6 +3320,7 @@ object AppStrings {
         "pending" to "Zain",
         "blocked" to "Blokeatuta",
         "stateActive" to "Aktiboa",
+        "stateInactive" to "Desaktibatuta",
 
         "confirmQuestion" to "Ziur zaude?",
         "importTitle" to "Inportatu Splitwisetik",

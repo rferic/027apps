@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -156,7 +157,7 @@ fun InviteMembersScreen(
 
     Box(Modifier.fillMaxSize().background(palette.background)) {
         Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+            modifier = Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -390,13 +391,14 @@ private fun InvitedCard(
                     Text(invitee.displayName, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                     val level = invitee.level?.let { strings.inviteLevelChip.replace("{level}", "$it") }
                         ?: strings.inviteMember
-                    Text(
-                        "$level · ${strings.stateActive}",
-                        color = palette.mutedForeground,
-                        fontSize = 12.sp,
-                    )
+                    Text(level, color = palette.mutedForeground, fontSize = 12.sp)
                 }
-                Chip(strings.stateActive, palette.success, palette.successSubtle)
+                val active = invitee.state == "active"
+                Chip(
+                    if (active) strings.stateActive else strings.stateInactive,
+                    if (active) palette.success else palette.mutedForeground,
+                    if (active) palette.successSubtle else palette.muted,
+                )
             }
         }
         for (invitation in invitations.filter { it.state == "pending" }) {
@@ -716,7 +718,7 @@ private fun InviteQrScreen(
 
     Box(Modifier.fillMaxSize().background(palette.background)) {
         Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+            modifier = Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
