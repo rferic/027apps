@@ -52,8 +52,15 @@ export function MemberInvitationPanel({
   const router = useRouter();
   const isAdmin = member.role === "admin" || member.role === "super_admin";
   const [level, setLevel] = useState<number>(member.invitation_level ?? 1);
+  const [levelDraft, setLevelDraft] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The field may be empty while the admin types; only 1..20 is a valid level.
+  const levelValid =
+    levelDraft === null ||
+    (/^\d{1,2}$/.test(levelDraft) &&
+      Number(levelDraft) >= 1 &&
+      Number(levelDraft) <= MAX_LEVEL);
 
   async function saveLevel() {
     setSaving(true);
@@ -64,6 +71,7 @@ export function MemberInvitationPanel({
       setError(t("We couldn't save the level.", messages));
       return;
     }
+    setLevelDraft(null);
     router.refresh();
   }
 
@@ -124,20 +132,42 @@ export function MemberInvitationPanel({
             <label htmlFor="member-invitation-level" className="text-xs font-semibold">
               {t("Level", messages)}
             </label>
-            <select
+            <input
               id="member-invitation-level"
-              value={level}
+              type="number"
+              min={1}
+              max={MAX_LEVEL}
+              step={1}
+              value={levelDraft ?? String(level)}
               disabled={saving}
-              onChange={(event) => setLevel(Number(event.target.value))}
-              className={inputClass}
+              aria-label={t("Level", messages)}
+              onChange={(event) => {
+                const raw = event.target.value;
+                if (raw === "") {
+                  setLevelDraft("");
+                  return;
+                }
+                if (!/^\d{1,2}$/.test(raw)) return;
+                const next = Number(raw);
+                if (next >= 1 && next <= MAX_LEVEL) setLevel(next);
+                setLevelDraft(raw);
+              }}
+              onBlur={() => {
+                if (levelDraft === null) return;
+                if (!levelValid) {
+                  setLevelDraft(null);
+                  return;
+                }
+                setLevelDraft(String(level));
+              }}
+              className={`${inputClass} w-20`}
+            />
+            <button
+              type="button"
+              onClick={() => void saveLevel()}
+              disabled={saving || !levelValid}
+              className={buttonClass}
             >
-              {Array.from({ length: MAX_LEVEL }, (_, i) => i + 1).map((option) => (
-                <option key={option} value={option}>
-                  {t("Level {level}", messages, { level: option })}
-                </option>
-              ))}
-            </select>
-            <button type="button" onClick={() => void saveLevel()} disabled={saving} className={buttonClass}>
               {saving
                 ? t("Saving…", messages)
                 : member.invitation_level === null

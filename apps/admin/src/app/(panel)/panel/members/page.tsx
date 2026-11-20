@@ -137,6 +137,11 @@ function MemberBadges({ row, messages }: { row: MemberRow; messages: Translation
     <span className="flex flex-wrap items-center gap-1">
       <Badge variant={roleVariant(row.role)}>{roleLabel(row.role, messages)}</Badge>
       <Badge variant={statusVariant(row)}>{statusLabel(row, messages)}</Badge>
+      {row.invitation_level !== null && (
+        <Badge variant="neutral">
+          {t("Level {level}", messages, { level: row.invitation_level })}
+        </Badge>
+      )}
     </span>
   );
 }
@@ -177,6 +182,9 @@ function MembersTable({ rows, locale, timeZone, messages }: { rows: MemberRow[];
               {t("Role", messages)}
             </th>
             <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
+              {t("Level", messages)}
+            </th>
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Status", messages)}
             </th>
             <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
@@ -199,6 +207,7 @@ function MembersTable({ rows, locale, timeZone, messages }: { rows: MemberRow[];
               <td className="border-b border-border py-2 pr-3">
                 <Badge variant={roleVariant(row.role)}>{roleLabel(row.role, messages)}</Badge>
               </td>
+              <td className="border-b border-border py-2 pr-3">{row.invitation_level ?? "—"}</td>
               <td className="border-b border-border py-2 pr-3">
                 <Badge variant={statusVariant(row)}>{statusLabel(row, messages)}</Badge>
               </td>

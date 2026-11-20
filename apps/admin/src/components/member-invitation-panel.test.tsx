@@ -91,10 +91,13 @@ describe("MemberInvitationPanel", () => {
     expect(html).not.toContain(">Revoke</button>");
   });
 
-  it("offers a level selector for a member", () => {
+  it("offers a level input for a member", () => {
     const html = render({ invitation_level: 2 });
 
     expect(html).toContain('id="member-invitation-level"');
+    expect(html).toContain('type="number"');
+    expect(html).toContain('min="1"');
+    expect(html).toContain('max="20"');
     expect(html).toContain(">Save</button>");
   });
 
