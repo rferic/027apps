@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Caller, DoorDeps } from "../api/types";
 import type { RateLimitStorage } from "../api/rate-limit-storage";
-import { invitationRoute, invitationsRoute, type InvitationsRouteDeps } from "./api.js";
+import {
+  createMemberInvitationRoute,
+  invitationRoute,
+  invitationsRoute,
+  memberInvitationsRoute,
+  type InvitationsRouteDeps,
+} from "./api.js";
 import type { InvitationsAuth } from "./service.js";
 
 const admin: Caller = { kind: "session", userId: "admin-1", role: "admin" };
@@ -313,5 +319,52 @@ describe("invitation detail route", () => {
 
     expect(status).toBe(403);
     expect((body as { error: { code: string } }).error.code).toBe("insufficient_scope");
+  });
+});
+
+describe("member invitation rate limits", () => {
+  /**
+   * Every `identity: "user"` route without a bucket shares one minute counter.
+   * The link budget is 10, so a screen that polls (and reloads after each
+   * action) used to spend it and answer 429 to the next "Create link".
+   */
+  function memberDeps(storage: RateLimitStorage): InvitationsRouteDeps {
+    return {
+      door: { rateLimitStorage: storage, logger: () => {} },
+      auth: async () => ({ kind: "session", userId: "u1", role: "user" }),
+      invitations: {
+        db: { async query() { return { rows: [] }; } },
+        auth: unusedAuth,
+        now: () => new Date("2026-01-01T00:00:00.000Z"),
+      },
+    };
+  }
+
+  it("a screen full of reads never spends the create-link budget", async () => {
+    const keys: string[] = [];
+    const storage: RateLimitStorage = {
+      async increment(key) {
+        keys.push(key);
+        return { count: keys.filter((seen) => seen === key).length };
+      },
+    };
+    const deps = memberDeps(storage);
+
+    for (let i = 0; i < 12; i += 1) {
+      await memberInvitationsRoute(deps)(new Request("http://local/api/v1/me/invitations"));
+    }
+    const created = await createMemberInvitationRoute(deps)(
+      new Request("http://local/api/v1/me/invitations", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
+    );
+
+    // Reads keep their shared budget; the create has one of its own and is not
+    // refused because the screen refreshed.
+    expect(keys.filter((key) => key === "user:u1")).toHaveLength(12);
+    expect(keys).toContain("member-invite:u1");
+    expect(created.status).not.toBe(429);
   });
 });
