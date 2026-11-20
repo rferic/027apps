@@ -23,6 +23,9 @@ const submitSchema = z
     // Anonymous invitation: the name and email the invitee filled in.
     name: z.string().trim().min(1).max(80).optional(),
     email: z.string().trim().email().max(320).optional(),
+    // The invitee has already been told this email has an account and chose to
+    // sign in with it. Without it this action never signs anybody in.
+    accountExists: z.boolean().optional(),
   })
   .strict();
 
@@ -187,20 +190,41 @@ async function redeemNew(ctx: RedeemContext): Promise<SubmitInvitationResult> {
     );
   } catch (error) {
     // D11: an anonymous invitation redeemed with an email that already has an
-    // account — sign in and retry with the session, so the user completes in
-    // the browser instead of dead-ending. A wrong password leaves the
-    // invitation pending and reports the usual error.
+    // account. This action never signs in on the invitee's behalf: it says so
+    // and the form switches to "current password"; the confirmed retry
+    // (`accountExists`) is the only path that signs in.
     if (
       preview.requires_identity &&
       error instanceof DomainError &&
       error.code === "existing_account_signin_required"
     ) {
-      return redeemExistingSession(ctx, accountEmail);
+      return blocked("existing_account");
     }
     throw error;
   }
 
   return finishRedeemed(redeemed, ctx, accountEmail);
+}
+
+/**
+ * Who redeems: a named invitation whose account already exists, an anonymous
+ * one the invitee explicitly confirmed (`accountExists`), or a new account.
+ */
+async function redeemWith(
+  ctx: RedeemContext,
+  accountExists: boolean | undefined,
+): Promise<SubmitInvitationResult> {
+  if (ctx.preview.account_exists) return redeemExisting(ctx);
+  if (ctx.preview.requires_identity && accountExists === true && ctx.email) {
+    return redeemExistingSession(ctx, ctx.email);
+  }
+  return redeemNew(ctx);
+}
+
+/** An anonymous invitation needs the name and email the invitee typed. */
+function identityMissing(preview: InvitationPreview, name?: string, email?: string): boolean {
+  if (!preview.requires_identity) return false;
+  return !anonymousIdentityValid(name, email);
 }
 
 /** Keeps the invitation's language for `/welcome` and the panel after accepting. */
@@ -238,7 +262,7 @@ async function redeemablePreview(
 export async function submitInvitation(raw: unknown): Promise<SubmitInvitationResult> {
   const parsed = submitSchema.safeParse(raw);
   if (!parsed.success) return blocked("validation_failed");
-  const { token, password, name, email } = parsed.data;
+  const { token, password, name, email, accountExists } = parsed.data;
 
   const denied = await requestBlocked();
   if (denied) return denied;
@@ -251,16 +275,12 @@ export async function submitInvitation(raw: unknown): Promise<SubmitInvitationRe
 
     // The server action is directly invocable: an anonymous invitation without
     // a name or email is a validation error, not a TypeError deeper in.
-    if (preview.requires_identity && !anonymousIdentityValid(name, email)) {
-      return blocked("validation_failed");
-    }
+    if (identityMissing(preview, name, email)) return blocked("validation_failed");
 
     const supabase = await createSupabaseServerClient();
     const serviceDeps = await invitationServiceDeps();
     const context = { token, preview, password, name, email, supabase, serviceDeps };
-    const result = preview.account_exists
-      ? await redeemExisting(context)
-      : await redeemNew(context);
+    const result = await redeemWith(context, accountExists);
     if (result.ok) await rememberLocale(preview.locale);
     return result;
   } catch (error) {

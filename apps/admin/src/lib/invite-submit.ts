@@ -9,6 +9,8 @@ export type SubmitInvitation = (input: {
   /** Anonymous invitation: the name/email the invitee filled in. */
   name?: string;
   email?: string;
+  /** The invitee confirmed signing in with an account that already exists. */
+  accountExists?: boolean;
 }) => Promise<SubmitInvitationResult>;
 
 export type InviteSubmitInput = InviteFormInput & { token: string };
@@ -47,6 +49,9 @@ export async function submitInvite(
     // Only an anonymous invitation collects a name/email; a named one carries
     // them in the token and must not send empty strings that fail validation.
     ...(input.requiresIdentity ? { name: input.name, email: input.email } : {}),
+    // The form switched to "current password" after the server said the email
+    // has an account: this submit is the invitee confirming that sign-in.
+    ...(input.accountExists ? { accountExists: true } : {}),
   });
   if (!result.ok) return { kind: "failed", failure: { ok: false, code: result.code } };
 

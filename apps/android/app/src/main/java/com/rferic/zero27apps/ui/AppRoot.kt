@@ -112,6 +112,16 @@ fun AppRoot(
     var showingMigrationQr by rememberSaveable { mutableStateOf(false) }
     var showingInviteMembers by rememberSaveable { mutableStateOf(false) }
 
+    // Signing out is a clean slate: the next sign-in starts on the shell, not on
+    // whatever full screen the previous session left open.
+    LaunchedEffect(state is AppState.SignedIn) {
+        if (state !is AppState.SignedIn) {
+            showingInviteMembers = false
+            showingMigrationQr = false
+            scanningMigration = false
+        }
+    }
+
     LaunchedEffect(deepLink) {
         val link = deepLink ?: return@LaunchedEffect
         if (!viewModel.onMigrationLink(link) && !viewModel.onJoinLink(link)) viewModel.onInviteLink(link)

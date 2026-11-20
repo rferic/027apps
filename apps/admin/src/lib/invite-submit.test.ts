@@ -61,7 +61,12 @@ describe("submitInvite", () => {
     );
 
     expect(outcome).toEqual({ kind: "redeemed", role: "user" });
-    expect(submit).toHaveBeenCalledWith({ token: VALID.token, password: "old-pass" });
+    // The existing account is confirmed on the retry, never assumed.
+    expect(submit).toHaveBeenCalledWith({
+      token: VALID.token,
+      password: "old-pass",
+      accountExists: true,
+    });
   });
 
   it("collects the name and email on an anonymous invitation", async () => {

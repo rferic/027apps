@@ -170,18 +170,14 @@ describe("submitInvitation", () => {
     expect(result).toEqual({ ok: true, role: "admin" });
   });
 
-  it("signs in and retries with the session when an anonymous email already has an account", async () => {
+  it("never signs in on its own when an anonymous email already has an account", async () => {
     mocks.preview.mockResolvedValue({
       ...PREVIEW,
       requires_identity: true,
       email: null,
       name: null,
     });
-    mocks.redeem
-      .mockRejectedValueOnce(new DomainError("existing_account_signin_required"))
-      .mockResolvedValueOnce(redeemed("user"));
-    mocks.signIn.mockResolvedValue({ data: { user: { id: "u-existing" } }, error: null });
-    mocks.profileQuery.mockResolvedValue({ rows: [{ role: "user" }] });
+    mocks.redeem.mockRejectedValueOnce(new DomainError("existing_account_signin_required"));
 
     const result = await submitInvitation({
       token: TOKEN,
@@ -190,19 +186,36 @@ describe("submitInvitation", () => {
       email: "existing@example.com",
     });
 
+    // The form is told, switches to "current password", and nothing was spent.
+    expect(result).toEqual({ ok: false, code: "existing_account" });
+    expect(mocks.signIn).not.toHaveBeenCalled();
+    expect(mocks.redeem).toHaveBeenCalledTimes(1);
+  });
+
+  it("signs in and retries once the invitee confirms that account", async () => {
+    mocks.preview.mockResolvedValue({
+      ...PREVIEW,
+      requires_identity: true,
+      email: null,
+      name: null,
+    });
+    mocks.redeem.mockResolvedValueOnce(redeemed("user"));
+    mocks.profileQuery.mockResolvedValue({ rows: [{ role: "user" }] });
+
+    const result = await submitInvitation({
+      token: TOKEN,
+      password: "current-password",
+      name: "Invitada",
+      email: "existing@example.com",
+      accountExists: true,
+    });
+
     expect(mocks.signIn).toHaveBeenCalledWith({
       email: "existing@example.com",
       password: "current-password",
     });
-    expect(mocks.redeem).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      TOKEN,
-      { email: "existing@example.com", name: "Invitada", password: "current-password" },
-      { kind: "anon" },
-    );
-    expect(mocks.redeem).toHaveBeenNthCalledWith(
-      2,
+    // The confirmed path redeems once, with the session, never anonymously.
+    expect(mocks.redeem).toHaveBeenCalledWith(
       expect.anything(),
       TOKEN,
       { email: "existing@example.com" },
@@ -211,14 +224,13 @@ describe("submitInvitation", () => {
     expect(result).toEqual({ ok: true, role: "user", existingAccount: true });
   });
 
-  it("says the email already has an account when the typed password is wrong", async () => {
+  it("keeps the invitation pending when the confirmed sign-in password is wrong", async () => {
     mocks.preview.mockResolvedValue({
       ...PREVIEW,
       requires_identity: true,
       email: null,
       name: null,
     });
-    mocks.redeem.mockRejectedValueOnce(new DomainError("existing_account_signin_required"));
     mocks.signIn.mockResolvedValue({ data: { user: null }, error: { message: "Invalid" } });
 
     const result = await submitInvitation({
@@ -226,10 +238,11 @@ describe("submitInvitation", () => {
       password: "wrong-password",
       name: "Invitada",
       email: "existing@example.com",
+      accountExists: true,
     });
 
     expect(result).toEqual({ ok: false, code: "existing_account" });
-    expect(mocks.redeem).toHaveBeenCalledTimes(1); // no retry: the invitation stays pending
+    expect(mocks.redeem).not.toHaveBeenCalled();
     expect(mocks.setCookie).not.toHaveBeenCalled();
   });
 
