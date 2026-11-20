@@ -268,6 +268,8 @@ data class MeInvitationsResponse(
 /** `POST /me/invitations`: the token is returned exactly once, in the path. */
 @Serializable
 data class CreatedInvitationResponse(
+    /** The new invitation, so its QR dialog can also revoke it. */
+    val invitation: MemberInvitationDto? = null,
     val token: String = "",
     val path: String = "",
 )

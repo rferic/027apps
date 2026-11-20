@@ -874,6 +874,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun dismissShareLink() = inviteStore.dismissShareLink()
 
+    /** Revokes the pending invitation whose QR dialog is open. */
+    fun revokeFromShareLink(id: String) = inviteStore.revokeFromDialog(id)
+
     /** Clears the one-shot failure the invitation screen has already shown. */
     fun consumeInviteError() = inviteStore.consumeError()
 

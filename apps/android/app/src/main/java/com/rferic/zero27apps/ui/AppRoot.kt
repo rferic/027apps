@@ -205,7 +205,7 @@ fun AppRoot(
                             onCreateLink = viewModel::createInviteLink,
                             onRevealLink = viewModel::revealInvitationLink,
                             onDismissShareLink = viewModel::dismissShareLink,
-                            onRevoke = viewModel::revokeInvitation,
+                            onRevokeFromShareLink = viewModel::revokeFromShareLink,
                             onRequest = viewModel::requestQuota,
                             onCancelRequest = viewModel::cancelRequest,
                             onConsumeError = viewModel::consumeInviteError,

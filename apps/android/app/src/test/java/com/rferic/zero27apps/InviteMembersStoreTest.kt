@@ -295,11 +295,13 @@ class InviteMembersStoreTest {
 
         store.revealLink("i2")
 
-        val link = withTimeout(timeoutMs) { store.shareLink.first { it != null } }!!
+        // The dialog opens on a spinner first; wait for the re-issued link.
+        val link = withTimeout(timeoutMs) { store.shareLink.first { it?.url != null } }!!
         assertEquals(1, rotated)
         assertEquals("https://example.test/invite/027_inv_new", link.url)
         // The server only keeps the token hashed: the dialog warns that the
         // previous link stopped working.
         assertEquals(true, link.regenerated)
+        assertEquals("i2", link.invitationId)
     }
 }

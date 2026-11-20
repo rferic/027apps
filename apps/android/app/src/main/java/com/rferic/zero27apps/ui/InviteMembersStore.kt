@@ -82,7 +82,10 @@ class InviteMembersStore(
         scope.launch {
             try {
                 val created = client.createMemberInvitation()
-                _shareLink.value = InvitationShareLink(instanceBase().trimEnd('/') + created.path)
+                _shareLink.value = InvitationShareLink(
+                    url = instanceBase().trimEnd('/') + created.path,
+                    invitationId = created.invitation?.id,
+                )
                 reload()
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
@@ -98,19 +101,30 @@ class InviteMembersStore(
      */
     fun revealLink(id: String) {
         val client = api() ?: return
+        // The dialog opens straight away with a spinner: reopening is a round
+        // trip, and a dead tap would be the worst possible answer.
+        _shareLink.value = InvitationShareLink(loading = true, invitationId = id)
         scope.launch {
             try {
                 val rotated = client.rotateMemberInvitationLink(id)
                 _shareLink.value = InvitationShareLink(
-                    instanceBase().trimEnd('/') + rotated.path,
+                    url = instanceBase().trimEnd('/') + rotated.path,
                     regenerated = true,
+                    invitationId = id,
                 )
                 reload()
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
+                _shareLink.value = null
                 _state.value = _state.value.copy(error = inviteError(error))
             }
         }
+    }
+
+    /** Revokes the invitation whose dialog is open; closing it is the caller's. */
+    fun revokeFromDialog(id: String) {
+        revoke(id)
+        _shareLink.value = null
     }
 
     /** Closes the link dialog; the token is not kept anywhere else. */

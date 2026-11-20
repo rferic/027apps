@@ -154,7 +154,7 @@ fun InviteMembersScreen(
     onCreateLink: () -> Unit,
     onRevealLink: (String) -> Unit,
     onDismissShareLink: () -> Unit,
-    onRevoke: (String) -> Unit,
+    onRevokeFromShareLink: (String) -> Unit,
     onRequest: (Int, String?) -> Unit,
     onCancelRequest: (String) -> Unit,
     onConsumeError: () -> Unit,
@@ -174,7 +174,8 @@ fun InviteMembersScreen(
     shareLink?.let { link ->
         ShareLinkDialog(
             link = link,
-            onCopy = { copyToClipboard(context, link.url) },
+            onCopy = { link.url?.let { copyToClipboard(context, it) } },
+            onRevoke = onRevokeFromShareLink,
             onDismiss = onDismissShareLink,
         )
     }
@@ -233,7 +234,7 @@ fun InviteMembersScreen(
                         onShowQr = { showQr = true },
                         onCreateLink = onCreateLink,
                     )
-                    InvitedCard(state.invitees, state.invitations, onRevoke, onRevealLink)
+                    InvitedCard(state.invitees, state.invitations, onRevealLink)
                     AdminRequestsSection(
                         requests = state.adminRequests,
                         onManagePanel = { openUrl(context, "$instance/panel/requests") },
@@ -247,7 +248,6 @@ fun InviteMembersScreen(
                     requests = state.requests,
                     onShowQr = { showQr = true },
                     onCreateLink = onCreateLink,
-                    onRevoke = onRevoke,
                     onRevealLink = onRevealLink,
                     onRequest = onRequest,
                     onCancelRequest = onCancelRequest,
@@ -272,7 +272,6 @@ private fun MemberContent(
     requests: List<InvitationRequestDto>,
     onShowQr: () -> Unit,
     onCreateLink: () -> Unit,
-    onRevoke: (String) -> Unit,
     onRevealLink: (String) -> Unit,
     onRequest: (Int, String?) -> Unit,
     onCancelRequest: (String) -> Unit,
@@ -293,7 +292,7 @@ private fun MemberContent(
         }
     }
 
-    InvitedCard(invitees, invitations, onRevoke, onRevealLink)
+    InvitedCard(invitees, invitations, onRevealLink)
 
     val resolved = requests.filter { it.state != "pending" }
     if (resolved.isNotEmpty()) {
@@ -308,20 +307,24 @@ private fun MemberContent(
 }
 
 /**
- * The invitation link as a QR with a copy button. Reopening a pending
- * invitation re-issues its token (the server only keeps the hash), so the
- * dialog says so when the previous link stopped working.
+ * One dialog for the whole pending invitation: its QR, a copy button and the
+ * destructive action. Reopening a pending invitation re-issues its token (the
+ * server only keeps the hash), so the dialog says the previous link stopped
+ * working; revoking asks for confirmation before freeing the seat.
  */
 @Composable
 private fun ShareLinkDialog(
     link: InvitationShareLink,
     onCopy: () -> Unit,
+    onRevoke: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val strings = LocalStrings.current
     val palette = LocalPalette.current
-    val bitmap = remember(link.url) { runCatching { qrBitmap(link.url) }.getOrNull() }
-    var copied by remember(link.url) { mutableStateOf(false) }
+    val url = link.url
+    val bitmap = remember(url) { url?.let { runCatching { qrBitmap(it) }.getOrNull() } }
+    var copied by remember(url) { mutableStateOf(false) }
+    var confirmingRevoke by remember { mutableStateOf(false) }
     LaunchedEffect(copied) {
         if (!copied) return@LaunchedEffect
         delay(2_000)
@@ -338,34 +341,66 @@ private fun ShareLinkDialog(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(strings.inviteLinkTitle, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Text(
-                link.url,
-                fontSize = 11.sp,
-                color = palette.mutedForeground,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (bitmap != null) {
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = strings.inviteLinkTitle,
-                    modifier = Modifier.size(220.dp),
-                )
-            }
-            if (link.regenerated) {
+            if (url == null || link.loading) {
+                Box(Modifier.size(220.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = palette.accent)
+                }
+            } else {
                 Text(
-                    strings.inviteLinkRegenerated,
-                    fontSize = 12.sp,
+                    url,
+                    fontSize = 11.sp,
                     color = palette.mutedForeground,
                     textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
-            }
-            Button(onClick = { copied = true; onCopy() }, modifier = Modifier.fillMaxWidth()) {
-                Text(if (copied) strings.inviteCopied else strings.inviteQrCopyLink)
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = strings.inviteLinkTitle,
+                        modifier = Modifier.size(220.dp),
+                    )
+                }
+                if (link.regenerated) {
+                    Text(
+                        strings.inviteLinkRegenerated,
+                        fontSize = 12.sp,
+                        color = palette.mutedForeground,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                Button(onClick = { copied = true; onCopy() }, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (copied) strings.inviteCopied else strings.inviteQrCopyLink)
+                }
+                TextButton(
+                    onClick = { confirmingRevoke = true },
+                    enabled = link.invitationId != null,
+                ) {
+                    Text(strings.inviteRevoke, color = palette.destructive)
+                }
             }
             TextButton(onClick = onDismiss) { Text(strings.inviteClose) }
         }
+    }
+
+    val invitationId = link.invitationId
+    if (confirmingRevoke && invitationId != null) {
+        AppAlertDialog(
+            onDismissRequest = { confirmingRevoke = false },
+            title = { Text(strings.inviteRevokeTitle) },
+            text = { Text(strings.inviteRevokeBody) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmingRevoke = false
+                    onRevoke(invitationId)
+                }) {
+                    Text(strings.inviteRevoke, color = palette.destructive)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingRevoke = false }) { Text(strings.cancel) }
+            },
+        )
     }
 }
 
@@ -513,12 +548,10 @@ private fun Chip(label: String, color: Color, background: Color) {
 private fun InvitedCard(
     invitees: List<InviteeDto>,
     invitations: List<MemberInvitationDto>,
-    onRevoke: (String) -> Unit,
     onRevealLink: (String) -> Unit,
 ) {
     val strings = LocalStrings.current
     val palette = LocalPalette.current
-    var revokeTarget by remember { mutableStateOf<String?>(null) }
     if (invitees.isEmpty() && invitations.none { it.state == "pending" }) return
 
     Column(
@@ -553,7 +586,10 @@ private fun InvitedCard(
         }
         for (invitation in invitations.filter { it.state == "pending" }) {
             Row(
-                Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { onRevealLink(invitation.id) }
+                    .padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -583,35 +619,9 @@ private fun InvitedCard(
                         fontSize = 12.sp,
                     )
                 }
-                TextButton(onClick = { onRevealLink(invitation.id) }) {
-                    Text(strings.inviteShowQr, color = palette.accent, fontSize = 12.sp)
-                }
-                TextButton(onClick = { revokeTarget = invitation.id }) {
-                    Text(strings.inviteRevoke, color = palette.destructive, fontSize = 12.sp)
-                }
+                Text("›", color = palette.mutedForeground, fontSize = 18.sp)
             }
         }
-    }
-
-    // A destructive action: confirm before freeing the seat.
-    val target = revokeTarget
-    if (target != null) {
-        AppAlertDialog(
-            onDismissRequest = { revokeTarget = null },
-            title = { Text(strings.inviteRevokeTitle) },
-            text = { Text(strings.inviteRevokeBody) },
-            confirmButton = {
-                TextButton(onClick = {
-                    revokeTarget = null
-                    onRevoke(target)
-                }) {
-                    Text(strings.inviteRevoke, color = palette.destructive)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { revokeTarget = null }) { Text(strings.cancel) }
-            },
-        )
     }
 }
 
