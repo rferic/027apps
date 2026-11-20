@@ -137,6 +137,31 @@ jobs:
         run: pnpm --filter db-tests test
         env:
           SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      # The invitation gate walks the club flows the way a person does: mint,
+      # preview, redeem new, redeem with an existing email (409), confirm that
+      # account, re-issue, revoke, QR single use and the rate-limit buckets. It
+      # needs the panel answering, not just the database.
+      - name: Start the panel against the local stack
+        run: |
+          umask 077
+          cat > apps/admin/.env.local <<EOF
+          NEXT_PUBLIC_SUPABASE_URL=$SUPABASE_URL
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+          SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
+          SUPABASE_DB_URL=$SUPABASE_DB_URL
+          EOF
+          (cd apps/admin && PORT=3003 pnpm dev > /tmp/panel.log 2>&1 &)
+          for attempt in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:3003/api/v1/health > /dev/null 2>&1; then exit 0; fi
+            sleep 2
+          done
+          echo "::error::the panel did not answer at /api/v1/health"
+          tail -60 /tmp/panel.log || true
+          exit 1
+      - name: Invitation flows
+        run: bash scripts/qa-invitations.sh http://127.0.0.1:3003
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
 
   # Squash merge: the PR title is the commit message on main.
   commitlint:
