@@ -555,7 +555,10 @@ desviarse):
 ### 7.2 Invitar a alguien que no está (enlace)
 
 1. El miembro pulsa **Crear enlace**. `POST /me/invitations` reserva una plaza y devuelve el enlace,
-   que vive las horas de `invitations.member_ttl_hours` (48 por defecto).
+   que vive las horas de `invitations.member_ttl_hours` (48 por defecto). Un **administrador** puede
+   hacer lo mismo desde la app: su invitación es igual de anónima (rol `user`, `depth` 1) y no gasta
+   plaza porque es ilimitado. La invitación con email, rol, categoría y días sigue siendo solo del
+   panel.
 2. Lo comparte por WhatsApp, email o como quiera. La app no envía correo.
 3. El invitado abre `/invite/<token>` y sigue el mismo formulario. Si caduca, el invitador revoca y
    crea otro (no hay «renovar» de miembro). Caducar libera la reserva: la plaza vuelve a estar

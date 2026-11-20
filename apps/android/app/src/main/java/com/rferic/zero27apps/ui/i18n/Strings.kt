@@ -331,6 +331,8 @@ class Strings(private val values: Map<String, String>) {
     val inviteRequestCancelledNote: String get() = values.getValue("inviteRequestCancelledNote")
     val inviteInviteNow: String get() = values.getValue("inviteInviteNow")
     val inviteAdminRequestsTitle: String get() = values.getValue("inviteAdminRequestsTitle")
+    val inviteAdminInviteTitle: String get() = values.getValue("inviteAdminInviteTitle")
+    val inviteAdminInviteNote: String get() = values.getValue("inviteAdminInviteNote")
     val inviteAdminRequestsLead: String get() = values.getValue("inviteAdminRequestsLead")
     val inviteAdminRequestAsks: String get() = values.getValue("inviteAdminRequestAsks")
     val inviteManagePanel: String get() = values.getValue("inviteManagePanel")
@@ -690,6 +692,8 @@ object AppStrings {
         "inviteRequestCancelledNote" to "You withdrew it. The freed seat stays available.",
         "inviteInviteNow" to "Invite now",
         "inviteAdminRequestsTitle" to "Requests",
+        "inviteAdminInviteTitle" to "Invite someone now",
+        "inviteAdminInviteNote" to "An anonymous link or QR: 48 hours, member role, no seat spent. To invite by email with a role or category, use the panel.",
         "inviteAdminRequestsLead" to "Only administrators see this section. Nothing is approved here: it is managed in the panel.",
         "inviteAdminRequestAsks" to "Asks for {count} seats",
         "inviteManagePanel" to "Manage in the panel",
@@ -1036,6 +1040,8 @@ object AppStrings {
         "inviteRequestCancelledNote" to "La retiraste tú. La plaza liberada sigue disponible.",
         "inviteInviteNow" to "Invitar ahora",
         "inviteAdminRequestsTitle" to "Solicitudes",
+        "inviteAdminInviteTitle" to "Invitar a alguien ahora",
+        "inviteAdminInviteNote" to "Un enlace o QR anónimo: 48 horas, rol de miembro y no gasta plazas. Para invitar por email con rol o categoría, usa el panel.",
         "inviteAdminRequestsLead" to "Solo los administradores ven esta sección. Aquí no se aprueba: se gestiona en el panel.",
         "inviteAdminRequestAsks" to "Pide {count} plazas",
         "inviteManagePanel" to "Gestionar en el panel",
@@ -1382,6 +1388,8 @@ object AppStrings {
         "inviteRequestCancelledNote" to "La vas retirar tu. La plaça alliberada continua disponible.",
         "inviteInviteNow" to "Convida ara",
         "inviteAdminRequestsTitle" to "Sol·licituds",
+        "inviteAdminInviteTitle" to "Convida algú ara",
+        "inviteAdminInviteNote" to "Un enllaç o QR anònim: 48 hores, rol de membre i no gasta places. Per convidar per correu amb rol o categoria, fes servir el tauler.",
         "inviteAdminRequestsLead" to "Només els administradors veuen aquesta secció. Aquí no s'aprova: es gestiona al panell.",
         "inviteAdminRequestAsks" to "Demana {count} places",
         "inviteManagePanel" to "Gestiona-ho al panell",
@@ -1728,6 +1736,8 @@ object AppStrings {
         "inviteRequestCancelledNote" to "L'hai ritirata tu. Il posto liberato resta disponibile.",
         "inviteInviteNow" to "Invita ora",
         "inviteAdminRequestsTitle" to "Richieste",
+        "inviteAdminInviteTitle" to "Invita qualcuno ora",
+        "inviteAdminInviteNote" to "Un link o QR anonimo: 48 ore, ruolo membro e nessun posto consumato. Per invitare via email con ruolo o categoria, usa il pannello.",
         "inviteAdminRequestsLead" to "Solo gli amministratori vedono questa sezione. Qui non si approva: si gestisce nel pannello.",
         "inviteAdminRequestAsks" to "Chiede {count} posti",
         "inviteManagePanel" to "Gestisci nel pannello",
@@ -2074,6 +2084,8 @@ object AppStrings {
         "inviteRequestCancelledNote" to "Vous l'avez retirée. La place libérée reste disponible.",
         "inviteInviteNow" to "Inviter maintenant",
         "inviteAdminRequestsTitle" to "Demandes",
+        "inviteAdminInviteTitle" to "Inviter quelqu'un maintenant",
+        "inviteAdminInviteNote" to "Un lien ou un QR anonyme : 48 heures, rôle de membre et aucun siège consommé. Pour inviter par email avec un rôle ou une catégorie, utilisez le panneau.",
         "inviteAdminRequestsLead" to "Seuls les administrateurs voient cette section. Rien n'est approuvé ici : c'est géré dans le panneau.",
         "inviteAdminRequestAsks" to "Demande {count} places",
         "inviteManagePanel" to "Gérer dans le panneau",
@@ -2420,6 +2432,8 @@ object AppStrings {
         "inviteRequestCancelledNote" to "Du hast sie zurückgezogen. Der freigegebene Platz bleibt verfügbar.",
         "inviteInviteNow" to "Jetzt einladen",
         "inviteAdminRequestsTitle" to "Anfragen",
+        "inviteAdminInviteTitle" to "Jetzt jemanden einladen",
+        "inviteAdminInviteNote" to "Ein anonymer Link oder QR-Code: 48 Stunden, Mitgliedsrolle, kein Platz verbraucht. Um per E-Mail mit Rolle oder Kategorie einzuladen, nutze das Panel.",
         "inviteAdminRequestsLead" to "Nur Administratoren sehen diesen Abschnitt. Hier wird nichts genehmigt: das passiert im Panel.",
         "inviteAdminRequestAsks" to "Fragt {count} Plätze",
         "inviteManagePanel" to "Im Panel verwalten",
@@ -2766,6 +2780,8 @@ object AppStrings {
         "inviteRequestCancelledNote" to "Retiraste-o tu. O lugar libertado continua disponível.",
         "inviteInviteNow" to "Convidar agora",
         "inviteAdminRequestsTitle" to "Pedidos",
+        "inviteAdminInviteTitle" to "Convidar alguém agora",
+        "inviteAdminInviteNote" to "Uma ligação ou QR anónimo: 48 horas, função de membro e nenhum lugar gasto. Para convidar por email com função ou categoria, usa o painel.",
         "inviteAdminRequestsLead" to "Só os administradores veem esta secção. Aqui não se aprova: gere-se no painel.",
         "inviteAdminRequestAsks" to "Pede {count} lugares",
         "inviteManagePanel" to "Gerir no painel",
@@ -3112,6 +3128,8 @@ object AppStrings {
         "inviteRequestCancelledNote" to "Retiráchela ti. A praza liberada segue dispoñible.",
         "inviteInviteNow" to "Convidar agora",
         "inviteAdminRequestsTitle" to "Solicitudes",
+        "inviteAdminInviteTitle" to "Convidar a alguén agora",
+        "inviteAdminInviteNote" to "Unha ligazón ou QR anónimo: 48 horas, rol de membro e non gasta prazas. Para convidar por email con rol ou categoría, usa o panel.",
         "inviteAdminRequestsLead" to "Só os administradores ven esta sección. Aquí non se aproba: xestiónase no panel.",
         "inviteAdminRequestAsks" to "Pide {count} prazas",
         "inviteManagePanel" to "Xestionar no panel",
@@ -3458,6 +3476,8 @@ object AppStrings {
         "inviteRequestCancelledNote" to "Zuk kendu zenuen. Askatu den tokia erabilgarri jarraitzen du.",
         "inviteInviteNow" to "Gonbidatu orain",
         "inviteAdminRequestsTitle" to "Eskaerak",
+        "inviteAdminInviteTitle" to "Norbait orain gonbidatu",
+        "inviteAdminInviteNote" to "Esteka edo QR anonimoa: 48 ordu, kide rola eta plazarik gastatu gabe. Rol edo kategoriarekin email bidez gonbidatzeko, erabili panela.",
         "inviteAdminRequestsLead" to "Administratzaileek soilik ikusten dute atal hau. Hemen ez da onartzen: panelean kudeatzen da.",
         "inviteAdminRequestAsks" to "{count} toki eskatzen ditu",
         "inviteManagePanel" to "Kudeatu panelean",

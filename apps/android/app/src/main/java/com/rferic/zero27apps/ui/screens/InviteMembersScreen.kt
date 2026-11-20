@@ -223,10 +223,17 @@ fun InviteMembersScreen(
 
                 state.error != null && state.quota == null -> ErrorCard(state.error, strings, palette, onRefresh)
 
-                isAdmin(user) -> AdminRequestsSection(
-                    requests = state.adminRequests,
-                    onManagePanel = { openUrl(context, "$instance/panel/requests") },
-                )
+                isAdmin(user) -> {
+                    AdminInviteSection(
+                        onShowQr = { showQr = true },
+                        onCreateLink = onCreateLink,
+                    )
+                    InvitedCard(state.invitees, state.invitations, onRevoke)
+                    AdminRequestsSection(
+                        requests = state.adminRequests,
+                        onManagePanel = { openUrl(context, "$instance/panel/requests") },
+                    )
+                }
 
                 state.quota != null -> MemberContent(
                     quota = state.quota,
@@ -269,26 +276,7 @@ private fun MemberContent(
     QuotaCard(quota)
 
     if (quota.remaining > 0) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Button(
-                onClick = onShowQr,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = palette.accent,
-                    contentColor = palette.accentForeground,
-                ),
-            ) { Text(strings.inviteShowQr, fontSize = 13.sp) }
-            Button(
-                onClick = onCreateLink,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = palette.primary,
-                    contentColor = palette.primaryForeground,
-                ),
-            ) { Text(strings.inviteCreateLink, fontSize = 13.sp) }
-        }
+        InviteActionsRow(onShowQr = onShowQr, onCreateLink = onCreateLink)
     } else {
         val pending = quota.pendingRequest
         if (pending != null) {
@@ -310,6 +298,57 @@ private fun MemberContent(
         fontSize = 12.sp,
         color = palette.mutedForeground,
     )
+}
+
+/** The two ways to bring somebody in: a rotating QR and a shareable link. */
+@Composable
+private fun InviteActionsRow(onShowQr: () -> Unit, onCreateLink: () -> Unit) {
+    val strings = LocalStrings.current
+    val palette = LocalPalette.current
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Button(
+            onClick = onShowQr,
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = palette.accent,
+                contentColor = palette.accentForeground,
+            ),
+        ) { Text(strings.inviteShowQr, fontSize = 13.sp) }
+        Button(
+            onClick = onCreateLink,
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = palette.primary,
+                contentColor = palette.primaryForeground,
+            ),
+        ) { Text(strings.inviteCreateLink, fontSize = 13.sp) }
+    }
+}
+
+/**
+ * An administrator has no quota, so this replaces the quota card and the
+ * ask-for-seats flow: the same anonymous link and QR a member mints, with the
+ * role `user` and no seat spent. The richer invitation (email, role, category,
+ * days) stays in the panel.
+ */
+@Composable
+private fun AdminInviteSection(onShowQr: () -> Unit, onCreateLink: () -> Unit) {
+    val strings = LocalStrings.current
+    val palette = LocalPalette.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(palette.surface, RoundedCornerShape(16.dp))
+            .border(1.dp, palette.border, RoundedCornerShape(16.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(strings.inviteAdminInviteTitle, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Text(strings.inviteAdminInviteNote, fontSize = 12.sp, color = palette.mutedForeground)
+        InviteActionsRow(onShowQr = onShowQr, onCreateLink = onCreateLink)
+    }
 }
 
 /** The quota card: the big number, the breakdown and the progress bar. */

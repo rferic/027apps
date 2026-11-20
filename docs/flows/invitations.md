@@ -99,6 +99,11 @@ ajuste no alarga ni mata un enlace ya entregado. El invitado hereda:
 - **módulos**: los `user_modules` activos del invitador que sean `is_public = true` o
   `module_registry.delegable = true`.
 
+Un **administrador** también puede acuñar esta invitación anónima desde la app (no gasta plazas y su
+invitado queda en nivel 1, rol `user`): sirve para «ven, entra ahora». La invitación con nombre,
+email, rol de administrador, categoría y días sigue viviendo solo en el panel, porque esas
+decisiones no caben en el flujo anónimo.
+
 El invitador no elige ni ve una lista editable; el panel sí muestra el paquete resultante. Un
 privado solo se hereda si el administrador lo marcó **delegable**. Si se pierde el enlace, se
 revoca y se crea otro (no hay «renovar» de miembro). La app no envía correo: el enlace se comparte
