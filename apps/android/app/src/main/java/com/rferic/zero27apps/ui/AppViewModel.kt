@@ -871,6 +871,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** Consumes the link the screen copied, so a re-open does not copy it twice. */
     fun consumeCreatedLink() = inviteStore.consumeCreatedLink()
 
+    /** Clears the one-shot failure the invitation screen has already shown. */
+    fun consumeInviteError() = inviteStore.consumeError()
+
     /** `DELETE /me/invitations/{id}`: revokes one of the caller's pending invitations. */
     fun revokeInvitation(id: String) = inviteStore.revoke(id)
 

@@ -125,6 +125,16 @@ internal fun expiryLabel(
 }
 
 /**
+ * The one-line message a failed action shows: it replaces the action, so it
+ * says what to do next instead of only naming the error.
+ */
+private fun inviteActionMessage(error: InviteMembersError, strings: Strings): String = when (error) {
+    InviteMembersError.RATE_LIMITED -> strings.inviteRateLimitedHint
+    InviteMembersError.QUOTA -> strings.inviteNoSeatsHint
+    else -> strings.inviteLoadFailedHint
+}
+
+/**
  * The invitation screen: the caller's quota, the Invite/Ask actions, their
  * invitees and pending links, their quota requests, and — for an administrator
  * — a read-only list of the pending requests (managed in the panel).
@@ -143,6 +153,7 @@ fun InviteMembersScreen(
     onRevoke: (String) -> Unit,
     onRequest: (Int, String?) -> Unit,
     onCancelRequest: (String) -> Unit,
+    onConsumeError: () -> Unit,
     onMintQr: () -> Unit,
     onStopQr: () -> Unit,
 ) {
@@ -161,6 +172,16 @@ fun InviteMembersScreen(
         copyToClipboard(context, link)
         onConsumeCreatedLink()
         scope.launch { snackbar.showSnackbar(strings.inviteCopied) }
+    }
+
+    // A failed action used to be silent once the quota was loaded: the error was
+    // only drawn while there was no data at all, so "Crear enlace" could answer
+    // 429 and look like a dead button.
+    LaunchedEffect(state.error, state.quota) {
+        val error = state.error ?: return@LaunchedEffect
+        if (state.quota == null) return@LaunchedEffect
+        snackbar.showSnackbar(inviteActionMessage(error, strings))
+        onConsumeError()
     }
 
     if (showQr) {

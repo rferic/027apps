@@ -92,6 +92,15 @@ class InviteMembersStore(
         _createdLink.value = null
     }
 
+    /**
+     * Clears a mutation failure once the screen has shown it. The state keeps
+     * the loaded quota and links: only the one-shot message is consumed, so the
+     * next failure of the same kind shows up again.
+     */
+    fun consumeError() {
+        _state.value = _state.value.copy(error = null)
+    }
+
     /** `DELETE /me/invitations/{id}`: revoke one of the caller's pending invitations. */
     fun revoke(id: String) {
         val client = api() ?: return
@@ -163,6 +172,7 @@ class InviteMembersStore(
     private fun inviteError(error: Exception): InviteMembersError = when {
         error is java.io.IOException || error.cause is java.io.IOException -> InviteMembersError.NETWORK
         (error as? ApiException)?.code == "rate_limited" -> InviteMembersError.RATE_LIMITED
+        (error as? ApiException)?.code == "invitation_quota_exhausted" -> InviteMembersError.QUOTA
         else -> InviteMembersError.GENERIC
     }
 

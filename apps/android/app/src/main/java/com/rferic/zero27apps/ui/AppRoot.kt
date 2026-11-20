@@ -207,6 +207,7 @@ fun AppRoot(
                             onRevoke = viewModel::revokeInvitation,
                             onRequest = viewModel::requestQuota,
                             onCancelRequest = viewModel::cancelRequest,
+                            onConsumeError = viewModel::consumeInviteError,
                             onMintQr = viewModel::createJoinCode,
                             onStopQr = viewModel::stopJoinCode,
                         )

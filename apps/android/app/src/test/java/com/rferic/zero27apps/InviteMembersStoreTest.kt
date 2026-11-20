@@ -2,6 +2,7 @@ package com.rferic.zero27apps
 
 import com.rferic.zero27apps.data.ApiClient
 import com.rferic.zero27apps.data.RefreshResult
+import com.rferic.zero27apps.ui.InviteMembersError
 import com.rferic.zero27apps.ui.InviteMembersStore
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -88,6 +89,67 @@ class InviteMembersStoreTest {
 
         withTimeout(timeoutMs) { store.state.first { it.invitations.size == 1 } }
         assertEquals(1, gets)
+    }
+
+    @Test
+    fun `a rejected link keeps the quota and reports why, once`() = runBlocking {
+        val engine = MockEngine { request ->
+            when {
+                request.method == HttpMethod.Post && request.url.encodedPath == "/api/v1/me/invitations" ->
+                    respond(
+                        """{"error":{"code":"rate_limited"}}""",
+                        HttpStatusCode.TooManyRequests,
+                        json,
+                    )
+                else -> respond(
+                    """{"quota":{"base":5,"granted":0,"used":0,"reserved":0,"remaining":5,"unlimited":false},
+                        "invitations":[],"invitees":[],"requests":[]}""",
+                    HttpStatusCode.OK,
+                    json,
+                )
+            }
+        }
+        val store = store(engine, this)
+        store.load()
+        withTimeout(timeoutMs) { store.state.first { it.quota != null } }
+
+        store.createLink()
+
+        // The quota stays on screen: only the message is new, so the button is
+        // not replaced by a full-screen error card.
+        val failed = withTimeout(timeoutMs) { store.state.first { it.error != null } }
+        assertEquals(InviteMembersError.RATE_LIMITED, failed.error)
+        assertEquals(5, failed.quota?.remaining)
+
+        store.consumeError()
+        assertNull(store.state.value.error)
+        assertEquals(5, store.state.value.quota?.remaining)
+    }
+
+    @Test
+    fun `a spent quota is reported as such`() = runBlocking {
+        val engine = MockEngine { request ->
+            when {
+                request.method == HttpMethod.Post && request.url.encodedPath == "/api/v1/me/invitations" ->
+                    respond(
+                        """{"error":{"code":"invitation_quota_exhausted"}}""",
+                        HttpStatusCode.Conflict,
+                        json,
+                    )
+                else -> respond(
+                    """{"quota":{"base":5,"granted":0,"used":0,"reserved":0,"remaining":5,"unlimited":false},
+                        "invitations":[],"invitees":[],"requests":[]}""",
+                    HttpStatusCode.OK,
+                    json,
+                )
+            }
+        }
+        val store = store(engine, this)
+
+        store.createLink()
+
+        val failed = withTimeout(timeoutMs) { store.state.first { it.error != null } }
+        assertEquals(InviteMembersError.QUOTA, failed.error)
     }
 
     @Test

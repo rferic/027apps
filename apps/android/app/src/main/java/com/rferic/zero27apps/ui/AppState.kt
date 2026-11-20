@@ -94,7 +94,7 @@ data class MigrationState(
 )
 
 /** Why loading the invitation screen failed; mapped to localised copy. */
-enum class InviteMembersError { NETWORK, RATE_LIMITED, GENERIC }
+enum class InviteMembersError { NETWORK, RATE_LIMITED, QUOTA, GENERIC }
 
 /**
  * The invitation screen's data, loaded from `GET /me/invitations` and the admin
