@@ -71,15 +71,17 @@ export function fieldProps(
 export function InviteFailureAlert({
   failure,
   messages,
+  anonymous = false,
 }: {
   failure: MutationFailure;
   messages: TranslationMap;
+  anonymous?: boolean;
 }) {
   const forgot = failure.code === "wrong_credentials";
   return (
     <>
       <FormAlert
-        message={inviteErrorHeading(failure, messages)}
+        message={inviteErrorHeading(failure, messages, anonymous)}
         requestId={failure.requestId}
         messages={messages}
       />
@@ -375,7 +377,13 @@ export function InviteForm({
         />
       )}
 
-      {failure && <InviteFailureAlert failure={failure} messages={messages} />}
+      {failure && (
+        <InviteFailureAlert
+          failure={failure}
+          messages={messages}
+          anonymous={view.requires_identity}
+        />
+      )}
 
       <FormActions>
         {existing && (

@@ -160,6 +160,7 @@
   "Changes saved.": "Alterações guardadas.",
   "Check that the Firebase Cloud Messaging API is enabled for this project in Google Cloud.": "Verifique se a API do Firebase Cloud Messaging está ativada para este projeto no Google Cloud.",
   "Check the inbox (and spam) of {email}. Running locally, Supabase captures mail in its own inbox viewer (Mailpit) instead of delivering it. Nothing yet? Check the SMTP settings in Supabase.": "Verifique a caixa de entrada (e o spam) de {email}. Em execução local, o Supabase captura o e-mail em seu próprio visualizador de caixa de entrada (Mailpit) em vez de entregá-lo. Ainda nada? Verifique as configurações de SMTP no Supabase.",
+  "Check the name, the email and the password: the password needs at least 12 characters.": "Verifica o nome, o email e a palavra-passe: a palavra-passe precisa de 12 caracteres no mínimo.",
   "Choose a new password": "Escolhe uma palavra-passe nova",
   "Choose a role cap.": "Escolha um limite de função.",
   "Choose a valid IANA time zone.": "Escolha um fuso horário IANA válido.",

@@ -160,6 +160,7 @@
   "Changes saved.": "Aldaketak gordeta.",
   "Check that the Firebase Cloud Messaging API is enabled for this project in Google Cloud.": "Egiaztatu Firebase Cloud Messaging API gaituta dagoela proiektu honentzat Google Cloud-en.",
   "Check the inbox (and spam) of {email}. Running locally, Supabase captures mail in its own inbox viewer (Mailpit) instead of delivering it. Nothing yet? Check the SMTP settings in Supabase.": "Begiratu {email} helbidearen sarrera-ontzira (eta spam-era). Lokalean exekutatzean, Supabase-k posta bere sarrera-ontziaren ikustailean (Mailpit) hartzen du, entregatu beharrean. Oraindik ezer? Egiaztatu Supabase-ko SMTP ezarpenak.",
+  "Check the name, the email and the password: the password needs at least 12 characters.": "Egiaztatu izena, emaila eta pasahitza: pasahitzak gutxienez 12 karaktere behar ditu.",
   "Choose a new password": "Aukeratu pasahitz berri bat",
   "Choose a role cap.": "Aukeratu rol-muga bat.",
   "Choose a valid IANA time zone.": "Hautatu IANA ordu-zona baliozkoa.",

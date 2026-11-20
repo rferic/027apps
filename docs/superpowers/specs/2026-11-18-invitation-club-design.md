@@ -396,7 +396,9 @@ desviarse):
 
 **`POST /api/v1/me/invitations/{id}/link`** · sesión · 10/min (misma cubeta que crear).
 
-- Reacuña el token de una invitación propia pendiente: 200 `{ token, path }`, devuelto **una vez**.
+- Reacuña el token de una invitación propia pendiente **y anónima** (`source in ('member','qr')`):
+  200 `{ token, path }`, devuelto **una vez**. Una invitación con nombre es del panel (renovar o
+  reenviar); rotarla desde la app mataría un enlace ya enviado por correo y responde `404`.
   El servidor solo guarda el hash, así que esta es la forma de volver a enseñar el QR; el enlace
   anterior deja de funcionar.
 - No toca `expires_at`: reabrir no alarga la invitación.

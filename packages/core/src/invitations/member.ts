@@ -191,11 +191,13 @@ export async function createMemberInvitation(
 }
 
 /**
- * Re-issues the link of one of the caller's own pending invitations
- * (`POST /me/invitations/{id}/link`). The token is only stored hashed, so a
- * link that was lost cannot be shown again: the same invitation gets a fresh
- * token and the previous link stops working. `expires_at` is left alone —
- * showing it again is not a new invitation, so it never extends the deadline.
+ * Re-issues the link of one of the caller's own pending **anonymous**
+ * invitations (`POST /me/invitations/{id}/link`). A named invitation belongs to
+ * the panel, which renews or resends it; rotating it from the app must not kill
+ * an emailed link. The token is only stored hashed, so a link that was lost
+ * cannot be shown again: the same invitation gets a fresh token and the
+ * previous link stops working. `expires_at` is left alone — showing it again is
+ * not a new invitation, so it never extends the deadline.
  */
 export async function rotateOwnInvitationLink(
   deps: InvitationsDeps,
@@ -207,6 +209,7 @@ export async function rotateOwnInvitationLink(
   const { rows } = await deps.db.query(
     `update public.invitations set token_hash = $1
       where id = $2 and created_by = $3
+        and source in ('member', 'qr') and email is null
         and used_at is null and revoked_at is null and expires_at > now()
       returning id`,
     [hashInviteToken(token), id, caller.userId],

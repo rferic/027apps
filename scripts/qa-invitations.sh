@@ -251,6 +251,37 @@ check(status == 404, "the previous link stops working", str(status))
 status, _ = call("GET", api(f"/invitations/{new_token}/preview"))
 check(status == 200, "the new link previews", str(status))
 
+print("\n-- la caducidad configurable manda en el enlace nuevo")
+original_ttl = psql("select value::text from public.settings where key = 'invitations.member_ttl_hours'")
+psql("update public.settings set value = '1'::jsonb where key = 'invitations.member_ttl_hours'")
+try:
+    status, short_link = call("POST", api("/me/invitations"), {}, token=admin_token)
+    expires = ((short_link or {}).get("invitation") or {}).get("expires_at", "")
+    check(status == 201, "a link is minted with a 1-hour setting", str(status))
+    from datetime import datetime, timezone
+    expires_at = datetime.fromisoformat(expires.replace("Z", "+00:00"))
+    hours = (expires_at - datetime.now(timezone.utc)).total_seconds() / 3600
+    check(0.9 <= hours <= 1.05, "the link lives one hour, not the old 48", f"{hours:.2f} h")
+    # Leave no extra pending link behind: the quota checks below count them.
+    call("DELETE", api(f"/me/invitations/{((short_link or {}).get('invitation') or {}).get('id')}"),
+         token=admin_token)
+finally:
+    psql(f"update public.settings set value = '{original_ttl}'::jsonb "
+         "where key = 'invitations.member_ttl_hours'")
+status, own = call("GET", api("/me/invitations"), token=admin_token)
+check(status == 200, "the original lifetime is restored", str(status))
+
+print("\n-- una invitación con nombre no se rota desde la app")
+status, named = call(
+    "POST", api("/invitations"),
+    {"email": f"qa-invite-named-{uuid.uuid4().hex[:8]}@test.local", "name": "QA Named"},
+    token=admin_token,
+)
+named_id = ((named or {}).get("invitation") or {}).get("id", "")
+check(status == 201 and bool(named_id), "the panel mints a named invitation", f"{status} {named}")
+status, refused_rotate = call("POST", api(f"/me/invitations/{named_id}/link"), {}, token=admin_token)
+check(status == 404, "rotating it is refused with 404", f"{status} {refused_rotate}")
+
 print("\n-- revocar libera la plaza")
 status, _ = call("DELETE", api(f"/me/invitations/{third_id}"), token=admin_token)
 check(status == 204, "the revoke answers 204", str(status))

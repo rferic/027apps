@@ -588,7 +588,8 @@ private fun InvitedCard(
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .clickable { onRevealLink(invitation.id) }
+                    // A screen reader needs the action named, not just "row".
+                    .clickable(onClickLabel = strings.inviteShowQr) { onRevealLink(invitation.id) }
                     .padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),

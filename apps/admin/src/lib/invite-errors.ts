@@ -47,11 +47,23 @@ function accountHeading(code: string | undefined, messages: TranslationMap): str
   }
 }
 
-/** The request never got a usable answer. */
-function requestHeading(code: string | undefined, messages: TranslationMap): string {
+/**
+ * The request never got a usable answer. `anonymous` is an invitation with no
+ * address in the token: there is no "email it was sent to" to point at.
+ */
+function requestHeading(
+  code: string | undefined,
+  messages: TranslationMap,
+  anonymous: boolean,
+): string {
   switch (code) {
     case "validation_failed":
-      return t("Use the email address this invitation was sent to.", messages);
+      return anonymous
+        ? t(
+            "Check the name, the email and the password: the password needs at least 12 characters.",
+            messages,
+          )
+        : t("Use the email address this invitation was sent to.", messages);
     case "rate_limited":
       return t("Too many attempts. Wait a minute and try again.", messages);
     default:
@@ -62,11 +74,12 @@ function requestHeading(code: string | undefined, messages: TranslationMap): str
 export function inviteErrorHeading(
   failure: MutationFailure | null,
   messages: TranslationMap,
+  anonymous = false,
 ): string {
   const code = failure?.code;
   return (
     lifecycleHeading(code, messages) ??
     accountHeading(code, messages) ??
-    requestHeading(code, messages)
+    requestHeading(code, messages, anonymous)
   );
 }

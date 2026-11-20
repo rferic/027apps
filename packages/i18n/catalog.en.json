@@ -172,6 +172,7 @@
   "Changes saved.",
   "Check that the Firebase Cloud Messaging API is enabled for this project in Google Cloud.",
   "Check the inbox (and spam) of {email}. Running locally, Supabase captures mail in its own inbox viewer (Mailpit) instead of delivering it. Nothing yet? Check the SMTP settings in Supabase.",
+  "Check the name, the email and the password: the password needs at least 12 characters.",
   "Choose a new password",
   "Choose a role cap.",
   "Choose a valid IANA time zone.",

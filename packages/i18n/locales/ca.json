@@ -160,6 +160,7 @@
   "Changes saved.": "Canvis desats.",
   "Check that the Firebase Cloud Messaging API is enabled for this project in Google Cloud.": "Comprova que l'API de Firebase Cloud Messaging estigui habilitada per a aquest projecte a Google Cloud.",
   "Check the inbox (and spam) of {email}. Running locally, Supabase captures mail in its own inbox viewer (Mailpit) instead of delivering it. Nothing yet? Check the SMTP settings in Supabase.": "Revisa la safata d'entrada (i la brossa) de {email}. Quan s'executa en local, Supabase captura el correu al seu propi visor de safata (Mailpit) en lloc de lliurar-lo. Encara res? Verifica la configuració SMTP de Supabase.",
+  "Check the name, the email and the password: the password needs at least 12 characters.": "Revisa el nom, el correu i la contrasenya: la contrasenya necessita 12 caràcters com a mínim.",
   "Choose a new password": "Tria una contrasenya nova",
   "Choose a role cap.": "Tria un límit de rol.",
   "Choose a valid IANA time zone.": "Tria una zona horària IANA vàlida.",
