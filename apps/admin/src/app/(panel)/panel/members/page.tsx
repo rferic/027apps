@@ -126,6 +126,22 @@ function statusLabel(row: MemberRow, messages: TranslationMap): string {
   return row.deactivated_at === null ? t("Active", messages) : t("Deactivated", messages);
 }
 
+/** A visual depth: level 1 is the warmest, level 2 neutral, the rest muted. */
+function levelVariant(level: number): BadgeVariant {
+  if (level === 1) return "warning";
+  if (level === 2) return "neutral";
+  return "outline";
+}
+
+function LevelBadge({ level, messages }: { level: number | null; messages: TranslationMap }) {
+  if (level === null) return <span className="text-muted-foreground">—</span>;
+  return (
+    <Badge variant={levelVariant(level)}>
+      {t("Level {level}", messages, { level })}
+    </Badge>
+  );
+}
+
 /** A failed lookup is not the same as an account without email. */
 function emailLabel(row: MemberRow, messages: TranslationMap): string {
   if (row.emailUnavailable) return t("Email unavailable", messages);
@@ -138,9 +154,7 @@ function MemberBadges({ row, messages }: { row: MemberRow; messages: Translation
       <Badge variant={roleVariant(row.role)}>{roleLabel(row.role, messages)}</Badge>
       <Badge variant={statusVariant(row)}>{statusLabel(row, messages)}</Badge>
       {row.invitation_level !== null && (
-        <Badge variant="neutral">
-          {t("Level {level}", messages, { level: row.invitation_level })}
-        </Badge>
+        <LevelBadge level={row.invitation_level} messages={messages} />
       )}
     </span>
   );
@@ -207,7 +221,9 @@ function MembersTable({ rows, locale, timeZone, messages }: { rows: MemberRow[];
               <td className="border-b border-border py-2 pr-3">
                 <Badge variant={roleVariant(row.role)}>{roleLabel(row.role, messages)}</Badge>
               </td>
-              <td className="border-b border-border py-2 pr-3">{row.invitation_level ?? "—"}</td>
+              <td className="border-b border-border py-2 pr-3">
+                <LevelBadge level={row.invitation_level} messages={messages} />
+              </td>
               <td className="border-b border-border py-2 pr-3">
                 <Badge variant={statusVariant(row)}>{statusLabel(row, messages)}</Badge>
               </td>

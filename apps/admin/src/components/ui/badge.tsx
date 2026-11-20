@@ -1,12 +1,14 @@
 import type { HTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
-export type BadgeVariant = "success" | "destructive" | "neutral";
+export type BadgeVariant = "success" | "destructive" | "neutral" | "warning" | "outline";
 
 const variantClasses: Record<BadgeVariant, string> = {
   success: "bg-success-subtle text-success",
   destructive: "bg-destructive/10 text-destructive",
   neutral: "bg-muted text-muted-foreground",
+  warning: "bg-warning/10 text-warning",
+  outline: "border border-border text-muted-foreground",
 };
 
 const baseClasses =
