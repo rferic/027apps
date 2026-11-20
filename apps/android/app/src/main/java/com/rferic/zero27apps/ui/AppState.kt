@@ -66,6 +66,12 @@ data class InviteState(
     val error: InviteError? = null,
     /** Signed in as this account: accepting needs a sign-out the person confirms. */
     val confirmSwitch: String? = null,
+    /**
+     * The email typed on an anonymous invitation already has an account (D11).
+     * The form switches to asking for that account's current password instead
+     * of a new one, and the invitation stays pending.
+     */
+    val signInRequired: Boolean = false,
 )
 
 /** Old<->new phone migration (QR); the screens render from this one value. */

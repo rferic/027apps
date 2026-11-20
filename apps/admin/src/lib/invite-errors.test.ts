@@ -21,6 +21,10 @@ describe("inviteErrorHeading", () => {
     ["not_found", "This invitation link is not valid."],
     ["invitation_expired", "This invitation has expired. Ask an administrator for a new one."],
     ["invitation_used", "This invitation has already been used."],
+    [
+      "existing_account",
+      "That email already has an account. Enter its current password to accept the invitation.",
+    ],
     ["conflict", "This account is deactivated. Contact an administrator."],
     ["validation_failed", "Use the email address this invitation was sent to."],
     ["rate_limited", "Too many attempts. Wait a minute and try again."],

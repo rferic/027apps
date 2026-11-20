@@ -135,7 +135,10 @@ como se quiera.
    - email nuevo → crea el usuario de Auth y el perfil con el nombre escrito, `invited_by` e
      `invite_level` de la invitación;
    - email existente → `existing_account_signin_required`, el cliente firma con Supabase y reintenta
-     con el Bearer; la cuenta conserva nombre, rol, nivel y `invited_by`.
+     con el Bearer; la cuenta conserva nombre, rol, nivel y `invited_by`. Si la contraseña no es la
+     suya, el cliente **no** responde un «contraseña incorrecta» seco: dice «ese email ya tiene
+     cuenta, escribe su contraseña actual» y el formulario pasa a pedirla. La invitación sigue
+     pendiente y no se consume.
 3. Se materializan categorías y módulos de la invitación (solo estos dan acceso), se marca
    `used_at` y `redeemed_by`, y se emite `invitation.redeemed`.
 

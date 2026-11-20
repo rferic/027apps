@@ -19,6 +19,8 @@ export type InviteSubmitOutcome =
       kind: "redeemed";
       role: "super_admin" | "admin" | "user";
       signInFailed?: boolean;
+      /** The invitation was applied to an account that already existed. */
+      existingAccount?: boolean;
     }
   | { kind: "failed"; failure: MutationFailure };
 
@@ -52,5 +54,6 @@ export async function submitInvite(
     kind: "redeemed",
     role: result.role,
     ...(result.signInFailed ? { signInFailed: true } : {}),
+    ...(result.existingAccount ? { existingAccount: true } : {}),
   };
 }

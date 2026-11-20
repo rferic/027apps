@@ -100,7 +100,7 @@ describe("submitInvitation", () => {
       { email: PREVIEW.email },
       { kind: "session", userId: "u-existing", role: "admin" },
     );
-    expect(result).toEqual({ ok: true, role: "admin" });
+    expect(result).toEqual({ ok: true, role: "admin", existingAccount: true });
     expect(mocks.setCookie).toHaveBeenCalledWith(
       "027_locale",
       "es",
@@ -115,7 +115,7 @@ describe("submitInvitation", () => {
 
     const result = await submitInvitation({ token: TOKEN, password: "root-password" });
 
-    expect(result).toEqual({ ok: true, role: "super_admin" });
+    expect(result).toEqual({ ok: true, role: "super_admin", existingAccount: true });
     expect(mocks.signOut).not.toHaveBeenCalled();
   });
 
@@ -208,10 +208,10 @@ describe("submitInvitation", () => {
       { email: "existing@example.com" },
       { kind: "session", userId: "u-existing", role: "user" },
     );
-    expect(result).toEqual({ ok: true, role: "user" });
+    expect(result).toEqual({ ok: true, role: "user", existingAccount: true });
   });
 
-  it("returns wrong_credentials when the anonymous email exists and the password is wrong", async () => {
+  it("says the email already has an account when the typed password is wrong", async () => {
     mocks.preview.mockResolvedValue({
       ...PREVIEW,
       requires_identity: true,
@@ -228,7 +228,7 @@ describe("submitInvitation", () => {
       email: "existing@example.com",
     });
 
-    expect(result).toEqual({ ok: false, code: "wrong_credentials" });
+    expect(result).toEqual({ ok: false, code: "existing_account" });
     expect(mocks.redeem).toHaveBeenCalledTimes(1); // no retry: the invitation stays pending
     expect(mocks.setCookie).not.toHaveBeenCalled();
   });

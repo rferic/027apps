@@ -505,11 +505,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * the invitation. A new account redeems first and signs in afterwards; if
      * that sign-in fails the account still exists and the user is sent to login
      * once, never a second redemption.
+     *
+     * An anonymous member invitation carries no name or email, so the form
+     * supplies them. Typing an address that already has an account answers
+     * `existing_account_signin_required`: the screens then ask for that
+     * account's current password ([InviteState.signInRequired]) instead of
+     * reporting a bare wrong password on a "choose a password" form.
      */
-    fun acceptInvite(password: String) {
+    fun acceptInvite(password: String, name: String, email: String) {
         val link = pendingLink ?: return
         val preview = _invite.value.preview ?: return
         if (preview.state != "pending" || _invite.value.pending) return
+        // A named invitation carries the address; an anonymous one takes it
+        // from the form. Same for the name, which only a new profile uses.
+        val accountEmail = preview.email ?: email.trim()
+        if (accountEmail.isEmpty()) return
+        val signInRequired = _invite.value.signInRequired
         _invite.value = _invite.value.copy(pending = true, error = null)
 
         viewModelScope.launch {
@@ -523,14 +534,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 val api = apiFor(link.instance)
 
-                if (preview.accountExists) {
+                if (preview.accountExists || signInRequired) {
                     val supabaseClient = try {
-                        signInForInvite(api, preview.email, password)
+                        signInForInvite(api, accountEmail, password)
                     } catch (error: Exception) {
                         if (error is kotlinx.coroutines.CancellationException) throw error
                         _invite.value = InviteState(
                             preview = preview,
+                            signInRequired = signInRequired,
                             error = when {
+                                isWrongCredentials(error) && signInRequired -> InviteError.EXISTING_SIGNIN_REQUIRED
                                 isWrongCredentials(error) -> InviteError.WRONG_CREDENTIALS
                                 error.isNetworkFailure() -> InviteError.NETWORK
                                 else -> InviteError.GENERIC
@@ -539,17 +552,32 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         return@launch
                     }
                     api.resetSessionState()
-                    api.redeemInvitation(link.token, RedeemRequest(email = preview.email))
+                    api.redeemInvitation(link.token, RedeemRequest(email = accountEmail))
                     openInvitationSession(api, link, supabaseClient)
                     return@launch
                 }
 
-                api.redeemInvitation(
-                    link.token,
-                    RedeemRequest(email = preview.email, password = password),
-                )
+                try {
+                    api.redeemInvitation(
+                        link.token,
+                        RedeemRequest(
+                            email = accountEmail,
+                            name = if (preview.requiresIdentity) name.trim() else null,
+                            password = password,
+                        ),
+                    )
+                } catch (error: ApiException) {
+                    // Anonymous invitation with an email that already has an
+                    // account: sign in with it and retry, or switch the form to
+                    // asking for that account's password.
+                    if (preview.requiresIdentity && error.code == "existing_account_signin_required") {
+                        redeemAnonymousExisting(api, link, accountEmail, password)
+                        return@launch
+                    }
+                    throw error
+                }
                 val supabaseClient = try {
-                    signInForInvite(api, preview.email, password)
+                    signInForInvite(api, accountEmail, password)
                 } catch (error: Exception) {
                     if (error is kotlinx.coroutines.CancellationException) throw error
                     // The account exists: a failed sign-in is a login notice, not
@@ -566,15 +594,53 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 api.resetSessionState()
                 openInvitationSession(api, link, supabaseClient)
             } catch (error: ApiException) {
-                _invite.value = InviteState(preview = preview, error = inviteError(error))
+                _invite.value = InviteState(
+                    preview = preview,
+                    error = inviteError(error),
+                    signInRequired = signInRequired,
+                )
             } catch (error: Exception) {
                 if (error is kotlinx.coroutines.CancellationException) throw error
                 _invite.value = InviteState(
                     preview = preview,
                     error = if (error.isNetworkFailure()) InviteError.NETWORK else InviteError.GENERIC,
+                    signInRequired = signInRequired,
                 )
             }
         }
+    }
+
+    /**
+     * The second half of an anonymous redemption whose email already has an
+     * account: sign in with the password the invitee typed, then redeem with
+     * that session. A wrong password leaves the invitation pending and tells
+     * them the address is registered, so the form can ask for its password.
+     */
+    private suspend fun redeemAnonymousExisting(
+        api: ApiClient,
+        link: InvitationLink,
+        email: String,
+        password: String,
+    ) {
+        val preview = _invite.value.preview
+        val supabaseClient = try {
+            signInForInvite(api, email, password)
+        } catch (error: Exception) {
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            _invite.value = InviteState(
+                preview = preview,
+                signInRequired = true,
+                error = when {
+                    isWrongCredentials(error) -> InviteError.EXISTING_SIGNIN_REQUIRED
+                    error.isNetworkFailure() -> InviteError.NETWORK
+                    else -> InviteError.GENERIC
+                },
+            )
+            return
+        }
+        api.resetSessionState()
+        api.redeemInvitation(link.token, RedeemRequest(email = email))
+        openInvitationSession(api, link, supabaseClient)
     }
 
     /** Creates the link instance's Supabase client and signs in with its password. */

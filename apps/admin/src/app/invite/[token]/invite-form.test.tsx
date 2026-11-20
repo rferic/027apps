@@ -10,7 +10,7 @@ vi.mock("./actions", () => ({
 }));
 
 import type { InvitePublicView } from "./invite-details";
-import { InviteFailureAlert, InviteForm, fieldProps } from "./invite-form";
+import { InviteFailureAlert, InviteForm, fieldProps, redeemedHref } from "./invite-form";
 
 const TOKEN = "027_inv_abc123";
 const VIEW: InvitePublicView = {
@@ -136,5 +136,28 @@ describe("InviteFailureAlert", () => {
 
     expect(html).toContain("The password is not correct.");
     expect(html).toContain('href="/forgot-password"');
+  });
+});
+
+describe("redeemedHref", () => {
+  it("sends a plain member to the welcome page", () => {
+    expect(redeemedHref({ role: "user" })).toBe("/welcome");
+  });
+
+  it("sends a panel role to the panel", () => {
+    expect(redeemedHref({ role: "admin" })).toBe("/panel");
+    expect(redeemedHref({ role: "super_admin" })).toBe("/panel");
+  });
+
+  it("explains an existing account with the welcome notice", () => {
+    expect(redeemedHref({ role: "user", existingAccount: true })).toBe(
+      "/welcome?notice=existing_account",
+    );
+  });
+
+  it("keeps the failed automatic sign-in notice", () => {
+    expect(redeemedHref({ role: "admin", signInFailed: true })).toBe(
+      "/welcome?notice=signin_failed",
+    );
   });
 });

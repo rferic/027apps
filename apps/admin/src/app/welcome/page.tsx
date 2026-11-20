@@ -36,15 +36,25 @@ export default async function WelcomePage({ searchParams }: WelcomePageProps) {
   const locale = resolveLocale({ cookie: cookieStore.get(LOCALE_COOKIE)?.value });
   const messages = getDictionary(locale);
   const signInFailed = notice === "signin_failed";
+  const existingAccount = notice === "existing_account";
 
   return (
     <main lang={locale} className="min-h-screen bg-background px-4 py-6 text-foreground">
       <div className="mx-auto flex w-full max-w-md flex-col gap-5">
         <BrandLogo size="md" />
         <div>
-          <h1 className="text-2xl font-semibold">{t("Your account is ready", messages)}</h1>
+          <h1 className="text-2xl font-semibold">
+            {existingAccount
+              ? t("You are already a member", messages)
+              : t("Your account is ready", messages)}
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {t("You accepted the invitation and your account is active.", messages)}
+            {existingAccount
+              ? t(
+                  "The invitation has been applied to your existing account; no new member was created.",
+                  messages,
+                )
+              : t("You accepted the invitation and your account is active.", messages)}
           </p>
         </div>
 

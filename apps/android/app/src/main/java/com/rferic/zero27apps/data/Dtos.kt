@@ -109,6 +109,8 @@ data class PatchMeRequest(
 @Serializable
 data class RedeemRequest(
     val email: String,
+    /** Anonymous invitation: the name the invitee typed, used for the profile. */
+    val name: String? = null,
     /** Only for a new account; an existing one signs in first (D21). */
     val password: String? = null,
 )
@@ -131,8 +133,14 @@ data class RedeemResponse(
 @Serializable
 data class InvitationPreviewDto(
     val state: String = "pending",
-    val email: String = "",
-    val name: String = "",
+    /**
+     * Null on an anonymous member invitation (`requires_identity`): the invitee
+     * fills name and email in the form, and the server only learns them at
+     * redemption.
+     */
+    val email: String? = null,
+    val name: String? = null,
+    @SerialName("requires_identity") val requiresIdentity: Boolean = false,
     val role: String = "user",
     @SerialName("role_applies") val roleApplies: Boolean = false,
     @SerialName("account_exists") val accountExists: Boolean = false,

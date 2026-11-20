@@ -115,17 +115,22 @@ async function redeemExisting(ctx: RedeemContext): Promise<SubmitInvitationResul
     // A plain member has no panel pages: no panel cookie is left behind.
     await supabase.auth.signOut({ scope: "local" });
   }
-  return { ok: true, role: redeemed.user.role };
+  return { ok: true, role: redeemed.user.role, existingAccount: true };
 }
 
-/** Signs in with the typed password and retries the redemption with the session. */
+/**
+ * Signs in with the typed password and retries the redemption with the session.
+ * D11: a wrong password on an existing account answers `existing_account` (not
+ * a bare `wrong_credentials`), because the form the invitee filled in said
+ * "choose a password". The invitation stays pending either way.
+ */
 async function redeemExistingSession(
   ctx: RedeemContext,
   accountEmail: string,
 ): Promise<SubmitInvitationResult> {
   const { token, password, supabase, serviceDeps } = ctx;
   const { data, error } = await supabase.auth.signInWithPassword({ email: accountEmail, password });
-  if (error || !data.user) return blocked("wrong_credentials");
+  if (error || !data.user) return blocked("existing_account");
 
   const role = await profileRole(serviceDeps, data.user.id);
   if (!role) {
@@ -142,7 +147,7 @@ async function redeemExistingSession(
   // The account is already signed in: a plain member signs out, a panel role
   // stays authenticated without a second sign-in.
   if (redeemed.user.role === "user") await supabase.auth.signOut({ scope: "local" });
-  return { ok: true, role: redeemed.user.role };
+  return { ok: true, role: redeemed.user.role, existingAccount: true };
 }
 
 /** Signs out a plain member, signs a panel role in; shared by every new flow. */

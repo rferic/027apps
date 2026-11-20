@@ -5,6 +5,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.respondError
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.IOException
@@ -98,7 +99,7 @@ class ApiClientTest {
         var seenBody = ""
         val engine = MockEngine { request ->
             seenPath = request.url.encodedPath
-            seenBody = (request.body as io.ktor.http.content.TextContent).text
+            seenBody = (request.body as TextContent).text
             respond(
                 content = """{"user":{"id":"u1","email":"a@example.test"},"invitation_id":"i1"}""",
                 status = HttpStatusCode.Created,
@@ -143,6 +144,31 @@ class ApiClientTest {
         assertEquals(false, preview.accountExists)
         assertEquals("Familia Pérez", preview.instanceName)
         assertEquals("Europe/Madrid", preview.timezone)
+    }
+
+    @Test
+    fun `an anonymous invitation decodes with a null name and email`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """
+                    {"invitation":{"state":"pending","email":null,"name":null,
+                     "requires_identity":true,"role":"user","role_applies":true,
+                     "account_exists":false,"locale":"es",
+                     "expires_at":"2026-11-24T12:00:00.000Z","inviter_name":"Eric",
+                     "instance_name":"Familia Pérez","timezone":"Europe/Madrid"}}
+                """,
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+
+        val preview = client(engine, token = { null }).invitationPreview("027_inv_abcdefghijklmnop")
+
+        // A non-nullable field used to throw here, so the app showed a generic
+        // error instead of the form that collects the identity.
+        assertEquals(null, preview.email)
+        assertEquals(null, preview.name)
+        assertTrue(preview.requiresIdentity)
     }
 
     @Test
@@ -207,7 +233,7 @@ class ApiClientTest {
     fun `an existing account redeems without a password`() = runTest {
         var seenBody = ""
         val engine = MockEngine { request ->
-            seenBody = (request.body as io.ktor.http.content.TextContent).text
+            seenBody = (request.body as TextContent).text
             respond(
                 content = """{"user":{"id":"u1","email":"a@example.test","role":"user"},"invitation_id":"i1"}""",
                 status = HttpStatusCode.Created,
@@ -222,6 +248,27 @@ class ApiClientTest {
 
         assertTrue(seenBody.contains("a@example.test"))
         assertEquals(false, seenBody.contains("password"))
+    }
+
+    @Test
+    fun `an anonymous redemption sends the name the invitee typed`() = runTest {
+        var seenBody = ""
+        val engine = MockEngine { request ->
+            seenBody = (request.body as TextContent).text
+            respond(
+                content = """{"user":{"id":"u1","email":"nueva@example.test","role":"user"},"invitation_id":"i1"}""",
+                status = HttpStatusCode.Created,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+
+        client(engine).redeemInvitation(
+            "027_inv_abcdefghijklmnop",
+            RedeemRequest(email = "nueva@example.test", name = "Invitada", password = "long-password-123"),
+        )
+
+        assertTrue(seenBody.contains("\"name\":\"Invitada\""))
+        assertTrue(seenBody.contains("nueva@example.test"))
     }
 
     @Test

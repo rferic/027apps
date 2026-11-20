@@ -88,6 +88,18 @@ describe("submitInvite", () => {
     });
   });
 
+  it("carries the existing-account notice to the welcome page", async () => {
+    const submit = vi.fn(async () => ({
+      ok: true as const,
+      role: "user" as const,
+      existingAccount: true as const,
+    }));
+
+    const outcome = await submitInvite(VALID, { submit });
+
+    expect(outcome).toEqual({ kind: "redeemed", role: "user", existingAccount: true });
+  });
+
   it("requires the name and email on an anonymous invitation", async () => {
     const submit = vi.fn();
 
