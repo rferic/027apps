@@ -103,9 +103,11 @@ class InviteMembersTest {
     fun `creating a link returns the token and path once`() = runTest {
         var seenMethod = HttpMethod.Get
         var seenPath = ""
+        var seenBody = ""
         val engine = MockEngine { request ->
             seenMethod = request.method
             seenPath = request.url.encodedPath
+            seenBody = (request.body as? io.ktor.http.content.TextContent)?.text ?: ""
             respond(
                 """{"invitation":{"id":"i2","state":"pending"},"token":"027_inv_abcdefgh","path":"/invite/027_inv_abcdefgh"}""",
                 HttpStatusCode.Created,
@@ -116,6 +118,7 @@ class InviteMembersTest {
 
         assertEquals(HttpMethod.Post, seenMethod)
         assertEquals("/api/v1/me/invitations", seenPath)
+        assertEquals("{}", seenBody)
         assertEquals("027_inv_abcdefgh", created.token)
         assertEquals("/invite/027_inv_abcdefgh", created.path)
     }

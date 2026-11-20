@@ -120,7 +120,11 @@ export const redeemInvitationSchema = z
   .strict();
 
 /** `POST /me/invitations` body: empty, the server derives every field. */
-export const createMemberInvitationSchema = z.object({}).strict();
+/**
+ * `POST /me/invitations` takes no fields today, so an absent body is the same
+ * as `{}`: the Android client posts without one and must not get a 400.
+ */
+export const createMemberInvitationSchema = z.object({}).strict().optional();
 
 /** `POST /me/invitation-requests` body: a seat amount and an optional reason. */
 export const createInvitationRequestSchema = z

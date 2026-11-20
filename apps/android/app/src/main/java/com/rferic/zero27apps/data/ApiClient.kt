@@ -311,7 +311,7 @@ class ApiClient(
 
     /** Mints a 48-hour anonymous link; the token is returned once, in the path. */
     suspend fun createMemberInvitation(): CreatedInvitationResponse =
-        read(request(HttpMethod.Post, "/api/v1/me/invitations"))
+        read(request(HttpMethod.Post, "/api/v1/me/invitations", buildJsonObject {}))
 
     /** Revokes one of the caller's own pending invitations. */
     suspend fun revokeMemberInvitation(id: String) {
