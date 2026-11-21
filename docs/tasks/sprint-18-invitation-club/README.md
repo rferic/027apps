@@ -2,7 +2,7 @@
 id: sprint-18-invitation-club
 titulo: Invitaciones de club (niveles, cuota y QR)
 area: producto
-estado: implementación finalizada · pendiente de merge
+estado: finalizada · mergeada en staging (PR #138)
 ---
 
 # Sprint 18 — Invitaciones de club
