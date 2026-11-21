@@ -208,6 +208,7 @@ fun AppRoot(
                             instance = current.instance,
                             user = current.user,
                             state = inviteMembers,
+                            realtime = viewModel.supabase(),
                             joinCode = joinCode,
                             shareLink = shareLink,
                             onBack = { showingInviteMembers = false },

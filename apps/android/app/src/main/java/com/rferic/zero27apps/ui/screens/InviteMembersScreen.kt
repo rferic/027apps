@@ -79,6 +79,9 @@ import com.rferic.zero27apps.ui.migration.qrBitmap
 import com.rferic.zero27apps.ui.theme.LocalPalette
 import java.time.Instant
 import kotlinx.coroutines.delay
+import io.github.jan.supabase.realtime.broadcastFlow
+import io.github.jan.supabase.realtime.channel
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
 
 /** The quota bar: spent seats over the total the level plus grants allow. */
@@ -147,6 +150,8 @@ fun InviteMembersScreen(
     instance: String,
     user: UserDto,
     state: InviteMembersState,
+    /** The signed-in realtime client, for the club's own channels. */
+    realtime: io.github.jan.supabase.SupabaseClient?,
     joinCode: JoinCodeState,
     shareLink: InvitationShareLink?,
     onBack: () -> Unit,
@@ -169,6 +174,62 @@ fun InviteMembersScreen(
     var showQr by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { onRefresh() }
+
+    // The club updates itself: `user-<id>` carries the member's own events (a
+    // granted request, a decision) and `admins` the new requests of the members,
+    // so an approval shows up without leaving the screen or pulling to refresh.
+    LaunchedEffect(realtime, user.id) {
+        val client = realtime ?: return@LaunchedEffect
+        val topics = buildList {
+            add("user-${user.id}")
+            if (isAdmin(user)) add("admins")
+        }
+        val channels = topics.mapNotNull { topic ->
+            runCatching {
+                client.channel(topic) { isPrivate = true }.also { it.subscribe() }
+            }.onFailure {
+                if (com.rferic.zero27apps.BuildConfig.DEBUG) android.util.Log.w("027club", "subscribe $topic failed: $it")
+            }.getOrNull()
+        }
+        if (com.rferic.zero27apps.BuildConfig.DEBUG) android.util.Log.d("027club", "channels: ${channels.size} of $topics")
+        // A broadcast sent while the socket was still connecting is gone for
+        // good, so the screen re-reads once the channels are up.
+        if (channels.isNotEmpty()) onRefresh()
+        try {
+            kotlinx.coroutines.coroutineScope {
+                channels.forEach { channel ->
+                    launch {
+                        channel
+                            .broadcastFlow<kotlinx.serialization.json.JsonObject>("*")
+                            .collect { onRefresh() }
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            // Offline or a rejected channel: the screen still refreshes on open,
+            // on resume and after every action.
+        } finally {
+            channels.forEach { runCatching { it.unsubscribe() } }
+        }
+    }
+
+    // Coming back from the background resyncs even if a broadcast was missed.
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+        onRefresh()
+    }
+
+    // The architecture reads through the API and treats realtime as a hint, so
+    // the open screen also asks: an approval from the panel shows up within
+    // seconds even when the socket is down or the channel was rejected.
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+            while (true) {
+                delay(5_000)
+                onRefresh()
+            }
+        }
+    }
 
     // The freshly minted or re-issued link is shown as a QR with a copy button.
     shareLink?.let { link ->
