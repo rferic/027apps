@@ -55,12 +55,24 @@ datos reales), `pnpm qa:web` (navegador real: invitación y panel), `pnpm qa:and
 emulador) y `pnpm qa:push` (evento y despacho del push). Ver
 [`docs/flows/pre-delivery-verification.md`](../../flows/pre-delivery-verification.md).
 
-**Auditoría de seguridad de la ronda** (sobre las superficies nuevas): la rotación solo actúa sobre
-invitaciones propias, anónimas y pendientes (usada/caducada/ajena → 404); el token sigue guardándose
-solo como hash y se devuelve una vez; la aceptación con cuenta existente no inicia sesión sin
-confirmación y no altera rol, nivel ni invitador; los límites de peticiones no se relajan; el ajuste
-de caducidad se valida 1..720 y solo lo escribe un administrador; la app no muestra el token y los
-eventos de push siguen sin nombres ni importes.
+### Auditoría de seguridad
+
+La ronda la auditó **otro agente** (el DoD pide alguien distinto del autor). Veredicto: **APTO**, sin
+hallazgos críticos ni altos, con tres observaciones bajas de defensa en profundidad que se cerraron
+en esta misma rama:
+
+| Observación | Arreglo |
+|---|---|
+| `/join/<code>` renderizaba en servidor sin presupuesto por IP (el endpoint REST sí lo tenía) | Cubeta `join-page:<ip>` (60/min) antes de tocar la base de datos, con test |
+| `guard-secrets` no buscaba el prefijo nuevo `027_join_` | Añadido a la expresión del job (y acortado un token ficticio de un test que entonces habría saltado) |
+| Faltaban dos invariantes en SQL: `(email is null) = (name is null)` en `invitations` y longitud 1..280 en `invitation_quota_grants.reason` | Migración `0039_invitation_invariants.sql`, verificada con los datos existentes y con `db-tests` de invitaciones en verde |
+
+Lo comprobado y correcto quedó registrado en el informe de la auditoría: autorización por propiedad
+en todos los `/me/*` (ajena/usada/caducada → 404 indistinguible), columnas `invite_level`/`invited_by`
+fuera del grant de `authenticated`, tokens de 256 bits guardados solo como SHA-256 y devueltos una
+vez, QR de un solo uso con bloqueo de fila, cuota y aprobaciones bajo `pg_advisory_xact_lock`,
+validación `zod` estricta en todos los bordes, SQL parametrizado, server action con same-origin y
+límite propio, push sin nombres ni importes, y scripts de QA con guardia local y limpieza.
 
 ### Evidencia de la verificación (2026-11-21)
 
@@ -69,7 +81,7 @@ eventos de push siguen sin nombres ni importes.
 | `pnpm lint` | 0 errores (21 avisos previos, `<img>` y un test sin usar) |
 | `pnpm tsc` | las 7 áreas en verde |
 | `pnpm --filter @027apps/core test` | 46 ficheros / 634 tests |
-| `pnpm --filter admin test` | 171 ficheros / 1354 tests |
+| `pnpm --filter admin test` | 171 ficheros / 1355 tests |
 | `scripts/verify-local.sh` | «All local checks passed» |
 | `pnpm qa:invitations` | verde (~50 comprobaciones, API y base de datos reales) |
 | `pnpm qa:web` | 7/7 (Chromium real) |

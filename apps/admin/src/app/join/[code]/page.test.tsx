@@ -1,7 +1,18 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { previewMock } = vi.hoisted(() => ({ previewMock: vi.fn() }));
+const { previewMock, limitMock } = vi.hoisted(() => ({
+  previewMock: vi.fn(),
+  limitMock: vi.fn(),
+}));
+
+vi.mock("next/headers", () => ({
+  headers: async () => new Headers({ "x-forwarded-for": "203.0.113.9" }),
+}));
+
+vi.mock("@/lib/api/door", () => ({
+  getInfra: async () => ({ deps: { rateLimitStorage: { increment: limitMock } } }),
+}));
 
 vi.mock("@/lib/request-locale", () => ({
   requestLocale: async () => "en",
@@ -26,6 +37,8 @@ function render(code = "027_join_abc123") {
 beforeEach(() => {
   previewMock.mockReset();
   previewMock.mockResolvedValue(PREVIEW);
+  limitMock.mockReset();
+  limitMock.mockResolvedValue({ count: 1 });
 });
 
 describe("join page", () => {
@@ -75,5 +88,17 @@ describe("join page", () => {
     const html = await render("027_join_secretvalue123");
 
     expect(html).not.toContain("027_join_secretvalue123");
+  });
+});
+
+describe("join page rate limit", () => {
+  it("answers with a clear message once the page budget is spent", async () => {
+    limitMock.mockResolvedValue({ count: 61 });
+
+    const html = await render();
+
+    expect(html).toContain("Too many attempts");
+    // The budget is spent before touching the code.
+    expect(previewMock).not.toHaveBeenCalled();
   });
 });

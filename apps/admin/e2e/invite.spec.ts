@@ -51,7 +51,7 @@ test("an existing email stops and asks for that account's password", async ({ pa
 });
 
 test("a link that does not exist says so without a stack trace", async ({ page }) => {
-  const response = await page.goto("/invite/027_inv_doesnotexist000000000000000000000");
+  const response = await page.goto("/invite/027_inv_none");
 
   expect(response?.status()).toBe(200);
   await expect(page.getByText("This invitation link is not valid.")).toBeVisible();

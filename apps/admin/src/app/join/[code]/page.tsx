@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { getDictionary } from "@027apps/i18n/dictionary.js";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { BrandLogo } from "@/components/brand-logo";
 import { DocumentLang } from "@/components/document-lang";
+import { getInfra } from "@/lib/api/door";
+import { clientIp } from "@/lib/client-ip";
 import { loadJoinPreview } from "@/lib/join-preview";
 import { requestLocale } from "@/lib/request-locale";
 import { JoinContinue } from "./join-continue";
@@ -15,6 +18,24 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
   referrer: "no-referrer",
 };
+
+const PAGE_LIMIT = 60;
+
+/**
+ * Rendering this page queries Postgres, so it has its own per-IP budget: the
+ * API endpoint's limit does not cover the SSR path.
+ */
+async function overPageLimit(ip: string): Promise<boolean> {
+  const { deps } = await getInfra();
+  const now = Date.now();
+  const windowStart = new Date(Math.floor(now / 60_000) * 60_000);
+  const { count } = await deps.rateLimitStorage.increment(
+    `join-page:${ip}`,
+    windowStart,
+    new Date(windowStart.getTime() + 120_000),
+  );
+  return count > PAGE_LIMIT;
+}
 
 interface JoinPageProps {
   params: Promise<{ code: string }>;
@@ -59,8 +80,23 @@ function StateCard({ title, messages }: { title: string; messages: TranslationMa
  * single-use exchange.
  */
 export default async function JoinPage({ params }: JoinPageProps) {
-  const [{ code }, locale] = await Promise.all([params, requestLocale()]);
+  const [{ code }, locale, headerStore] = await Promise.all([
+    params,
+    requestLocale(),
+    headers(),
+  ]);
   const messages = getDictionary(locale);
+
+  if (await overPageLimit(clientIp(headerStore))) {
+    return (
+      <Frame locale={locale}>
+        <StateCard
+          title={t("Too many attempts. Wait a minute and try again.", messages)}
+          messages={messages}
+        />
+      </Frame>
+    );
+  }
 
   const preview = await loadJoinPreview(code);
 
