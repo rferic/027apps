@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const MATRIX = join(ROOT, "docs/ai/parity.md");
-const SCENARIOS = join(ROOT, "spec/mobile/scenarios");
+const SCENARIOS = join(ROOT, "spec/mobile");
 const BASELINE_HEADING = "## Baseline iOS pendiente";
 
 const STATES = new Set(["hecho", "en curso", "pendiente", "n/a"]);
@@ -80,7 +80,7 @@ for (const row of rows) {
 // --- scenarios: behaviour lives in spec/mobile -----------------------------
 const scenarioIds = new Set();
 if (!existsSync(SCENARIOS)) {
-  warn("spec/mobile/scenarios/ does not exist yet: no behaviour scenarios to check");
+  warn("spec/mobile/ does not exist yet: no behaviour scenarios to check");
 } else {
   for (const file of readdirSync(SCENARIOS).filter((name) => name.endsWith(".yaml"))) {
     const text = readFileSync(join(SCENARIOS, file), "utf8");
