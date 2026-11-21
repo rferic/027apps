@@ -93,7 +93,14 @@ Reglas de manejo de secretos:
 2. Merge a `staging` (con la protección de la tarea 02 activa, solo posible con los checks requeridos en verde) → Vercel despliega **staging** y se aplican las migraciones a `027apps-dev`.
 3. Merge a `main` (PR `staging → main`, con checks en verde y aprobación) → Vercel despliega **producción**; las migraciones a `027apps-prod` esperan la aprobación del *required reviewer*.
 4. Un push directo a una rama que no sea `staging` o `main` y sin PR no despliega ni staging ni producción.
-5. `staging` está protegido por Vercel (*Standard Protection*, decisión 2026-11-09): lo prueba el propietario, y los agentes usan *Protection Bypass for Automation*. Producción (`027apps.ericrf.com`) es pública.
+5. `staging` está protegido por Vercel (*Standard Protection*, decisión 2026-11-09): lo prueba el propietario, y los agentes usan *Protection Bypass for Automation*. La **app Android de desarrollo** también puede entrar: el build debug envía la cabecera `x-vercel-protection-bypass` cuando se compila con el secreto, y solo hacia hosts `*.vercel.app` (nunca a producción ni a una instancia ajena):
+
+   ```bash
+   cd apps/android
+   ./gradlew :app:assembleDebug -PvercelProtectionBypass=<secreto>
+   ```
+
+   El secreto se genera en Vercel → Project → Settings → Deployment Protection → *Protection Bypass for Automation*. No se versiona: el valor va por propiedad de Gradle o `VERCEL_PROTECTION_BYPASS` en el entorno. Un release nunca lo incluye (`BuildConfig.DEBUG`). Producción (`027apps.ericrf.com`) es pública.
 
 ### Trabajos de módulo (cron)
 

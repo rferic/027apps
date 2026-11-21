@@ -39,6 +39,17 @@ android {
             .orElse("https://027apps.ericrf.com")
             .get()
         buildConfigField("String", "DEFAULT_INSTANCE_URL", "\"$defaultInstance\"")
+
+        // Debug-only convenience: the Vercel "Protection Bypass for Automation"
+        // token that lets the develop build reach the protected staging
+        // deployment. Never committed; pass it per build:
+        //   ./gradlew :app:assembleDebug -PvercelProtectionBypass=<token>
+        // or as VERCEL_PROTECTION_BYPASS in the environment.
+        val vercelBypass = providers.gradleProperty("vercelProtectionBypass")
+            .orElse(providers.environmentVariable("VERCEL_PROTECTION_BYPASS"))
+            .orElse("")
+            .get()
+        buildConfigField("String", "VERCEL_PROTECTION_BYPASS", "\"$vercelBypass\"")
     }
 
     if (releaseSigningEnabled) {

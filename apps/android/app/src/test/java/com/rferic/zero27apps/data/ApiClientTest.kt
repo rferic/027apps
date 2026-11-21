@@ -28,7 +28,9 @@ class ApiClientTest {
         token: () -> String? = { "token" },
         refresh: suspend () -> RefreshResult = { RefreshResult.NoSession },
         onSessionEnded: suspend () -> Unit = {},
-    ) = ApiClient("https://example.test", engine, token, refresh, onSessionEnded)
+        baseUrl: String = "https://example.test",
+        protectionBypass: String = "",
+    ) = ApiClient(baseUrl, engine, token, refresh, onSessionEnded, protectionBypass)
 
     @Test
     fun `parses instance with the auth block and ignores unknown keys`() = runTest {
@@ -430,5 +432,39 @@ class ApiPathRedactionTest {
             client.redactPath("/api/v1/me/device-transfers/0fc652bc-e7fd-401e-af76-a0332f71d27b"),
         )
         assertEquals("/api/v1/me", client.redactPath("/api/v1/me"))
+    }
+
+    @Test
+    fun `a vercel preview gets the protection bypass header and production does not`() = runTest {
+        var seen: String? = "unset"
+        val engine = MockEngine { request ->
+            seen = request.headers["x-vercel-protection-bypass"]
+            respond(
+                """{"invitation":{"state":"pending","email":null,"name":null,"requires_identity":true}}""",
+                HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+
+        ApiClient(
+            "https://027apps-git-staging-eric-rf.vercel.app",
+            engine,
+            { null },
+            { RefreshResult.NoSession },
+            {},
+            "bypass-secret",
+        ).invitationPreview("027_inv_abcdefghijklmnop")
+        assertEquals("bypass-secret", seen)
+
+        // The token is for staging only: a real instance must never receive it.
+        ApiClient(
+            "https://027apps.ericrf.com",
+            engine,
+            { null },
+            { RefreshResult.NoSession },
+            {},
+            "bypass-secret",
+        ).invitationPreview("027_inv_abcdefghijklmnop")
+        assertEquals(null, seen)
     }
 }

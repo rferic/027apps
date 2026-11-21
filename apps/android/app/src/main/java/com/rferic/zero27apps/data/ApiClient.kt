@@ -42,6 +42,14 @@ class ApiClient(
      * never hides the [ApiException] the caller still gets.
      */
     private val onSessionEnded: suspend () -> Unit = {},
+    /**
+     * Vercel "Protection Bypass for Automation". Staging sits behind Vercel
+     * Authentication, which answers HTTP callers with a login page; the develop
+     * build sends this header so it can talk to it. Only a debug build, only
+     * when configured, and only to a `*.vercel.app` host — never to production
+     * or to an arbitrary instance.
+     */
+    private val protectionBypass: String = "",
 ) : Closeable {
     /** A screen can have several requests in flight; the app hears it once. */
     private val sessionEnded = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -405,6 +413,7 @@ class ApiClient(
             http.request("${baseUrl.trimEnd('/')}$path") {
                 this.method = method
                 if (authenticated) token()?.let { header(HttpHeaders.Authorization, "Bearer $it") }
+                bypassToken()?.let { header("x-vercel-protection-bypass", it) }
                 if (body != null) {
                     contentType(ContentType.Application.Json)
                     setBody(body)
@@ -413,6 +422,13 @@ class ApiClient(
         } catch (error: IOException) {
             throw ApiException.networkFailure(error)
         }
+
+    /** The bypass token to send, or null when this request must not carry it. */
+    private fun bypassToken(): String? {
+        if (!BuildConfig.DEBUG || protectionBypass.isBlank()) return null
+        val host = runCatching { java.net.URI(baseUrl).host }.getOrNull().orEmpty()
+        return if (host.endsWith(".vercel.app")) protectionBypass else null
+    }
 
     /**
      * The path as it may be logged: UUIDs and bearer tokens (invitations

@@ -1020,6 +1020,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }
             },
             onSessionEnded = { endSession(revoked = true) },
+            protectionBypass = BuildConfig.VERCEL_PROTECTION_BYPASS,
         )
         client = api
         return api
@@ -1037,6 +1038,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             token = { null },
             refresh = { RefreshResult.NoSession },
             onSessionEnded = {},
+            protectionBypass = BuildConfig.VERCEL_PROTECTION_BYPASS,
         )
 
     private fun failureReason(error: ApiException): FailureReason = when {
