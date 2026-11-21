@@ -32,6 +32,7 @@ jobs:
       - run: pnpm --filter @027apps/core test
       - run: pnpm --filter admin build
       - run: pnpm check:openapi
+      - run: pnpm check:parity
 
   android:
     runs-on: ubuntu-24.04

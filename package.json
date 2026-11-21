@@ -17,6 +17,7 @@
     "qa:invitations": "bash scripts/qa-invitations.sh",
     "qa:android": "bash scripts/e2e-android-invite.sh",
     "qa:web": "pnpm --filter admin e2e",
-    "qa:push": "bash scripts/qa-push.sh"
+    "qa:push": "bash scripts/qa-push.sh",
+    "check:parity": "node scripts/check-parity.mjs"
   }
 }

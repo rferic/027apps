@@ -1,0 +1,105 @@
+# Club invitations: what both apps must do.
+#
+# The rules and the data model live in the design spec and in the Core; this
+# file only fixes the behaviour a person can observe, so Android and iOS can be
+# compared. Server-side numbers (quota arithmetic, level capture, token hashing)
+# are deliberately absent.
+feature: invitations
+source: docs/superpowers/specs/2026-11-18-invitation-club-design.md
+
+scenarios:
+  - id: invites.redeem.new-account
+    given: an anonymous invitation link (no name or email in the invitation)
+    when: the invitee fills a name, an email that has no account, a password of at least 12 characters and its confirmation, and accepts
+    then:
+      - the app shows the invitation card with instance, inviter, role and expiry
+      - the fields are the name, the email, the password and the confirmation
+      - the invitation is consumed and the app leaves the form
+    android: scripts/qa-invitations.sh (canje con una cuenta nueva)
+
+  - id: invites.redeem.existing-account
+    given: an anonymous invitation link and an email that already has an account
+    when: the invitee fills that email with any password and accepts
+    then:
+      - nothing is signed in and the invitation stays pending
+      - the app says that email already has an account and asks for its current password
+      - the password field becomes "current password" and there is no confirmation field
+      - entering the account's real password applies the invitation to it
+      - the level and the inviter of that account do not change
+    android: apps/admin/e2e/invite.spec.ts, scripts/e2e-android-invite.sh
+
+  - id: invites.link.share
+    given: a member with at least one free seat
+    when: the member creates a link
+    then:
+      - a dialog shows the invitation QR with a copy button
+      - the link is not copied until the button is pressed
+      - the dialog can be closed without spending anything else
+    android: scripts/e2e-android-invite.sh (fase de canje), apps/android InviteMembersStoreTest
+
+  - id: invites.link.reissue
+    given: a pending invitation and the app has no copy of its token
+    when: the member opens the pending invitation
+    then:
+      - the previous link stops working
+      - the dialog shows the new QR and says the previous link no longer works
+      - the expiry date of the invitation does not move
+    android: scripts/qa-invitations.sh (reabrir una pendiente reacuña el enlace)
+
+  - id: invites.link.revoke
+    given: a pending invitation
+    when: the member revokes it from its dialog and confirms
+    then:
+      - the link stops working
+      - the row disappears and the seat is free again
+    android: scripts/qa-invitations.sh (revocar libera la plaza)
+
+  - id: invites.members.request
+    given: a member with no free seats
+    when: the member sends a seat request with an amount
+    then:
+      - the app shows the request as pending, with the amount
+      - sending again while one is pending is refused with a clear message
+      - a member with free seats cannot send a request
+    android: scripts/e2e-android-invite.sh (sin plazas, la app pide)
+
+  - id: invites.members.approve
+    given: a pending seat request
+    when: an administrator approves it with an amount
+    then:
+      - the requester's quota grows by that amount and the level does not change
+      - the request shows as approved to the requester
+      - the requester can create a link again
+    android: apps/admin/e2e/requests.spec.ts, scripts/qa-invitations.sh
+
+  - id: invites.members.reject
+    given: a pending seat request
+    when: an administrator rejects it with a motive
+    then:
+      - the requester sees the motif
+      - no seats are granted and the requester may ask again
+    android: scripts/qa-invitations.sh (rechazo con motivo y volver a pedir)
+
+  - id: invites.requests.notify
+    given: the panel open with the request counter
+    when: a member sends a new seat request
+    then:
+      - the counter shows the new pending request without reloading the page
+      - the administrators receive a push notification
+    android: apps/admin/e2e/requests.spec.ts, scripts/qa-push.sh
+
+  - id: invites.qr.single-use
+    given: a rotating QR code shown by a member
+    when: somebody scans it and exchanges it once
+    then:
+      - the exchange creates a short-lived invitation
+      - a second exchange of the same code is refused
+    android: scripts/qa-invitations.sh (QR rotativo)
+
+  - id: invites.link.expiry
+    given: a member invitation and the configured lifetime of member links
+    when: the lifetime passes
+    then:
+      - the link stops working and says it expired
+      - the seat is free again and the invitation never counts as used
+    android: scripts/qa-invitations.sh (la caducidad configurable manda)
