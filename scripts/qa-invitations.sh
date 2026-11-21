@@ -304,6 +304,108 @@ status, twice = call("POST", api(f"/join-codes/{join_code}/exchange"), {})
 check(status == 410 and code_of(twice) == "join_code_used", "el código es de un solo uso",
       f"{status} {twice}")
 
+print("\n-- sin plazas: solicitar, avisar al administrador y conceder")
+original_levels = psql("select value::text from public.settings where key = 'invitations.levels'")
+# Level 1 without seats (asks), level 2 with seats (must not ask).
+psql("update public.settings set value = '[{\"level\":1,\"quota\":0},{\"level\":2,\"quota\":5}]'::jsonb "
+     "where key = 'invitations.levels'")
+
+
+def member(label, level):
+    address = f"qa-invite-{label}-{uuid.uuid4().hex[:6]}@test.local"
+    password = "qa-invite-member-password"
+    status, created_user = call(
+        "POST", f"{supabase}/auth/v1/admin/users",
+        {"email": address, "password": password, "email_confirm": True}, key=service,
+    )
+    member_id = (created_user or {}).get("id", "")
+    psql("insert into public.profiles (id, display_name, role, invite_level, locale) values "
+         f"('{member_id}', 'QA {label}', 'user', {level}, 'en')")
+    status, session = call(
+        "POST", f"{supabase}/auth/v1/token?grant_type=password",
+        {"email": address, "password": password},
+    )
+    return {"email": address, "id": member_id, "token": session.get("access_token", "")}
+
+
+try:
+    asker = member("asker", 1)
+    other = member("other", 1)
+    withseats = member("withseats", 2)
+
+    status, asked = call(
+        "POST", api("/me/invitation-requests"),
+        {"amount": 3, "reason": "familia"}, token=asker["token"],
+    )
+    check(status == 201, "el miembro sin plazas puede solicitar", f"{status} {asked}")
+    request_id = ((asked or {}).get("request") or {}).get("id", "")
+
+    status, twice = call(
+        "POST", api("/me/invitation-requests"), {"amount": 2}, token=asker["token"],
+    )
+    check(status == 409 and code_of(twice) == "request_pending",
+          "una segunda solicitud pendiente se rechaza", f"{status} {twice}")
+
+    status, extra = call(
+        "POST", api("/me/invitation-requests"), {"amount": 1}, token=withseats["token"],
+    )
+    check(status == 409 and code_of(extra) == "invitation_quota_available",
+          "quien tiene plazas no puede solicitar", f"{status} {extra}")
+
+    status, listed = call("GET", api("/invitation-requests?state=pending"), token=admin_token)
+    ids = [row.get("id") for row in ((listed or {}).get("requests") or [])]
+    check(status == 200 and request_id in ids,
+          "el administrador ve la solicitud en el panel", f"{status} {ids}")
+
+    # The admin is told in the app: one push, no email, addressed to admins.
+    pushed = psql(
+        "select target, notify from public.event_outbox "
+        f"where type = 'invitation.requested' and resource->>'request_id' = '{request_id}'"
+    )
+    check(pushed == "admins|{push}", "se avisa a los administradores con push", pushed or "sin evento")
+
+    status, approved = call(
+        "POST", api(f"/invitation-requests/{request_id}/approve"), {"amount": 2},
+        token=admin_token,
+    )
+    check(status == 200 and ((approved or {}).get("request") or {}).get("state") == "approved",
+          "el administrador concede 2 plazas", f"{status} {approved}")
+
+    status, own = call("GET", api("/me/invitations"), token=asker["token"])
+    quota = (own or {}).get("quota") or {}
+    check(quota.get("granted") == 2, "la concesión llega a la cuota del miembro", json.dumps(quota))
+    check(quota.get("pending_request") is None, "la solicitud deja de estar pendiente")
+    resolved = ((own or {}).get("requests") or [{}])[0]
+    check(resolved.get("state") == "approved" and resolved.get("granted_amount") == 2,
+          "el miembro ve el resultado de su solicitud", json.dumps(resolved))
+
+    status, minted_after = call("POST", api("/me/invitations"), {}, token=asker["token"])
+    check(status == 201, "con la concesión ya puede invitar", f"{status} {minted_after}")
+
+    resolved_event = psql(
+        "select target, notify from public.event_outbox "
+        f"where type = 'invitation.request_resolved' and resource->>'request_id' = '{request_id}'"
+    )
+    check(resolved_event == "user|{push}", "se avisa al miembro con push", resolved_event)
+
+    status, rejected_ask = call(
+        "POST", api("/me/invitation-requests"), {"amount": 4}, token=other["token"],
+    )
+    rejected_id = ((rejected_ask or {}).get("request") or {}).get("id", "")
+    status, rejected = call(
+        "POST", api(f"/invitation-requests/{rejected_id}/reject"), {"reason": "más adelante"},
+        token=admin_token,
+    )
+    check(status == 200 and ((rejected or {}).get("request") or {}).get("state") == "rejected",
+          "el administrador puede rechazar con motivo", f"{status} {rejected}")
+    status, again = call(
+        "POST", api("/me/invitation-requests"), {"amount": 1}, token=other["token"],
+    )
+    check(status == 201, "tras un rechazo puede volver a pedir", f"{status} {again}")
+finally:
+    psql(f"update public.settings set value = '{original_levels}'::jsonb "
+         "where key = 'invitations.levels'")
+
 print("\n-- presupuesto: las lecturas no gastan el de crear")
 for _ in range(15):
     call("GET", api("/me/invitations"), token=admin_token)

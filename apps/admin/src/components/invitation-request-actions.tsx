@@ -37,10 +37,17 @@ export function InvitationRequestActions({
   id,
   amount,
   messages,
+  layout,
 }: {
   id: string;
   amount: number;
   messages: TranslationMap;
+  /**
+   * The same request is rendered twice (a table for wide screens, cards for
+   * phones) and only one is visible, but both are in the DOM: the ids have to
+   * be unique per layout or every label points at two inputs.
+   */
+  layout: "table" | "cards";
 }) {
   const router = useRouter();
   const approveRef = useRef<HTMLDialogElement>(null);
@@ -102,23 +109,23 @@ export function InvitationRequestActions({
       </div>
 
       <Dialog
-        labelledBy={`approve-title-${id}`}
+        labelledBy={`approve-title-${layout}-${id}`}
         ref={approveRef}
         onCancel={(event) => {
           if (busy) event.preventDefault();
         }}
         onBackdropClick={busy ? undefined : () => approveRef.current?.close()}
       >
-        <h2 id={`approve-title-${id}`} className="text-sm font-semibold">
+        <h2 id={`approve-title-${layout}-${id}`} className="text-sm font-semibold">
           {t("Approve request", messages)}
         </h2>
         <p className="mt-2 text-xs text-muted-foreground">
           {t("Seats are added permanently and can be revoked. The level does not change.", messages)}
         </p>
         <div className="mt-3">
-          <FormField id={`approve-amount-${id}`} label={t("Seats", messages)}>
+          <FormField id={`approve-amount-${layout}-${id}`} label={t("Seats", messages)}>
             <input
-              id={`approve-amount-${id}`}
+              id={`approve-amount-${layout}-${id}`}
               type="number"
               inputMode="numeric"
               min={1}
@@ -158,23 +165,23 @@ export function InvitationRequestActions({
       </Dialog>
 
       <Dialog
-        labelledBy={`reject-title-${id}`}
+        labelledBy={`reject-title-${layout}-${id}`}
         ref={rejectRef}
         onCancel={(event) => {
           if (busy) event.preventDefault();
         }}
         onBackdropClick={busy ? undefined : () => rejectRef.current?.close()}
       >
-        <h2 id={`reject-title-${id}`} className="text-sm font-semibold">
+        <h2 id={`reject-title-${layout}-${id}`} className="text-sm font-semibold">
           {t("Reject request", messages)}
         </h2>
         <p className="mt-2 text-xs text-muted-foreground">
           {t("The requester sees the reason and can ask again later.", messages)}
         </p>
         <div className="mt-3">
-          <FormField id={`reject-reason-${id}`} label={t("Reason (optional)", messages)}>
+          <FormField id={`reject-reason-${layout}-${id}`} label={t("Reason (optional)", messages)}>
             <input
-              id={`reject-reason-${id}`}
+              id={`reject-reason-${layout}-${id}`}
               type="text"
               value={rejectReason}
               disabled={busy}

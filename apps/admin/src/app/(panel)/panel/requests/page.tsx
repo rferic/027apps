@@ -115,7 +115,7 @@ function RequestsTable({
               <td className="border-b border-border py-2 pr-3 font-mono">{quotaLabel(row)}</td>
               <td className="border-b border-border py-2">
                 {row.state === "pending" ? (
-                  <InvitationRequestActions id={row.id} amount={row.amount} messages={messages} />
+                  <InvitationRequestActions id={row.id} amount={row.amount} messages={messages} layout="table" />
                 ) : (
                   <Badge variant={stateVariant(row.state)}>{stateLabel(row.state, messages)}</Badge>
                 )}
@@ -154,7 +154,7 @@ function RequestsCards({
             <dd>{quotaLabel(row)}</dd>
           </dl>
           {row.state === "pending" && (
-            <InvitationRequestActions id={row.id} amount={row.amount} messages={messages} />
+            <InvitationRequestActions id={row.id} amount={row.amount} messages={messages} layout="cards" />
           )}
         </li>
       ))}

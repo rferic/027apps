@@ -37,12 +37,18 @@ pnpm qa:android              # la app real en el emulador/móvil conectado
   ciclo completo por HTTP: acuñar y listar, preview anónimo, canje con cuenta nueva (perfil, nivel,
   plaza), canje con email ya registrado (debe ser **409** y la invitación sigue pendiente), aceptación
   confirmada con esa cuenta (sin duplicado y sin gastar plaza), reacuñar el enlace (el viejo muere),
-  revocar (la plaza vuelve), QR (preview, canje único) y el presupuesto de creación tras 15
-  lecturas. Limpia sus `qa-invite-*@test.local` al terminar.
+  revocar (la plaza vuelve), QR (preview, canje único), el **ciclo de solicitudes** (pedir sin
+  plazas, una segunda pendiente rechazada, quien tiene plazas no puede pedir, el administrador la
+  ve, aprueba con importe, la cuota sube y ya puede invitar, rechazo con motivo y volver a pedir) y
+  el presupuesto de creación tras 15 lecturas. Comprueba además los eventos
+  `invitation.requested` (push a administradores) y `invitation.request_resolved` (push al
+  miembro). Limpia sus `qa-invite-*@test.local` al terminar.
 - **`pnpm qa:web`** (Playwright, `apps/admin/e2e`) abre la página de invitación en un navegador de
   verdad: canje con cuenta nueva hasta `/welcome`, email ya registrado que se para y pide la
   contraseña de esa cuenta, y enlace inexistente con su mensaje. En el panel inicia sesión, lista
-  miembros y guarda un nivel. Crea sus cuentas `qa-e2e-*@test.local` y las borra al terminar.
+  miembros, guarda un nivel y **aprueba una solicitud de plazas** con su importe (el miembro sin
+  plazas la crea en el setup y se comprueba la concesión en su ficha). Crea sus cuentas
+  `qa-e2e-*@test.local`, las borra al terminar y restaura los niveles que ajusta.
 - **`scripts/e2e-android-invite.sh`** instala el APK debug y conduce la app con `adb`: comprueba que
   el enlace pinta el formulario, que un email registrado **no** entra y deja la invitación pendiente,
   y que un email nuevo canjea desde la app con su nombre, nivel e invitador. Necesita un

@@ -15,22 +15,22 @@ import { InvitationRequestActions, requestActionFailureMessage } from "./invitat
 describe("InvitationRequestActions", () => {
   it("offers approve with the requested amount as the default", () => {
     const html = renderToStaticMarkup(
-      <InvitationRequestActions id="r1" amount={2} messages={{}} />,
+      <InvitationRequestActions layout="table" id="r1" amount={2} messages={{}} />,
     );
 
     expect(html).toContain("Approve");
     expect(html).toContain("Reject");
     expect(html).toContain('value="2"');
-    expect(html).toContain('id="approve-amount-r1"');
+    expect(html).toContain('id="approve-amount-table-r1"');
   });
 
   it("asks for an optional reason when rejecting", () => {
     const html = renderToStaticMarkup(
-      <InvitationRequestActions id="r1" amount={2} messages={{}} />,
+      <InvitationRequestActions layout="table" id="r1" amount={2} messages={{}} />,
     );
 
     expect(html).toContain("Reason (optional)");
-    expect(html).toContain('id="reject-reason-r1"');
+    expect(html).toContain('id="reject-reason-table-r1"');
   });
 });
 

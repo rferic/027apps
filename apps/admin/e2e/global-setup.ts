@@ -16,6 +16,8 @@ const FIXTURES = join(__dirname, ".fixtures.json");
 
 const ADMIN = { email: "qa-e2e-admin@test.local", password: "qa-e2e-admin-password" };
 const EXISTING = { email: "qa-e2e-existing@test.local", password: "qa-e2e-member-password" };
+const ASKER = { email: "qa-e2e-asker@test.local", password: "qa-e2e-asker-password" };
+const ASKER_REASON = "Sin plazas para la familia";
 
 export interface Fixtures {
   admin: { email: string; password: string; id: string; name: string };
@@ -23,6 +25,15 @@ export interface Fixtures {
   invitee: { email: string; name: string; password: string };
   /** One anonymous invitation per scenario, minted by the admin. */
   tokens: { newAccount: string; existingAccount: string };
+  /** A member with no seats who already asked for more, and its reason. */
+  asker: {
+    email: string;
+    password: string;
+    id: string;
+    name: string;
+    requestReason: string;
+    requestId: string;
+  };
   baseURL: string;
 }
 
@@ -96,6 +107,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   const baseURL = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3003";
   const db = new Client({ connectionString: process.env.SUPABASE_DB_URL });
   await db.connect();
+  let originalLevels = "";
 
   const wipe = async (): Promise<void> => {
     await db.query(
@@ -108,6 +120,13 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   };
 
   const teardown = async (): Promise<void> => {
+    if (originalLevels) {
+      await db
+        .query("update public.settings set value = $1::jsonb where key = 'invitations.levels'", [
+          originalLevels,
+        ])
+        .catch(() => {});
+    }
     await wipe().catch(() => {});
     await db.end().catch(() => {});
   };
@@ -118,13 +137,36 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
 
     const adminId = await createUser(ADMIN.email, ADMIN.password);
     const existingId = await createUser(EXISTING.email, EXISTING.password);
+    const askerId = await createUser(ASKER.email, ASKER.password);
+    // Level 1 has no seats, so the asker really has to request them; level 2
+    // keeps the other fixtures able to invite. Restored on teardown.
+    const { rows: levels } = await db.query(
+      "select value::text as value from public.settings where key = 'invitations.levels'",
+    );
+    originalLevels = String(levels[0]?.value ?? "[]");
+    await db.query(
+      "update public.settings set value = $1::jsonb where key = 'invitations.levels'",
+      ['[{"level":1,"quota":0},{"level":2,"quota":5}]'],
+    );
     await db.query(
       "insert into public.profiles (id, display_name, role, invite_level, locale) " +
-        "values ($1, 'E2E Admin', 'super_admin', null, 'en'), ($2, 'E2E Existing', 'user', 1, 'en') " +
+        "values ($1, 'E2E Admin', 'super_admin', null, 'en'), ($2, 'E2E Existing', 'user', 2, 'en'), " +
+        "($3, 'E2E Asker', 'user', 1, 'en') " +
         "on conflict (id) do update set display_name = excluded.display_name, role = excluded.role, " +
         "invite_level = excluded.invite_level, locale = excluded.locale",
-      [adminId, existingId],
+      [adminId, existingId, askerId],
     );
+
+    const askerToken = await signIn(ASKER.email, ASKER.password);
+    const asked = await fetch(`${baseURL}/api/v1/me/invitation-requests`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${askerToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: 3, reason: ASKER_REASON }),
+    });
+    if (!asked.ok) throw new Error(`could not request seats: ${await asked.text()}`);
+    const askerRequest = (await asked.json()) as { request?: { id?: string } };
+    const requestId = askerRequest.request?.id ?? "";
+    if (!requestId) throw new Error("the seat request did not come back with an id");
 
     const adminToken = await signIn(ADMIN.email, ADMIN.password);
     const fixtures: Fixtures = {
@@ -138,6 +180,13 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
       tokens: {
         newAccount: await mint(baseURL, adminToken),
         existingAccount: await mint(baseURL, adminToken),
+      },
+      asker: {
+        ...ASKER,
+        id: askerId,
+        name: "E2E Asker",
+        requestReason: ASKER_REASON,
+        requestId,
       },
       baseURL,
     };
