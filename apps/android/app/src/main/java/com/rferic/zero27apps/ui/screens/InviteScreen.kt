@@ -69,6 +69,7 @@ private fun inviteErrorText(error: InviteError, strings: Strings): String = when
     InviteError.NETWORK -> strings.failureNetwork
     InviteError.WRONG_CREDENTIALS -> strings.inviteWrongPassword
     InviteError.EXISTING_SIGNIN_REQUIRED -> strings.inviteSignInRequired
+    InviteError.VALIDATION -> strings.inviteValidation
     InviteError.RATE_LIMITED -> strings.inviteRateLimited
     InviteError.CONFLICT -> strings.inviteAccountDeactivated
     InviteError.GENERIC -> strings.inviteFailed
@@ -115,8 +116,12 @@ private fun InvitationCard(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Detail(strings.email, preview.email)
-        Detail(strings.inviteDetailsName, preview.name)
+        // An anonymous invitation has no name or email yet: the form asks for
+        // them, so two empty rows would only look like missing data.
+        if (!preview.requiresIdentity) {
+            preview.email?.let { Detail(strings.email, it) }
+            preview.name?.let { Detail(strings.inviteDetailsName, it) }
+        }
         Detail(strings.inviteInstance, preview.instanceName)
         Detail(strings.inviteInvitedBy, preview.inviterName ?: preview.instanceName)
         Detail(strings.inviteRole, role)
@@ -133,7 +138,7 @@ private fun InvitationCard(
 fun InviteScreen(
     link: InvitationLink,
     state: InviteState,
-    onSubmit: (password: String) -> Unit,
+    onSubmit: (password: String, name: String, email: String) -> Unit,
     onRetry: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -146,8 +151,13 @@ fun InviteScreen(
     var password by rememberSaveable { mutableStateOf("") }
     var confirmation by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
-    val existing = preview?.accountExists == true
-    val valid = when {
+    // Anonymous member invitation: the invitee fills name and email here.
+    var name by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    val anonymous = preview?.requiresIdentity == true
+    val existing = preview?.accountExists == true || state.signInRequired
+    val identityValid = !anonymous || (name.isNotBlank() && email.contains("@") && !email.contains(" "))
+    val valid = identityValid && when {
         existing -> password.isNotEmpty()
         else -> password.length >= 12 && confirmation == password
     }
@@ -223,6 +233,31 @@ fun InviteScreen(
                     Spacer(Modifier.height(18.dp))
                     InvitationCard(preview, strings)
                     Spacer(Modifier.height(14.dp))
+
+                    if (anonymous) {
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            label = { Text(strings.inviteDetailsName) },
+                            singleLine = true,
+                            enabled = !state.pending && !existing,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = email,
+                            onValueChange = { email = it },
+                            label = { Text(strings.email) },
+                            singleLine = true,
+                            enabled = !state.pending && !existing,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                                imeAction = ImeAction.Next,
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
 
                     OutlinedTextField(
                         value = password,
@@ -318,7 +353,7 @@ fun InviteScreen(
 
                     Spacer(Modifier.height(16.dp))
                     Button(
-                        onClick = { onSubmit(password) },
+                        onClick = { onSubmit(password, name, email) },
                         enabled = !state.pending && valid,
                         modifier = Modifier.fillMaxWidth(),
                     ) {

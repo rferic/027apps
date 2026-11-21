@@ -81,6 +81,7 @@ fun SettingsScreen(
     onLocale: (String) -> Unit,
     onMigrate: () -> Unit,
     onSignOut: () -> Unit,
+    clubRow: @Composable () -> Unit = {},
 ) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
@@ -189,6 +190,8 @@ fun SettingsScreen(
                 onSelect = onTheme,
             )
         }
+
+        clubRow()
 
         // App version and updates
         Column(

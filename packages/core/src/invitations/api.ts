@@ -20,6 +20,27 @@ import {
   type RedeemInput,
 } from "./service";
 import { EMAIL_LOCALES, type EmailLocale } from "../email/types";
+import {
+  createMemberInvitation,
+  listOwnInvitations,
+  revokeOwnInvitation,
+  rotateOwnInvitationLink,
+} from "./member";
+import {
+  createJoinCode,
+  exchangeJoinCode,
+  previewJoinCode,
+} from "./join-codes";
+import {
+  approveInvitationRequest,
+  cancelInvitationRequest,
+  grantInvitationQuota,
+  listInvitationGrants,
+  listInvitationRequests,
+  rejectInvitationRequest,
+  requestInvitationQuota,
+  revokeInvitationGrant,
+} from "./requests";
 
 /**
  * Invitations API (core-api spec §3.5). Admin routes require
@@ -48,7 +69,17 @@ export interface InvitationsRouteDeps {
   invitations: InvitationsDeps;
   mailer?: InvitationsMailer;
   cors?: CorsOptions;
-  rateLimits?: { read?: number; write?: number; redeem?: number; preview?: number };
+  rateLimits?: {
+    read?: number;
+    write?: number;
+    redeem?: number;
+    preview?: number;
+    memberInvite?: number;
+    joinCodeCreate?: number;
+    joinCodePreview?: number;
+    joinCodeExchange?: number;
+    invitationRequest?: number;
+  };
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -74,15 +105,58 @@ export const createInvitationSchema = z
 export const invitationListFiltersSchema = z
   .object({
     status: z.enum(["pending", "used", "expired", "revoked", "all"]).optional(),
+    source: z.enum(["admin", "member", "qr"]).optional(),
   })
   .strict();
 
 export const redeemInvitationSchema = z
   .object({
     email: z.string().trim().email().max(320),
+    /** Required on an anonymous invitation; ignored on a named one. */
+    name: z.string().trim().min(1).max(80).optional(),
     /** A new account needs it; an existing one signs in first and omits it. */
     password: z.string().min(12).max(200).optional(),
     display_name: z.string().trim().min(1).max(80).optional(),
+  })
+  .strict();
+
+/** `POST /me/invitations` body: empty, the server derives every field. */
+/**
+ * `POST /me/invitations` takes no fields today, so an absent body is the same
+ * as `{}`: the Android client posts without one and must not get a 400.
+ */
+export const createMemberInvitationSchema = z.object({}).strict().optional();
+
+/** `POST /me/invitation-requests` body: a seat amount and an optional reason. */
+export const createInvitationRequestSchema = z
+  .object({
+    amount: z.number().int().min(1).max(20),
+    reason: z.string().trim().max(280).optional(),
+  })
+  .strict();
+
+/** `POST /invitation-requests/{id}/approve` body: the granted seat amount. */
+export const approveInvitationRequestSchema = z
+  .object({ amount: z.number().int().min(1).max(100) })
+  .strict();
+
+/** `POST /invitation-requests/{id}/reject` body: an optional reason. */
+export const rejectInvitationRequestSchema = z
+  .object({ reason: z.string().trim().max(280).optional() })
+  .strict();
+
+/** `POST /users/{id}/invitation-grants` body: a direct grant. */
+export const createInvitationGrantSchema = z
+  .object({
+    amount: z.number().int().min(1).max(100),
+    reason: z.string().trim().max(280).optional(),
+  })
+  .strict();
+
+/** `GET /invitation-requests` state filter, validated at the edge. */
+export const invitationRequestListFiltersSchema = z
+  .object({
+    state: z.enum(["pending", "approved", "rejected", "cancelled", "all"]).optional(),
   })
   .strict();
 
@@ -131,13 +205,18 @@ export function invitationsRoute(deps: InvitationsRouteDeps) {
     withDoor(req, readOptions(deps), deps.door, async (ctx) => {
       const page = pageParams(ctx.searchParams);
       const rawStatus = ctx.searchParams.get("status") || undefined;
-      const filters = invitationListFiltersSchema.safeParse({ status: rawStatus });
+      const rawSource = ctx.searchParams.get("source") || undefined;
+      const filters = invitationListFiltersSchema.safeParse({
+        status: rawStatus,
+        source: rawSource,
+      });
       if (!filters.success) {
-        throw new DomainError("validation_failed", "invalid status filter");
+        throw new DomainError("validation_failed", "invalid status or source filter");
       }
       const result = await listInvitations(deps.invitations, {
         ...page,
         ...(filters.data.status ? { status: filters.data.status } : {}),
+        ...(filters.data.source ? { source: filters.data.source } : {}),
       });
       return { ...result, limit: page.limit, offset: page.offset };
     });
@@ -152,6 +231,8 @@ async function deliver(
 ): Promise<InvitationDelivery> {
   if (mode === "link") return { status: "skipped" };
   if (!deps.mailer) return { status: "skipped", code: "not_configured" };
+  // Anonymous invitations have no address: the link is shared, never emailed.
+  if (!invitation.email) return { status: "skipped", code: "email_no_recipient" };
 
   // The email copy is different when the address already has an account (D16).
   const accountExists = (await deps.invitations.auth.findUserByEmail(invitation.email)) !== null;
@@ -208,7 +289,11 @@ export function invitationPreviewRoute(deps: InvitationsRouteDeps) {
         scopes: [],
         auth: async () => ({ kind: "anon" as const }),
         cors: deps.cors,
-        rateLimit: { identity: "ip" as const, limit: deps.rateLimits?.preview ?? 60 },
+        rateLimit: {
+          identity: "ip" as const,
+          limit: deps.rateLimits?.preview ?? 60,
+          bucket: "invitation-preview",
+        },
       },
       deps.door,
       async () => tokenResponse({ invitation: await previewInvitation(deps.invitations, rawToken) }),
@@ -283,7 +368,11 @@ export function redeemInvitationRoute(deps: InvitationsRouteDeps) {
         auth: deps.auth,
         cors: deps.cors,
         schema: redeemInvitationSchema,
-        rateLimit: { identity: "ip" as const, limit: deps.rateLimits?.redeem ?? 30 },
+        rateLimit: {
+          identity: "ip" as const,
+          limit: deps.rateLimits?.redeem ?? 30,
+          bucket: "invitation-redeem",
+        },
       },
       deps.door,
       async (ctx: RequestContext) =>
@@ -291,5 +380,316 @@ export function redeemInvitationRoute(deps: InvitationsRouteDeps) {
           await redeemInvitation(deps.invitations, token, ctx.body as RedeemInput, ctx.caller),
           201,
         ),
+    );
+}
+
+/**
+ * `GET /me/invitations` — the caller's quota, their own invitations (never the
+ * tokens) and their direct invitees. Session-only, any role.
+ */
+export function memberInvitationsRoute(deps: InvitationsRouteDeps) {
+  return (req: Request): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["profile:read"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.read ?? DEFAULT_READ_LIMIT },
+      },
+      deps.door,
+      async (ctx) => listOwnInvitations(deps.invitations, ctx.caller),
+    );
+}
+
+/** `POST /me/invitations` — mint a 48-hour anonymous member invitation. */
+export function createMemberInvitationRoute(deps: InvitationsRouteDeps) {
+  return (req: Request): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["profile:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        schema: createMemberInvitationSchema,
+        rateLimit: {
+          identity: "user" as const,
+          limit: deps.rateLimits?.memberInvite ?? 10,
+          bucket: "member-invite",
+        },
+      },
+      deps.door,
+      async (ctx) => tokenResponse(await createMemberInvitation(deps.invitations, ctx.caller), 201),
+    );
+}
+
+/**
+ * `POST /me/invitations/{id}/link` — re-issue the link of one of the caller's
+ * own pending invitations. The token is only stored hashed, so this is how the
+ * app shows the QR again: the previous link stops working.
+ */
+export function rotateMemberInvitationLinkRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["profile:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: {
+          identity: "user" as const,
+          limit: deps.rateLimits?.memberInvite ?? 10,
+          bucket: "member-invite",
+        },
+      },
+      deps.door,
+      async (ctx) =>
+        tokenResponse(
+          await rotateOwnInvitationLink(deps.invitations, ctx.caller, uuid(rawId, "invitation id")),
+        ),
+    );
+}
+
+/** `DELETE /me/invitations/{id}` — revoke one of the caller's own invitations. */
+export function revokeMemberInvitationRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["profile:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
+      },
+      deps.door,
+      async (ctx) => {
+        await revokeOwnInvitation(deps.invitations, ctx.caller, uuid(rawId, "invitation id"));
+        return new Response(null, { status: 204 });
+      },
+    );
+}
+
+/** `POST /me/join-codes` — mint a 90-second QR join code; returned once. */
+export function createJoinCodeRoute(deps: InvitationsRouteDeps) {
+  return (req: Request): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["profile:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: {
+          identity: "user" as const,
+          limit: deps.rateLimits?.joinCodeCreate ?? 6,
+          bucket: "join-code",
+        },
+      },
+      deps.door,
+      async (ctx) => tokenResponse(await createJoinCode(deps.invitations, ctx.caller), 201),
+    );
+}
+
+/** `GET /join-codes/{code}/preview` — public preview that never mutates. */
+export function joinCodePreviewRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawCode: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: [],
+        auth: async () => ({ kind: "anon" as const }),
+        cors: deps.cors,
+        rateLimit: {
+          identity: "ip" as const,
+          limit: deps.rateLimits?.joinCodePreview ?? 60,
+          bucket: "join-preview",
+        },
+      },
+      deps.door,
+      async () => tokenResponse({ join: await previewJoinCode(deps.invitations, rawCode) }),
+    );
+}
+
+/** `POST /join-codes/{code}/exchange` — single-use exchange for a 15-min invitation. */
+export function joinCodeExchangeRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawCode: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: [],
+        auth: async () => ({ kind: "anon" as const }),
+        cors: deps.cors,
+        rateLimit: {
+          identity: "ip" as const,
+          limit: deps.rateLimits?.joinCodeExchange ?? 10,
+          bucket: "join-exchange",
+        },
+      },
+      deps.door,
+      async () => tokenResponse(await exchangeJoinCode(deps.invitations, rawCode), 201),
+    );
+}
+
+/** `POST /me/invitation-requests` — ask an administrator for more seats. */
+export function createInvitationRequestRoute(deps: InvitationsRouteDeps) {
+  return (req: Request): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["profile:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        schema: createInvitationRequestSchema,
+        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.invitationRequest ?? 3, windowSeconds: 3600, bucket: "invitation-request" },
+      },
+      deps.door,
+      async (ctx) => ({
+        status: 201,
+        body: {
+          request: await requestInvitationQuota(deps.invitations, ctx.caller, ctx.body as {
+            amount: number;
+            reason?: string;
+          }),
+        },
+      }),
+    );
+}
+
+/** `POST /me/invitation-requests/{id}/cancel` — withdraw a pending request. */
+export function cancelInvitationRequestRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["profile:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
+      },
+      deps.door,
+      async (ctx) => {
+        await cancelInvitationRequest(deps.invitations, ctx.caller, uuid(rawId, "invitation request id"));
+        return new Response(null, { status: 204 });
+      },
+    );
+}
+
+/** `GET /invitation-requests` — the admin list, pending first, with live quota. */
+export function listInvitationRequestsRoute(deps: InvitationsRouteDeps) {
+  return (req: Request): Promise<Response> =>
+    withDoor(req, readOptions(deps), deps.door, async (ctx) => {
+      const page = pageParams(ctx.searchParams);
+      const rawState = ctx.searchParams.get("state") || undefined;
+      const filters = invitationRequestListFiltersSchema.safeParse({ state: rawState });
+      if (!filters.success) {
+        throw new DomainError("validation_failed", "invalid state filter");
+      }
+      const result = await listInvitationRequests(deps.invitations, {
+        ...page,
+        ...(filters.data.state ? { state: filters.data.state } : {}),
+      });
+      return { ...result, limit: page.limit, offset: page.offset };
+    });
+}
+
+/** `POST /invitation-requests/{id}/approve` — approve with a seat amount. */
+export function approveInvitationRequestRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(
+      req,
+      options(deps, ["invitations:write"], approveInvitationRequestSchema),
+      deps.door,
+      async (ctx) => ({
+        request: await approveInvitationRequest(
+          deps.invitations,
+          ctx.caller,
+          uuid(rawId, "invitation request id"),
+          (ctx.body as { amount: number }).amount,
+        ),
+      }),
+    );
+}
+
+/** `POST /invitation-requests/{id}/reject` — refuse with an optional reason. */
+export function rejectInvitationRequestRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(
+      req,
+      options(deps, ["invitations:write"], rejectInvitationRequestSchema),
+      deps.door,
+      async (ctx) => ({
+        request: await rejectInvitationRequest(
+          deps.invitations,
+          ctx.caller,
+          uuid(rawId, "invitation request id"),
+          (ctx.body as { reason?: string }).reason,
+        ),
+      }),
+    );
+}
+
+/** `GET /users/{id}/invitation-grants` — active and revoked grants (users:write). */
+export function listInvitationGrantsRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawUserId: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["users:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.read ?? DEFAULT_READ_LIMIT },
+      },
+      deps.door,
+      async () => ({
+        grants: await listInvitationGrants(deps.invitations, uuid(rawUserId, "user id")),
+      }),
+    );
+}
+
+/** `POST /users/{id}/invitation-grants` — a direct grant with no request. */
+export function grantInvitationQuotaRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawUserId: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["users:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        schema: createInvitationGrantSchema,
+        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
+      },
+      deps.door,
+      async (ctx) => ({
+        status: 201,
+        body: {
+          grant: await grantInvitationQuota(deps.invitations, ctx.caller, uuid(rawUserId, "user id"), ctx.body as {
+            amount: number;
+            reason?: string;
+          }),
+        },
+      }),
+    );
+}
+
+/** `DELETE /users/{id}/invitation-grants/{grantId}` — revoke, keeping history. */
+export function revokeInvitationGrantRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawUserId: string, rawGrantId: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["users:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user" as const, limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
+      },
+      deps.door,
+      async (ctx) => {
+        await revokeInvitationGrant(
+          deps.invitations,
+          ctx.caller,
+          uuid(rawUserId, "user id"),
+          uuid(rawGrantId, "grant id"),
+        );
+        return new Response(null, { status: 204 });
+      },
     );
 }

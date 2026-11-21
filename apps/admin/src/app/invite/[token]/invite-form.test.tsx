@@ -10,13 +10,14 @@ vi.mock("./actions", () => ({
 }));
 
 import type { InvitePublicView } from "./invite-details";
-import { InviteFailureAlert, InviteForm, fieldProps } from "./invite-form";
+import { InviteFailureAlert, InviteForm, fieldProps, redeemedHref } from "./invite-form";
 
 const TOKEN = "027_inv_abc123";
 const VIEW: InvitePublicView = {
   email: "ana@example.com",
   name: "Ana",
   role: "user",
+  requires_identity: false,
   role_applies: true,
   account_exists: false,
   inviter_name: "Eric",
@@ -52,6 +53,19 @@ describe("InviteForm", () => {
     expect(html).toContain("Accept invitation");
   });
 
+  it("asks for the name and email only on an anonymous invitation", () => {
+    const html = renderToStaticMarkup(
+      form({ ...VIEW, requires_identity: true, email: null, name: null }),
+    );
+
+    expect(html).toContain('name="name"');
+    expect(html).toContain('name="email"');
+    expect(html).toContain('autoComplete="name"');
+    expect(html).toContain('autoComplete="email"');
+    expect(html).toContain('name="password"');
+    expect(html).toContain('name="confirmation"');
+  });
+
   it("asks only for the current password on an existing account", () => {
     const html = renderToStaticMarkup(form({ ...VIEW, account_exists: true, role_applies: false }));
 
@@ -63,6 +77,20 @@ describe("InviteForm", () => {
 
   it("links to the login page as the way out", () => {
     expect(renderToStaticMarkup(form())).toContain('href="/login"');
+  });
+
+  it("hints the current password on an anonymous form for the D11 retry", () => {
+    const html = renderToStaticMarkup(
+      form({ ...VIEW, requires_identity: true, email: null, name: null }),
+    );
+
+    expect(html).toContain("If you already have an account, use your current password.");
+  });
+
+  it("does not show the current-password hint on a named invitation", () => {
+    expect(renderToStaticMarkup(form())).not.toContain(
+      "If you already have an account, use your current password.",
+    );
   });
 });
 
@@ -108,5 +136,28 @@ describe("InviteFailureAlert", () => {
 
     expect(html).toContain("The password is not correct.");
     expect(html).toContain('href="/forgot-password"');
+  });
+});
+
+describe("redeemedHref", () => {
+  it("sends a plain member to the welcome page", () => {
+    expect(redeemedHref({ role: "user" })).toBe("/welcome");
+  });
+
+  it("sends a panel role to the panel", () => {
+    expect(redeemedHref({ role: "admin" })).toBe("/panel");
+    expect(redeemedHref({ role: "super_admin" })).toBe("/panel");
+  });
+
+  it("explains an existing account with the welcome notice", () => {
+    expect(redeemedHref({ role: "user", existingAccount: true })).toBe(
+      "/welcome?notice=existing_account",
+    );
+  });
+
+  it("keeps the failed automatic sign-in notice", () => {
+    expect(redeemedHref({ role: "admin", signInFailed: true })).toBe(
+      "/welcome?notice=signin_failed",
+    );
   });
 });

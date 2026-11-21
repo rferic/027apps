@@ -10,6 +10,7 @@ import com.rferic.zero27apps.InstanceStore
 import com.rferic.zero27apps.ServerUrl
 import com.rferic.zero27apps.auth.EncryptedStringStore
 import com.rferic.zero27apps.auth.InvitationLink
+import com.rferic.zero27apps.auth.JoinLink
 import com.rferic.zero27apps.auth.MigrationLink
 import com.rferic.zero27apps.auth.sessionIdOf
 import com.rferic.zero27apps.auth.KeystoreSecretCipher
@@ -85,6 +86,24 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _migration = MutableStateFlow(MigrationState())
     val migration: StateFlow<MigrationState> = _migration.asStateFlow()
+
+    /** The `/join/<code>` deep-link exchange, in flight or failed. */
+    private val _joinLink = MutableStateFlow(JoinLinkState())
+    val joinLink: StateFlow<JoinLinkState> = _joinLink.asStateFlow()
+
+    /** The invitation screen's state machine, in a plain class the tests can drive. */
+    private val inviteStore = InviteMembersStore(
+        scope = viewModelScope,
+        api = { if (_state.value is AppState.SignedIn) client else null },
+        isAdmin = {
+            val role = (_state.value as? AppState.SignedIn)?.user?.role
+            role == "admin" || role == "super_admin"
+        },
+        instanceBase = { instanceStore.current() },
+    )
+    val inviteMembers: StateFlow<InviteMembersState> = inviteStore.state
+    val joinCode: StateFlow<JoinCodeState> = inviteStore.joinCode
+    val shareLink: StateFlow<InvitationShareLink?> = inviteStore.shareLink
 
     private var pendingLink: InvitationLink? = null
     /** The boot in flight; a deep link cancels it so it cannot overwrite the invite. */
@@ -166,6 +185,51 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** Entry point for an invitation deep link, from either activity callback. */
     fun onInviteLink(raw: String) {
         val link = InvitationLink.parse(raw) ?: return
+        handleInvite(link)
+    }
+
+    /**
+     * Entry point for a `/join/<code>` link. The exchange is the user opening
+     * the QR, never a prefetch; it turns the code into a 15-minute invitation
+     * and then walks the same path as [onInviteLink]. False means the link was
+     * not a join link and the caller should try the invitation parser.
+     */
+    fun onJoinLink(raw: String): Boolean {
+        val link = JoinLink.parse(raw) ?: return false
+        bootJob?.cancel()
+        // A join QR is for a brand-new member. A phone signed in to another
+        // instance must not hand its session (or the code) to that host: refuse
+        // instead of switching silently, matching the invite flow's confirmation.
+        if (link.crossesInstance(instanceStore.current(), hasStoredSession())) {
+            _joinLink.value = JoinLinkState(error = JoinLinkError.WRONG_INSTANCE)
+            return true
+        }
+        _joinLink.value = JoinLinkState(loading = true)
+        viewModelScope.launch {
+            try {
+                // The exchange is public: a throwaway authless client, never the
+                // signed-in session's bearer.
+                val exchanged = publicApi(link.instance).use { it.exchangeJoinCode(link.code) }
+                _joinLink.value = JoinLinkState()
+                handleInvite(InvitationLink(exchanged.token, link.instance))
+            } catch (error: ApiException) {
+                _joinLink.value = JoinLinkState(error = joinLinkError(error))
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                _joinLink.value = JoinLinkState(
+                    error = if (error.isNetworkFailure()) JoinLinkError.NETWORK else JoinLinkError.GENERIC,
+                )
+            }
+        }
+        return true
+    }
+
+    /** The join-code exchange failed: close the notice and stay on the shell. */
+    fun dismissJoinLink() {
+        _joinLink.value = JoinLinkState()
+    }
+
+    private fun handleInvite(link: InvitationLink) {
         // The link wins over a boot that is still resolving the session.
         bootJob?.cancel()
         val current = _state.value
@@ -180,7 +244,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 ?: ""
             viewModelScope.launch {
                 val preview = runCatching {
-                    apiFor(link.instance).invitationPreview(link.token)
+                    publicApi(link.instance).use { it.invitationPreview(link.token) }
                 }.getOrNull()
                 _invite.value = InviteState(confirmSwitch = account, preview = preview)
             }
@@ -204,7 +268,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _state.value = AppState.NeedsInvite(link)
         viewModelScope.launch {
             try {
-                val preview = apiFor(link.instance).invitationPreview(link.token)
+                val preview = publicApi(link.instance).use { it.invitationPreview(link.token) }
                 _invite.value = InviteState(preview = preview)
             } catch (error: ApiException) {
                 _invite.value = InviteState(error = inviteError(error))
@@ -221,7 +285,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _invite.value = InviteState(loading = true)
         viewModelScope.launch {
             try {
-                val preview = apiFor(link.instance).invitationPreview(link.token)
+                val preview = publicApi(link.instance).use { it.invitationPreview(link.token) }
                 _invite.value = InviteState(preview = preview)
             } catch (error: ApiException) {
                 _invite.value = InviteState(error = inviteError(error))
@@ -441,11 +505,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * the invitation. A new account redeems first and signs in afterwards; if
      * that sign-in fails the account still exists and the user is sent to login
      * once, never a second redemption.
+     *
+     * An anonymous member invitation carries no name or email, so the form
+     * supplies them. Typing an address that already has an account answers
+     * `existing_account_signin_required`: the screens then ask for that
+     * account's current password ([InviteState.signInRequired]) instead of
+     * reporting a bare wrong password on a "choose a password" form.
      */
-    fun acceptInvite(password: String) {
+    fun acceptInvite(password: String, name: String, email: String) {
         val link = pendingLink ?: return
         val preview = _invite.value.preview ?: return
         if (preview.state != "pending" || _invite.value.pending) return
+        // A named invitation carries the address; an anonymous one takes it
+        // from the form. Same for the name, which only a new profile uses.
+        val accountEmail = preview.email ?: email.trim()
+        if (accountEmail.isEmpty()) return
+        val signInRequired = _invite.value.signInRequired
         _invite.value = _invite.value.copy(pending = true, error = null)
 
         viewModelScope.launch {
@@ -459,14 +534,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 val api = apiFor(link.instance)
 
-                if (preview.accountExists) {
+                if (preview.accountExists || signInRequired) {
                     val supabaseClient = try {
-                        signInForInvite(api, preview.email, password)
+                        signInForInvite(api, accountEmail, password)
                     } catch (error: Exception) {
                         if (error is kotlinx.coroutines.CancellationException) throw error
                         _invite.value = InviteState(
                             preview = preview,
+                            signInRequired = signInRequired,
                             error = when {
+                                isWrongCredentials(error) && signInRequired -> InviteError.EXISTING_SIGNIN_REQUIRED
                                 isWrongCredentials(error) -> InviteError.WRONG_CREDENTIALS
                                 error.isNetworkFailure() -> InviteError.NETWORK
                                 else -> InviteError.GENERIC
@@ -475,17 +552,39 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         return@launch
                     }
                     api.resetSessionState()
-                    api.redeemInvitation(link.token, RedeemRequest(email = preview.email))
+                    api.redeemInvitation(link.token, RedeemRequest(email = accountEmail))
                     openInvitationSession(api, link, supabaseClient)
                     return@launch
                 }
 
-                api.redeemInvitation(
-                    link.token,
-                    RedeemRequest(email = preview.email, password = password),
-                )
+                try {
+                    api.redeemInvitation(
+                        link.token,
+                        RedeemRequest(
+                            email = accountEmail,
+                            name = if (preview.requiresIdentity) name.trim() else null,
+                            password = password,
+                        ),
+                    )
+                } catch (error: ApiException) {
+                    // Anonymous invitation with an email that already has an
+                    // account. The app never signs in on the invitee's behalf:
+                    // it says so and switches the form to that account's
+                    // current password, so the next tap is an explicit
+                    // confirmation. The invitation stays pending.
+                    if (preview.requiresIdentity && error.code == "existing_account_signin_required") {
+                        _invite.value = InviteState(
+                            preview = preview,
+                            pending = false,
+                            error = InviteError.EXISTING_SIGNIN_REQUIRED,
+                            signInRequired = true,
+                        )
+                        return@launch
+                    }
+                    throw error
+                }
                 val supabaseClient = try {
-                    signInForInvite(api, preview.email, password)
+                    signInForInvite(api, accountEmail, password)
                 } catch (error: Exception) {
                     if (error is kotlinx.coroutines.CancellationException) throw error
                     // The account exists: a failed sign-in is a login notice, not
@@ -502,12 +601,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 api.resetSessionState()
                 openInvitationSession(api, link, supabaseClient)
             } catch (error: ApiException) {
-                _invite.value = InviteState(preview = preview, error = inviteError(error))
+                _invite.value = InviteState(
+                    preview = preview,
+                    error = inviteError(error),
+                    signInRequired = signInRequired,
+                )
             } catch (error: Exception) {
                 if (error is kotlinx.coroutines.CancellationException) throw error
                 _invite.value = InviteState(
                     preview = preview,
                     error = if (error.isNetworkFailure()) InviteError.NETWORK else InviteError.GENERIC,
+                    signInRequired = signInRequired,
                 )
             }
         }
@@ -730,6 +834,41 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // --- Invitations (sprint 18: quota, QR and requests) ---------------------
+
+    /** Loads the invitation screen: quota, invitations, invitees and requests. */
+    fun loadInvitations() = inviteStore.load()
+
+    /** `POST /me/invitations`: mints a link and hands its full URL to the screen to copy. */
+    fun createInviteLink() = inviteStore.createLink()
+
+    /** Consumes the link the screen copied, so a re-open does not copy it twice. */
+    /** Re-issues a pending invitation's link so the screen can show its QR. */
+    fun revealInvitationLink(id: String) = inviteStore.revealLink(id)
+
+    fun dismissShareLink() = inviteStore.dismissShareLink()
+
+    /** Revokes the pending invitation whose QR dialog is open. */
+    fun revokeFromShareLink(id: String) = inviteStore.revokeFromDialog(id)
+
+    /** Clears the one-shot failure the invitation screen has already shown. */
+    fun consumeInviteError() = inviteStore.consumeError()
+
+    /** `DELETE /me/invitations/{id}`: revokes one of the caller's pending invitations. */
+    fun revokeInvitation(id: String) = inviteStore.revoke(id)
+
+    /** `POST /me/invitation-requests`: ask the administrator for more seats. */
+    fun requestQuota(amount: Int, reason: String?) = inviteStore.request(amount, reason)
+
+    /** `POST /me/invitation-requests/{id}/cancel`: withdraw a pending request. */
+    fun cancelRequest(id: String) = inviteStore.cancelRequest(id)
+
+    /** `POST /me/join-codes`: mints a 90-second QR code; the screen renews it. */
+    fun createJoinCode() = inviteStore.createJoinCode()
+
+    /** Leaving the QR screen forgets the code; the token is never persisted. */
+    fun stopJoinCode() = inviteStore.stopJoinCode()
+
     /**
      * Adds an instance to the chooser without switching to it. Returns the
      * normalised URL, or null when the build cannot accept it.
@@ -886,6 +1025,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         return api
     }
 
+    /**
+     * A throwaway client with no session and no token, for public endpoints such
+     * as the join-code exchange. It never touches [client], so a public call
+     * against another host cannot reuse (or leak) the signed-in bearer.
+     */
+    private fun publicApi(base: String): ApiClient =
+        ApiClient(
+            baseUrl = base,
+            engine = OkHttp.create(),
+            token = { null },
+            refresh = { RefreshResult.NoSession },
+            onSessionEnded = {},
+        )
+
     private fun failureReason(error: ApiException): FailureReason = when {
         error.network -> FailureReason.NETWORK
         error.code == "auth_unavailable" -> FailureReason.AUTH_UNAVAILABLE
@@ -897,10 +1050,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         error.code == "invitation_used" -> InviteError.USED
         error.code == "not_found" -> InviteError.NOT_FOUND
         error.code == "existing_account_signin_required" -> InviteError.EXISTING_SIGNIN_REQUIRED
+        error.code == "validation_failed" -> InviteError.VALIDATION
         error.code == "rate_limited" -> InviteError.RATE_LIMITED
         error.code == "conflict" -> InviteError.CONFLICT
         error.network -> InviteError.NETWORK
         else -> InviteError.GENERIC
+    }
+
+    private fun joinLinkError(error: ApiException): JoinLinkError = when {
+        error.code == "join_code_used" -> JoinLinkError.USED
+        error.code == "invitation_quota_exhausted" -> JoinLinkError.QUOTA_EXHAUSTED
+        // An unknown or expired code is a `not_found` by design.
+        error.code == "not_found" -> JoinLinkError.EXPIRED
+        error.code == "rate_limited" -> JoinLinkError.RATE_LIMITED
+        error.network -> JoinLinkError.NETWORK
+        else -> JoinLinkError.GENERIC
     }
 
     /** Supabase Auth says the password is wrong (as opposed to a network error). */

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { MemberDangerZone } from "@/components/member-danger-zone";
+import { MemberInvitationPanel } from "@/components/member-invitation-panel";
 import { MemberProfileForm } from "@/components/member-profile-form";
 import { MemberPurgeAction } from "@/components/member-purge-action";
 import { MemberRestoreAction } from "@/components/member-restore-action";
@@ -11,10 +12,11 @@ import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { formatDate } from "@/lib/format-date";
+import { loadMemberInvitation } from "@/lib/invitation-grants";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { loadPanelTimeZone } from "@/lib/panel-settings";
 import { requirePanel } from "@/lib/panel-guard";
-import { loadMember, type MemberDetail } from "@/lib/panel-members";
+import { loadInvitees, loadMember, loadMemberInviter, type MemberDetail } from "@/lib/panel-members";
 
 /**
  * The page reads the session and the member while rendering; the layout's
@@ -128,6 +130,73 @@ function MemberCategories({
   );
 }
 
+function MemberTree({
+  invitees,
+  isOrphan,
+  messages,
+}: {
+  invitees: Awaited<ReturnType<typeof loadInvitees>>;
+  isOrphan: boolean;
+  messages: TranslationMap;
+}) {
+  if (!invitees.ok) {
+    return (
+      <PanelError
+        error={invitees}
+        heading={t("We couldn't load this member's invitees.", messages)}
+        retryHref="/panel/members"
+        messages={messages}
+      />
+    );
+  }
+
+  return (
+    <section
+      aria-labelledby="member-tree-title"
+      className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4"
+    >
+      <h2 id="member-tree-title" className="text-sm font-semibold">
+        {t("People they have brought", messages)}
+      </h2>
+      {isOrphan && (
+        <p role="status" className="text-xs font-semibold text-warning">
+          {t(
+            "Their inviter was removed, so their invitees no longer count against anyone.",
+            messages,
+          )}
+        </p>
+      )}
+      {invitees.users.length === 0 ? (
+        <p className="text-xs text-muted-foreground">{t("No one yet.", messages)}</p>
+      ) : (
+        <ul className="flex flex-col gap-1">
+          {invitees.users.map((invitee) => (
+            <li
+              key={invitee.id}
+              className="flex flex-wrap items-center gap-2 border-b border-border py-2 last:border-b-0"
+            >
+              <Link
+                href={`/panel/members/${invitee.id}`}
+                className="text-sm font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                {invitee.display_name || invitee.email || invitee.id}
+              </Link>
+              <Badge variant={invitee.deactivated_at === null ? "success" : "destructive"}>
+                {invitee.deactivated_at === null ? t("Active", messages) : t("Deactivated", messages)}
+              </Badge>
+              {invitee.invitation_level !== null && (
+                <span className="text-xs text-muted-foreground">
+                  {t("Level {level}", messages, { level: invitee.invitation_level })}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export default async function MemberPage({ params }: { params: Promise<{ id: string }> }) {
   const gate = await requirePanel("admin");
 
@@ -162,11 +231,37 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
 
   const member = result.member;
   const isSelf = gate.user.id === member.id;
+  const [invitation, invitees, inviter] = await Promise.all([
+    loadMemberInvitation(member.id),
+    loadInvitees(member.id),
+    loadMemberInviter(member.id),
+  ]);
+  // Only a successful read that genuinely found no parent marks an orphan; a
+  // failed read keeps the member page rendering without the false note.
+  const isOrphan = member.role === "user" && inviter.ok && inviter.inviter === null;
   return (
     <section className="flex flex-col gap-5">
       <MemberBreadcrumb name={memberName(member)} messages={messages} />
       <MemberHeader member={member} locale={locale} timeZone={timeZone} messages={messages} />
       <MemberCategories member={member} messages={messages} />
+      {invitation.ok ? (
+        <MemberInvitationPanel
+          member={member}
+          quota={invitation.quota}
+          grants={invitation.grants}
+          locale={locale}
+          timeZone={timeZone}
+          messages={messages}
+        />
+      ) : (
+        <PanelError
+          error={invitation}
+          heading={t("We couldn't load the invitation quota.", messages)}
+          retryHref={`/panel/members/${encodeURIComponent(id)}`}
+          messages={messages}
+        />
+      )}
+      <MemberTree invitees={invitees} isOrphan={isOrphan} messages={messages} />
       <MemberProfileForm
         member={member}
         viewerRole={gate.user.role}

@@ -32,6 +32,8 @@ const SETTING_LABELS: Record<string, Translator> = {
   "rate_limit.api_key_per_min": (messages) => t("API key per minute", messages),
   "rate_limit.write_per_min": (messages) => t("Write per minute", messages),
   "rate_limit.public_per_min": (messages) => t("Public per minute", messages),
+  "invitations.levels": (messages) => t("Invitation levels", messages),
+  "invitations.member_ttl_hours": (messages) => t("Member link validity (hours)", messages),
 };
 
 /** One help line per setting key in the same catalog. */
@@ -68,6 +70,16 @@ const SETTING_HELPS: Record<string, Translator> = {
   "rate_limit.api_key_per_min": (messages) => t("Requests per minute per service key.", messages),
   "rate_limit.write_per_min": (messages) => t("Write requests per minute.", messages),
   "rate_limit.public_per_min": (messages) => t("Requests per minute for public doors.", messages),
+  "invitations.levels": (messages) =>
+    t(
+      "How many people each level may invite. Level 1 is invited by an administrator; level 2 by a level-1 member, and so on.",
+      messages,
+    ),
+  "invitations.member_ttl_hours": (messages) =>
+    t(
+      "How long a member invitation link stays valid before it expires. 48 hours by default. Links already handed out keep the lifetime they were created with.",
+      messages,
+    ),
 };
 
 const CATEGORY_LABELS: Record<string, Translator> = {
@@ -76,6 +88,7 @@ const CATEGORY_LABELS: Record<string, Translator> = {
   security: (messages) => t("Security", messages),
   notifications: (messages) => t("Notifications", messages),
   rate_limit: (messages) => t("Rate limits", messages),
+  invitations: (messages) => t("Invitations", messages),
 };
 
 const CATEGORY_HELPS: Record<string, Translator> = {
@@ -84,6 +97,8 @@ const CATEGORY_HELPS: Record<string, Translator> = {
   security: (messages) => t("JWT, CORS and other security-relevant values.", messages),
   notifications: (messages) => t("Push notification provider (FCM).", messages),
   rate_limit: (messages) => t("Per-identity request limits (per minute).", messages),
+  invitations: (messages) =>
+    t("Who can join and how many people each member may bring.", messages),
 };
 
 export function settingLabel(

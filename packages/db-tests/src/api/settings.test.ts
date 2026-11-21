@@ -174,7 +174,7 @@ describe('GET /api/v1/settings', () => {
 });
 
 describe('GET /api/v1/settings-categories', () => {
-  it('returns the 5 categories in sort order with their settings', async () => {
+  it('returns the 6 categories in sort order with their settings', async () => {
     await withClient(async (c) => {
       await c.query('BEGIN');
       try {
@@ -189,6 +189,7 @@ describe('GET /api/v1/settings-categories', () => {
           'security',
           'notifications',
           'rate_limit',
+          'invitations',
         ]);
         const totalSettings = body.categories.reduce((sum, cat) => sum + cat.settings.length, 0);
         expect(totalSettings).toBe(SETTINGS_CATALOG.length);

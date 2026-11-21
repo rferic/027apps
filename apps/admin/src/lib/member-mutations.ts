@@ -79,3 +79,48 @@ export async function purgeMember(
   }
   return readMutation(res);
 }
+
+/**
+ * PATCH /users/{id} with only `invitation_level`: move a member between club
+ * levels (1..20), or `null` to clear the level of an administrator.
+ */
+export async function setMemberInvitationLevel(
+  id: string,
+  level: number | null,
+  fetcher: typeof fetch = fetch,
+): Promise<MutationResult> {
+  let res: Response;
+  try {
+    res = await fetcher(`/api/v1/users/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ invitation_level: level }),
+    });
+  } catch {
+    return { ok: false };
+  }
+  return readMutation(res);
+}
+
+/**
+ * DELETE /users/{id}/invitation-grants/{grantId} — revoke a quota grant,
+ * keeping the history. The Core marks `revoked_at` and blocks new invitations
+ * if the member already spent those seats.
+ */
+export async function revokeInvitationGrant(
+  id: string,
+  grantId: string,
+  fetcher: typeof fetch = fetch,
+): Promise<MutationResult> {
+  let res: Response;
+  try {
+    res = await fetcher(
+      `/api/v1/users/${encodeURIComponent(id)}/invitation-grants/${encodeURIComponent(grantId)}`,
+      { method: "DELETE", credentials: "same-origin" },
+    );
+  } catch {
+    return { ok: false };
+  }
+  return readMutation(res);
+}

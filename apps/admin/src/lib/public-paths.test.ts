@@ -17,6 +17,8 @@ describe("isPublicPath", () => {
     "/invite/027_inv_abc123/",
     "/migrate/027_mig_abc123",
     "/migrate/027_mig_abc123/",
+    "/join/027_join_abc123",
+    "/join/027_join_abc123/",
     "/forgot-password",
     "/auth/confirm",
   ])("allows %s", (pathname) => {
@@ -40,6 +42,10 @@ describe("isPublicPath", () => {
     "/migrate/",
     "/migrate/a/b",
     "/migrate/..",
+    "/join",
+    "/join/",
+    "/join/a/b",
+    "/join/..",
   ])("does not expose %s", (pathname) => {
     expect(isPublicPath(pathname)).toBe(false);
   });

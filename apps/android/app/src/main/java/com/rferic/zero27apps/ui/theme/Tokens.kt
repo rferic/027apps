@@ -37,6 +37,7 @@ data class Palette(
     val destructiveForeground: Color,
     val success: Color,
     val successSubtle: Color,
+    val warning: Color,
     val android: Color,
     val androidForeground: Color,
 ) {
@@ -57,6 +58,7 @@ data class Palette(
         "destructive-foreground" to destructiveForeground.toArgb(),
         "success" to success.toArgb(),
         "success-subtle" to successSubtle.toArgb(),
+        "warning" to warning.toArgb(),
         "android" to android.toArgb(),
         "android-foreground" to androidForeground.toArgb(),
     )
@@ -79,6 +81,7 @@ object Tokens {
         destructiveForeground = Color(0xFFFFFFFF),
         success = Color(0xFF15803D),
         successSubtle = Color(0xFFE4F8EC),
+        warning = Color(0xFFB93815),
         android = Color(0xFF3DDC84),
         androidForeground = Color(0xFF073042),
     )
@@ -99,6 +102,7 @@ object Tokens {
         destructiveForeground = Color(0xFF2A0A10),
         success = Color(0xFF4ADE80),
         successSubtle = Color(0xFF102318),
+        warning = Color(0xFFFF8A5C),
         android = Color(0xFF3DDC84),
         androidForeground = Color(0xFF073042),
     )

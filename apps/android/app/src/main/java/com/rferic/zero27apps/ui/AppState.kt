@@ -51,6 +51,8 @@ enum class InviteError {
     NETWORK,
     WRONG_CREDENTIALS,
     EXISTING_SIGNIN_REQUIRED,
+    /** The server refused the form: name, email or password out of range. */
+    VALIDATION,
     RATE_LIMITED,
     CONFLICT,
     GENERIC,
@@ -66,6 +68,12 @@ data class InviteState(
     val error: InviteError? = null,
     /** Signed in as this account: accepting needs a sign-out the person confirms. */
     val confirmSwitch: String? = null,
+    /**
+     * The email typed on an anonymous invitation already has an account (D11).
+     * The form switches to asking for that account's current password instead
+     * of a new one, and the invitation stays pending.
+     */
+    val signInRequired: Boolean = false,
 )
 
 /** Old<->new phone migration (QR); the screens render from this one value. */
@@ -85,4 +93,56 @@ data class MigrationState(
     /** pending | used | expired, polled by the old phone. */
     val state: String = "pending",
     val error: MigrationError? = null,
+)
+
+/** Why loading the invitation screen failed; mapped to localised copy. */
+enum class InviteMembersError { NETWORK, RATE_LIMITED, QUOTA, GENERIC }
+
+/**
+ * The invitation screen's data, loaded from `GET /me/invitations` and the admin
+ * list when the caller is an administrator. The quota drives the bar and the
+ * Invite/Ask decision; the rest is the direct invitees, the pending links and
+ * the caller's own recent requests.
+ */
+data class InviteMembersState(
+    val loading: Boolean = false,
+    val quota: com.rferic.zero27apps.data.InvitationQuotaDto? = null,
+    val invitations: List<com.rferic.zero27apps.data.MemberInvitationDto> = emptyList(),
+    val invitees: List<com.rferic.zero27apps.data.InviteeDto> = emptyList(),
+    val requests: List<com.rferic.zero27apps.data.InvitationRequestDto> = emptyList(),
+    /** Read-only list for an administrator; empty for everyone else. */
+    val adminRequests: List<com.rferic.zero27apps.data.AdminInvitationRequestDto> = emptyList(),
+    val error: InviteMembersError? = null,
+)
+
+/**
+ * The shareable link on screen, as the dialog needs it: it may still be loading
+ * (reopening a pending invitation mints a new token first), and it carries the
+ * invitation it belongs to so the same dialog can revoke it.
+ */
+data class InvitationShareLink(
+    val url: String? = null,
+    /** Re-issued for a pending invitation: the previous link stopped working. */
+    val regenerated: Boolean = false,
+    val loading: Boolean = false,
+    val invitationId: String? = null,
+)
+
+/** The rotating QR join code, minted and renewed by the view model. */
+enum class InviteJoinError { NETWORK, QUOTA_EXHAUSTED, RATE_LIMITED, GENERIC }
+
+data class JoinCodeState(
+    val loading: Boolean = false,
+    val code: String? = null,
+    val path: String? = null,
+    val expiresAt: String? = null,
+    val error: InviteJoinError? = null,
+)
+
+/** Why a scanned `/join/<code>` link could not be exchanged. */
+enum class JoinLinkError { EXPIRED, USED, QUOTA_EXHAUSTED, RATE_LIMITED, NETWORK, WRONG_INSTANCE, GENERIC }
+
+data class JoinLinkState(
+    val loading: Boolean = false,
+    val error: JoinLinkError? = null,
 )

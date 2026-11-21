@@ -81,7 +81,7 @@ jobs:
             -e 'eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}' \
             -e 'SERVICE_ROLE_KEY[[:space:]]*[=:][[:space:]]*["'"'"']?[A-Za-z0-9_-]{20,}' \
             -e '027_(svc|usr)_[A-Za-z0-9_-]{20,}' \
-            -e '027_(inv|mig)_[A-Za-z0-9_-]{32,}' \
+            -e '027_(inv|mig|join)_[A-Za-z0-9_-]{32,}' \
             -e 'SETTINGS_ENCRYPTION_KEY[[:space:]]*[=:][[:space:]]*["'"'"']?[A-Za-z0-9+/=]{20,}' || true)
           if [ -n "$hits" ]; then
             echo "::error::Secret-like values found in:"; echo "$hits"; fail=1
@@ -137,6 +137,49 @@ jobs:
         run: pnpm --filter db-tests test
         env:
           SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      # The invitation gate walks the club flows the way a person does: mint,
+      # preview, redeem new, redeem with an existing email (409), confirm that
+      # account, re-issue, revoke, QR single use and the rate-limit buckets. It
+      # needs the panel answering, not just the database.
+      - name: Start the panel against the local stack
+        run: |
+          umask 077
+          cat > apps/admin/.env.local <<EOF
+          NEXT_PUBLIC_SUPABASE_URL=$SUPABASE_URL
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+          SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
+          SUPABASE_DB_URL=$SUPABASE_DB_URL
+          EOF
+          (cd apps/admin && PORT=3003 pnpm dev > /tmp/panel.log 2>&1 &)
+          for attempt in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:3003/api/v1/health > /dev/null 2>&1; then exit 0; fi
+            sleep 2
+          done
+          echo "::error::the panel did not answer at /api/v1/health"
+          tail -60 /tmp/panel.log || true
+          exit 1
+      - name: Invitation flows
+        run: bash scripts/qa-invitations.sh http://127.0.0.1:3003
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      # The same panel, now through a browser: the invitation page and the panel
+      # screens a rendered-HTML check cannot prove.
+      - name: Install the test browser
+        run: pnpm --filter admin exec playwright install --with-deps chromium
+      - name: Invitation and panel flows in a browser
+        run: pnpm --filter admin e2e
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3003
+      # A red browser run is only useful with the page it failed on.
+      - name: Browser traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces
+          path: |
+            apps/admin/test-results
+            apps/admin/playwright-report
+          if-no-files-found: ignore
 
   # Squash merge: the PR title is the commit message on main.
   commitlint:

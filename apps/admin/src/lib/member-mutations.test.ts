@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import { deactivateMember, patchMember, purgeMember, restoreMember } from "./member-mutations";
+import {
+  deactivateMember,
+  patchMember,
+  purgeMember,
+  restoreMember,
+  revokeInvitationGrant,
+  setMemberInvitationLevel,
+} from "./member-mutations";
 
 function json(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), { status, headers });
@@ -184,6 +191,56 @@ describe("purgeMember", () => {
       ok: false,
       code: "conflict",
       requestId: "req-409",
+    });
+  });
+});
+
+describe("setMemberInvitationLevel", () => {
+  it("PATCHes only the invitation_level", async () => {
+    const fetcher = vi.fn(async () => json({ user: {} }));
+
+    await expect(setMemberInvitationLevel("u1", 3, fetcher)).resolves.toEqual({ ok: true });
+
+    const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("/api/v1/users/u1");
+    expect(init.method).toBe("PATCH");
+    expect(init.credentials).toBe("same-origin");
+    expect(init.headers).toEqual({ "content-type": "application/json" });
+    expect(JSON.parse(String(init.body))).toEqual({ invitation_level: 3 });
+  });
+
+  it("sends null to clear the level of an administrator", async () => {
+    const fetcher = vi.fn(async () => json({ user: {} }));
+
+    await setMemberInvitationLevel("u1", null, fetcher);
+
+    expect(JSON.parse(String((fetcher.mock.calls[0] as unknown as [string, RequestInit])[1].body))).toEqual({
+      invitation_level: null,
+    });
+  });
+});
+
+describe("revokeInvitationGrant", () => {
+  it("DELETEs the grant endpoint same-origin", async () => {
+    const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
+
+    await expect(revokeInvitationGrant("u1", "g-1", fetcher)).resolves.toEqual({ ok: true });
+
+    const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("/api/v1/users/u1/invitation-grants/g-1");
+    expect(init.method).toBe("DELETE");
+    expect(init.credentials).toBe("same-origin");
+  });
+
+  it("surfaces a refusal", async () => {
+    const fetcher = vi.fn(async () =>
+      json({ error: { code: "insufficient_scope", request_id: "req-403" } }, 403),
+    );
+
+    await expect(revokeInvitationGrant("u1", "g-1", fetcher)).resolves.toEqual({
+      ok: false,
+      code: "insufficient_scope",
+      requestId: "req-403",
     });
   });
 });

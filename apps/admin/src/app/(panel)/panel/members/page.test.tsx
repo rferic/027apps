@@ -54,6 +54,7 @@ const MEMBERS = [
     role: "super_admin" as const,
     created_at: "2026-01-01T00:00:00.000Z",
     deactivated_at: null,
+    invitation_level: null,
     categories: [
       { id: "c1", name: "Alpha" },
       { id: "c2", name: "Beta" },
@@ -70,6 +71,7 @@ const MEMBERS = [
     role: "user" as const,
     created_at: "2026-02-01T00:00:00.000Z",
     deactivated_at: "2026-03-01T00:00:00.000Z",
+    invitation_level: 3,
     categories: [],
   },
 ];
@@ -119,6 +121,8 @@ describe("MembersPage", () => {
     expect(html).toContain("luis@example.com");
     expect(html).toContain("User");
     expect(html).toContain("Deactivated");
+    expect(html).toContain(">Level<");
+    expect(html).toContain("Level 3");
     expect(html).toContain("<table");
     expect(html).toContain("<caption");
     expect(html).toContain('href="/panel/members/u1"');

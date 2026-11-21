@@ -3,12 +3,16 @@ import type { ClientBase } from "pg";
 import { createTestModule, createTestUser, query, withClient } from "../pg.js";
 import {
   createInvitationRoute,
+  invitationLinkRoute,
   invitationPreviewRoute,
   invitationsRoute,
   redeemInvitationRoute,
+  renewInvitationRoute,
+  resendInvitationRoute,
   revokeInvitationRoute,
   type InvitationsRouteDeps,
 } from "@027apps/core/invitations/api.js";
+import { hashInvitationToken } from "@027apps/core/invitations/service.js";
 import type { InvitationsAuth } from "@027apps/core/invitations/service.js";
 import type { Caller, DoorDeps, LogEntry } from "@027apps/core/api/types.js";
 
@@ -329,6 +333,45 @@ describe("invitations API", () => {
       expect(created.status).toBe(201);
       const body = (await created.json()) as { account_exists: boolean };
       expect(body.account_exists).toBe(true);
+    });
+  });
+});
+
+describe("invitations API: member and QR invitations are not renewable", () => {
+  async function memberInvitation(c: ClientBase, inviterId: string): Promise<string> {
+    const token = `027_inv_${crypto.randomUUID()}`;
+    const { rows } = await query(
+      c,
+      `insert into public.invitations
+         (email, name, role, source, depth, token_hash, locale, expires_at, created_by)
+       values (null, null, 'user', 'member', 2, $1, 'en', now() + interval '48 hours', $2)
+       returning id`,
+      [hashInvitationToken(token), inviterId],
+    );
+    return String(rows[0]!.id);
+  }
+
+  it("answers 409 invitation_not_renewable for resend, link and renew", async () => {
+    await inRollback(async (c) => {
+      const who = await adminCaller(c);
+      if (who.kind !== "session") throw new Error("expected a session caller");
+      const route = deps(c, who);
+      const id = await memberInvitation(c, who.userId);
+
+      for (const handler of [
+        resendInvitationRoute(route),
+        invitationLinkRoute(route),
+        renewInvitationRoute(route),
+      ]) {
+        const res = await handler(
+          new Request(`http://local/api/v1/invitations/${id}/x`, { method: "POST" }),
+          id,
+        );
+        expect(res.status).toBe(409);
+        expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
+          "invitation_not_renewable",
+        );
+      }
     });
   });
 });

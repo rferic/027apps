@@ -311,18 +311,33 @@ export async function publishPending(
           const resource = (event.resource ?? {}) as Record<string, unknown>;
           const text = (value: unknown) =>
             typeof value === "string" && value.trim() !== "" ? value.slice(0, 80) : undefined;
-          const amount = typeof resource.amount_minor === "number" ? resource.amount_minor : undefined;
-          const results = await deps.push.send(tokens, {
-            key: `push.${event.type.replace(/\./g, "_")}`,
-            module: event.module_key ?? "027apps",
-            ...(text(resource.description) ? { description: text(resource.description)! } : {}),
-            ...(text(resource.group_name) ? { group: text(resource.group_name)! } : {}),
-            ...(text(resource.actor_name) ? { actor: text(resource.actor_name)! } : {}),
-            ...(amount !== undefined ? { amount: String(amount) } : {}),
-            ...(text(resource.currency) ? { currency: text(resource.currency)! } : {}),
-            ...(text(resource.movement_id) ? { resource_id: text(resource.movement_id)! } : {}),
-            ...(text(resource.group_id) ? { target: text(resource.group_id)! } : {}),
-          });
+          const key = `push.${event.type.replace(/\./g, "_")}`;
+          const module = event.module_key ?? "027apps";
+
+          // Invitation pushes never carry a name or an amount (spec §10/R5): the
+          // app renders a fixed localized text from `key` (+ `state` for the
+          // resolved event) and fetches the detail from the API. The outbox
+          // resource keeps the full context for the panel and the app's history.
+          let data: Record<string, string>;
+          if (event.type.startsWith("invitation.")) {
+            const state = text(resource.state);
+            data = state ? { key, module, state } : { key, module };
+          } else {
+            const amount = typeof resource.amount_minor === "number" ? resource.amount_minor : undefined;
+            data = {
+              key,
+              module,
+              ...(text(resource.description) ? { description: text(resource.description)! } : {}),
+              ...(text(resource.group_name) ? { group: text(resource.group_name)! } : {}),
+              ...(text(resource.actor_name) ? { actor: text(resource.actor_name)! } : {}),
+              ...(amount !== undefined ? { amount: String(amount) } : {}),
+              ...(text(resource.currency) ? { currency: text(resource.currency)! } : {}),
+              ...(text(resource.movement_id) ? { resource_id: text(resource.movement_id)! } : {}),
+              ...(text(resource.group_id) ? { target: text(resource.group_id)! } : {}),
+            };
+          }
+
+          const results = await deps.push.send(tokens, data);
           const invalid = results
             .filter((result) => result.error === "UNREGISTERED" || result.error === "INVALID_ARGUMENT")
             .map((result) => result.token);

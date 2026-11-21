@@ -21,6 +21,7 @@ const ALL_HREFS = [
   "/panel/settings/security",
   "/panel/settings/notifications",
   "/panel/settings/rate-limits",
+  "/panel/settings/invitations",
   "/panel/docs/api",
   "/help/firebase",
 ];
@@ -66,7 +67,7 @@ describe("PanelNav", () => {
     expect(html).not.toContain('href="/panel/settings"');
     expect(html).not.toContain("aria-expanded");
     expect(html).not.toContain("pl-6");
-    for (const section of ["instance", "localization", "security", "notifications", "rate-limits"]) {
+    for (const section of ["instance", "localization", "security", "notifications", "rate-limits", "invitations"]) {
       expect(html).toContain(`href="/panel/settings/${section}"`);
     }
   });
@@ -151,7 +152,7 @@ describe("PanelNav", () => {
       expect(html).toContain('href="/panel/settings/instance"');
       expect(html).not.toContain('href="/panel/settings/security"');
       expect(html).not.toContain(">Security</span>");
-      expect((html.match(/href="\/panel\/settings\/[^"]+"/g) ?? []).length).toBe(4);
+      expect((html.match(/href="\/panel\/settings\/[^"]+"/g) ?? []).length).toBe(5);
     }
   });
 

@@ -57,6 +57,19 @@ export async function setModulePublic(
   return patch(`/api/v1/modules/${encodeURIComponent(key)}`, { is_public: isPublic }, fetcher);
 }
 
+/**
+ * PATCH /api/v1/modules/{key} — whether a private module is inherited by member
+ * invitees. Public modules are always inherited, so this flag only matters for
+ * private ones.
+ */
+export async function setModuleDelegable(
+  key: string,
+  delegable: boolean,
+  fetcher: typeof fetch = fetch,
+): Promise<MutationResult> {
+  return patch(`/api/v1/modules/${encodeURIComponent(key)}`, { delegable }, fetcher);
+}
+
 /** POST /api/v1/modules/{key}/activate — installed or disabled to active. */
 export async function activateModule(
   key: string,

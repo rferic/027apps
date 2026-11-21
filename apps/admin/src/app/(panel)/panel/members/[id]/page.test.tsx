@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const requirePanelMock = vi.fn();
 const loadMemberMock = vi.fn();
+const loadMemberInvitationMock = vi.fn();
+const loadInviteesMock = vi.fn();
+const loadMemberInviterMock = vi.fn();
 const notFoundMock = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
 });
@@ -31,6 +34,12 @@ vi.mock("@/lib/panel-settings", () => ({
 
 vi.mock("@/lib/panel-members", () => ({
   loadMember: (id: string) => loadMemberMock(id),
+  loadInvitees: (id: string) => loadInviteesMock(id),
+  loadMemberInviter: (id: string) => loadMemberInviterMock(id),
+}));
+
+vi.mock("@/lib/invitation-grants", () => ({
+  loadMemberInvitation: (id: string) => loadMemberInvitationMock(id),
 }));
 
 vi.mock("@/app/(auth)/actions", () => ({
@@ -46,6 +55,7 @@ const MEMBER = {
   locale: "es",
   timezone: "Europe/Madrid",
   role: "super_admin" as const,
+  invitation_level: null,
   created_at: "2026-01-01T00:00:00.000Z",
   deactivated_at: null,
   categories: [
@@ -74,6 +84,16 @@ beforeEach(() => {
     user: { id: "u1", email: "admin@example.com", displayName: "Admin", role: "super_admin" },
   });
   loadMemberMock.mockReset();
+  loadMemberInvitationMock.mockReset();
+  loadMemberInvitationMock.mockResolvedValue({
+    ok: true,
+    grants: [],
+    quota: { level: null, base: 0, granted: 0, used: 0, reserved: 0, remaining: 0, unlimited: true },
+  });
+  loadInviteesMock.mockReset();
+  loadInviteesMock.mockResolvedValue({ ok: true, users: [], total: 0, activeTotal: 0 });
+  loadMemberInviterMock.mockReset();
+  loadMemberInviterMock.mockResolvedValue({ ok: true, inviter: "u0" });
   notFoundMock.mockClear();
 });
 
@@ -223,5 +243,74 @@ describe("MemberPage", () => {
     expect(html).toContain("Categories");
     expect(html).toContain("No categories assigned.");
     expect(html).toContain('href="/panel/categories"');
+  });
+
+  it("shows the descendant tree of a member with name, level and state", async () => {
+    loadMemberMock.mockResolvedValue({
+      ok: true,
+      member: { ...MEMBER, role: "user" as const, invitation_level: 1 },
+    });
+    loadInviteesMock.mockResolvedValue({
+      ok: true,
+      users: [
+        {
+          ...MEMBER,
+          id: "u2",
+          display_name: "Luis",
+          role: "user" as const,
+          invitation_level: 2,
+          deactivated_at: null,
+        },
+        {
+          ...MEMBER,
+          id: "u3",
+          display_name: "Marta",
+          role: "user" as const,
+          invitation_level: 2,
+          deactivated_at: "2026-04-01T00:00:00.000Z",
+        },
+      ],
+      total: 2,
+      activeTotal: 1,
+    });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("People they have brought");
+    expect(html).toContain("Luis");
+    expect(html).toContain("Level 2");
+    expect(html).toContain(">Active</span>");
+    expect(html).toContain("Marta");
+    expect(html).toContain(">Deactivated</span>");
+    expect(html).toContain('href="/panel/members/u2"');
+    expect(loadInviteesMock).toHaveBeenCalledWith("u1");
+  });
+
+  it("notes an orphan when the member has no parent and no invitees", async () => {
+    loadMemberMock.mockResolvedValue({
+      ok: true,
+      member: { ...MEMBER, role: "user" as const, invitation_level: 2 },
+    });
+    loadMemberInviterMock.mockResolvedValue({ ok: true, inviter: null });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("People they have brought");
+    expect(html).toContain("Their inviter was removed, so their invitees no longer count against anyone.");
+    expect(html).toContain("No one yet.");
+  });
+
+  it("never shows the orphan note when the inviter read failed", async () => {
+    loadMemberMock.mockResolvedValue({
+      ok: true,
+      member: { ...MEMBER, role: "user" as const, invitation_level: 2 },
+    });
+    loadMemberInviterMock.mockResolvedValue({ ok: false });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("People they have brought");
+    expect(html).not.toContain("Their inviter was removed, so their invitees no longer count against anyone.");
+    expect(html).toContain("No one yet.");
   });
 });
