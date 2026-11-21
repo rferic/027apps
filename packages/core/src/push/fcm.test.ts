@@ -26,7 +26,7 @@ interface Recorded {
 /** A fake fetch: token endpoint first, then one answer per FCM send. */
 function fakeFcm(responses: Array<{ status?: number; body?: unknown }> = []) {
   const calls: Recorded[] = [];
-  const fetchFn = vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) => {
+  const fetchFn = vi.fn(async (input: string | URL, init: RequestInit = {}) => {
     const url = String(input);
     const headers = Object.fromEntries(
       Object.entries((init.headers ?? {}) as Record<string, string>).map(([key, value]) => [

@@ -33,6 +33,54 @@ administrador. El acceso se entrega con un QR rotativo o con un enlace compartib
 | 09 | App: push y deep links | app |
 | 10 | Docs, i18n, OpenAPI y auditoría | docs |
 
+## Ronda de QA manual (2026-11-20/21)
+
+Prueba del propietario en el panel y en un móvil real, concepto a concepto. Lo que salió y cómo
+quedó:
+
+| Hallazgo | Arreglo |
+|---|---|
+| El botón «Crear enlace» no hacía nada | La app mandaba el POST sin cuerpo y el borde exigía `{}`; ahora el cuerpo vacío es válido y la app manda `{}` |
+| Una invitación pendiente no se podía reabrir | Modal con el QR del enlace y «Copiar enlace»; al reabrir se **reacuña** el token (`POST /me/invitations/{id}/link`), el anterior deja de valer y la caducidad no se alarga |
+| Revocar solo se podía desde la fila | La fila entera abre el modal y la revocación, con confirmación, vive dentro |
+| «Caduca en 0 h» en un enlace de 1 h | El cálculo truncaba a horas; ahora horas y minutos (mínimos cuando queda menos de una hora) |
+| La caducidad estaba fijada a 48 h | Ajuste `invitations.member_ttl_hours` (1..720) en Ajustes → Invitaciones |
+| Aceptar con un email registrado iniciaba sesión sin avisar | Nunca se firma por el invitado: la app y la web dicen que ese correo ya tiene cuenta y piden **su** contraseña; la invitación sigue pendiente |
+| Varios 429 al crear tras revocar | Todos los endpoints de usuario compartían un contador; ahora cada ruta sensible tiene su cubeta |
+| Un administrador no podía invitar desde la app | Sección de administrador con enlace y QR anónimos (rol `user`, nivel 1, sin gastar plaza); el formulario con email/rol/categoría sigue en el panel |
+| Fallos de UI en la app (margen superior, «Activo» duplicado, nivel numérico, badge de niveles, textos de niveles) | Corregidos y con test |
+
+Además, los flujos del club quedaron con puertas automáticas: `pnpm qa:invitations` (API y base de
+datos reales), `pnpm qa:web` (navegador real: invitación y panel), `pnpm qa:android` (app en el
+emulador) y `pnpm qa:push` (evento y despacho del push). Ver
+[`docs/flows/pre-delivery-verification.md`](../../flows/pre-delivery-verification.md).
+
+**Auditoría de seguridad de la ronda** (sobre las superficies nuevas): la rotación solo actúa sobre
+invitaciones propias, anónimas y pendientes (usada/caducada/ajena → 404); el token sigue guardándose
+solo como hash y se devuelve una vez; la aceptación con cuenta existente no inicia sesión sin
+confirmación y no altera rol, nivel ni invitador; los límites de peticiones no se relajan; el ajuste
+de caducidad se valida 1..720 y solo lo escribe un administrador; la app no muestra el token y los
+eventos de push siguen sin nombres ni importes.
+
+### Evidencia de la verificación (2026-11-21)
+
+| Comprobación | Resultado |
+|---|---|
+| `pnpm lint` | 0 errores (21 avisos previos, `<img>` y un test sin usar) |
+| `pnpm tsc` | las 7 áreas en verde |
+| `pnpm --filter @027apps/core test` | 46 ficheros / 634 tests |
+| `pnpm --filter admin test` | 171 ficheros / 1354 tests |
+| `scripts/verify-local.sh` | «All local checks passed» |
+| `pnpm qa:invitations` | verde (~50 comprobaciones, API y base de datos reales) |
+| `pnpm qa:web` | 7/7 (Chromium real) |
+| `pnpm qa:android` | verde (emulador: canje nuevo, email existente, solicitud de plazas) |
+| `pnpm qa:push` | verde: eventos encolados y despachados; sin dispositivos locales (build debug sin `google-services.json`) |
+| `./gradlew :app:testDebugUnitTest :app:assembleDebug` | BUILD SUCCESSFUL |
+
+`db-tests` completo no se ejecuta contra la instancia del propietario (asume una instancia limpia,
+ver `docs/flows/pre-delivery-verification.md`); sus suites de invitaciones se cubren con
+`pnpm qa:invitations`.
+
 ## Fuera de alcance
 
 - Aprobar solicitudes desde la app (solo listarlas; la gestión es en el panel).
