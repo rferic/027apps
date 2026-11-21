@@ -108,7 +108,15 @@ for pair in "old:$TOKEN_OLD" "new:$TOKEN_NEW"; do
                 now() + interval '48 hours', '$INVITER')" >/dev/null
 done
 
-printf '== installing the debug APK on the device\n'
+printf '== compilando el APK debug\n'
+# Build from the tree, so the device never runs a stale APK.
+if ! (cd "$ROOT/apps/android" && ./gradlew :app:assembleDebug >/tmp/qa-android-build.log 2>&1); then
+  tail -30 /tmp/qa-android-build.log
+  printf 'el APK debug no compila\n'
+  exit 1
+fi
+
+printf '== instalando el APK debug en el dispositivo\n'
 adb install -r "$APK" >/dev/null
 PACKAGE="$(adb shell pm list packages | tr -d '\r' | grep 'zero27apps.debug' | head -1 | cut -d: -f2)"
 [[ -n "$PACKAGE" ]] || {
