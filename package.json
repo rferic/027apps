@@ -16,6 +16,7 @@
     "db:shim": "bash scripts/install-supabase-guard.sh",
     "qa:invitations": "bash scripts/qa-invitations.sh",
     "qa:android": "bash scripts/e2e-android-invite.sh",
-    "qa:web": "pnpm --filter admin e2e"
+    "qa:web": "pnpm --filter admin e2e",
+    "qa:push": "bash scripts/qa-push.sh"
   }
 }

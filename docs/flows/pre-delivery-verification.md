@@ -31,6 +31,7 @@ Dos scripts cubren lo que más se rompe y lo que el propietario no debe descubri
 pnpm qa:invitations          # API real: enlace, canje nuevo, email existente, rotar, revocar, QR
 pnpm qa:web                  # navegador real: página de invitación y pantallas del panel
 pnpm qa:android              # la app real en el emulador/móvil conectado
+pnpm qa:push                 # push: evento encolado y despachado (local o staging)
 ```
 
 - **`scripts/qa-invitations.sh`** levanta una sesión de verdad contra el panel local y recorre el
@@ -50,6 +51,14 @@ pnpm qa:android              # la app real en el emulador/móvil conectado
   plazas la crea en el setup y se comprueba la concesión en su ficha) y comprueba que **el contador
   de solicitudes del panel aparece sin recargar** cuando llega una nueva (el badge encuestado). Crea sus cuentas
   `qa-e2e-*@test.local`, las borra al terminar y restaura los niveles que ajusta.
+- **`pnpm qa:push`** levanta el pipeline de notificaciones hasta el outbox: crea la solicitud y la
+  aprobación, comprueba que los eventos `invitation.requested` (a administradores) y
+  `invitation.request_resolved` (al miembro) existen, que salen **solo por push**, que el
+  despachador los toma y publica o con qué error, y cuántos dispositivos activos hay. **No** prueba
+  la entrega a un móvil: eso necesita el APK release con `google-services.json` en un dispositivo
+  real. En local no hay tokens (el build debug no registra), así que el aviso de 0 dispositivos es
+  esperado; en staging se ejecuta con `BASE_URL`, `SUPABASE_*`, `SUPABASE_DB_URL` y las credenciales
+  `QA_PUSH_*` de cuentas existentes.
 - **`scripts/e2e-android-invite.sh`** instala el APK debug y conduce la app con `adb`: comprueba que
   el enlace pinta el formulario, que un email registrado **no** entra y deja la invitación pendiente,
   que un email nuevo canjea desde la app con su nombre, nivel e invitador, y que **sin plazas el
