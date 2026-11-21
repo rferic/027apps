@@ -111,6 +111,9 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   const db = new Client({ connectionString: process.env.SUPABASE_DB_URL });
   await db.connect();
   let originalLevels = "";
+  // A fresh CI database has no public URL yet, and an incomplete setup sends the
+  // login to /setup instead of /panel. The tests need a finished instance.
+  let seededPublicUrl = "null";
 
   const wipe = async (): Promise<void> => {
     await db.query(
@@ -123,6 +126,11 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   };
 
   const teardown = async (): Promise<void> => {
+    if (seededPublicUrl === "null") {
+      await db
+        .query("update public.settings set value = 'null'::jsonb where key = 'instance.public_url'")
+        .catch(() => {});
+    }
     if (originalLevels) {
       await db
         .query("update public.settings set value = $1::jsonb where key = 'invitations.levels'", [
@@ -172,6 +180,17 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     const askerRequest = (await asked.json()) as { request?: { id?: string } };
     const requestId = askerRequest.request?.id ?? "";
     if (!requestId) throw new Error("the seat request did not come back with an id");
+
+    const { rows: publicUrl } = await db.query(
+      "select value::text as value from public.settings where key = 'instance.public_url'",
+    );
+    seededPublicUrl = String(publicUrl[0]?.value ?? "null");
+    if (seededPublicUrl === "null" || seededPublicUrl === "") {
+      await db.query(
+        "update public.settings set value = $1::jsonb where key = 'instance.public_url'",
+        [JSON.stringify(baseURL)],
+      );
+    }
 
     const adminToken = await signIn(ADMIN.email, ADMIN.password);
     const fixtures: Fixtures = {
