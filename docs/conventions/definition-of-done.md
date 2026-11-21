@@ -26,6 +26,31 @@ Una tarea puede combinar tipos (p. ej. código + docs): cumple la unión.
 
    El resultado queda por escrito (hallazgos, severidad, resolución) en el informe de la tarea/PR. Hallazgos críticos o altos sin resolver bloquean `finalizada`.
 
+## App móvil (Android e iOS)
+
+Se suma a lo anterior cuando el cambio toca una app. Flujo completo en [móvil](../flows/mobile.md);
+matriz en [`docs/ai/parity.md`](../ai/parity.md).
+
+1. **Escenario antes que código**: toda regla, validación, estado, texto de push o flujo nuevo o
+   cambiado tiene su escenario o fixture en `spec/mobile/` en el mismo PR, y la suite Kotlin lo
+   ejecuta. Sin escenario no es contrato.
+2. **Fila de paridad**: la capacidad tocada existe en `docs/ai/parity.md` con su estado por
+   plataforma. `pnpm check:parity` en verde: una fila `android: hecho` sin `ios: hecho` exige motivo
+   en `divergencia` y sprint asignado.
+3. **Divergencias declaradas**: una diferencia de plataforma (actualización, widget, deep links,
+   ATS, push) va a la tabla de la [spec iOS](../superpowers/specs/2026-11-21-ios-app.md#8-divergencias-aceptadas-por-plataforma)
+   y a la matriz con su motivo. No se implementa en silencio.
+4. **Generado al día**: `pnpm gen:mobile --check` en verde. Textos, tokens y DTOs no se editan a mano
+   en ninguna plataforma.
+5. **Release móvil**: si el cambio llega a un build, sube la versión y añade su entrada al changelog
+   de cada app que lo reciba (en Android, `ChangelogTest` lo exige).
+6. **Verificación iOS**: puertas G0, G2 y G3 del [flujo móvil](../flows/mobile.md). Excepción
+   aprobada por el propietario (2026-11-21): **no hay revisión humana del código Swift**; la
+   sustituyen los escenarios compartidos, el XCUITest de humo, la auditoría de seguridad con
+   checklist iOS y las puertas humanas G1/G2/G3.
+7. **Auditoría de seguridad iOS** además de la general: token solo en Keychain, sin fugas por deep
+   links ni logs, ATS limitado a hosts privados, sin secretos en el binario.
+
 ## Entrega al propietario
 
 1. **Verificación previa ejecutada**, no prometida: `scripts/verify-local.sh` en verde y la
