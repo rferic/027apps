@@ -36,7 +36,15 @@ test("a member's level can be saved from the member page", async ({ page }) => {
   const level = page.getByLabel("Level", { exact: true });
   await expect(level).toBeVisible();
   await level.fill("3");
+  // Wait for the write itself: reloading while the PATCH is in flight cancels
+  // it, which is exactly what a cold route compilation makes likely.
+  const patched = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      response.url().includes(`/api/v1/users/${view.existing.id}`),
+  );
   await page.getByRole("button", { name: "Save", exact: true }).click();
+  expect((await patched).status()).toBe(200);
 
   // The page revalidates: the field keeps the saved value after the refresh.
   await expect(level).toHaveValue("3", { timeout: 15_000 });
