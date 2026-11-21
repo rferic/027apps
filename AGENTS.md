@@ -14,7 +14,7 @@ Todo cambio sigue spec → plan → implementación con TDD → revisión → au
 3. `docs/superpowers/specs/2026-10-24-027apps-design.md` — spec de diseño (arquitectura, stack, modelo de datos).
 4. `docs/conventions/code-style.md` — estilo y qué hace cumplir cada herramienta.
 5. `docs/conventions/definition-of-done.md` — cuándo una tarea puede ser `finalizada`.
-6. `docs/flows/` — flujos (CI/CD: `docs/flows/cicd.md`; verificación antes de entregar: `docs/flows/pre-delivery-verification.md`; móvil: `docs/flows/mobile.md` con su matriz en `docs/ai/parity.md` y la [spec iOS](docs/superpowers/specs/2026-11-21-ios-app.md)). Si cambias CI, deploy o releases, actualiza el flujo en el mismo PR.
+6. `docs/flows/` — flujos (CI/CD: `docs/flows/cicd.md`; verificación antes de entregar: `docs/flows/pre-delivery-verification.md`). Si cambias CI, deploy o releases, actualiza el flujo en el mismo PR.
 7. `docs/infrastructure.md` — inventario de servicios, límites del free tier, backups y recuperación (runbook operativo).
 8. `apps/admin/AGENTS.md` — aviso de Next.js: esta versión difiere de lo que sabes; lee `node_modules/next/dist/docs/` antes de escribir código de Next.
 9. `docs/ai/landing.md` — contenido y estado de los módulos de la landing; cuándo actualizarla.
