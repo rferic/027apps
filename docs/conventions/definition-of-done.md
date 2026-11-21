@@ -8,7 +8,7 @@ Una tarea puede combinar tipos (p. ej. código + docs): cumple la unión.
 
 1. Tests escritos primero (TDD); los de bugfix incluyen un test de regresión que falla sin el fix.
 2. `pnpm lint`, `pnpm tsc`, `pnpm test` y los builds afectados en verde en local, con la salida leída.
-3. CI en verde en el PR (`admin`, `android`, `guard-secrets`, `commitlint`) con el título del PR en Conventional Commits.
+3. CI en verde en el PR (`admin`, `android`, `ios` si existe, `guard-secrets`, `commitlint`) con el título del PR en Conventional Commits.
 4. Docs y flujos (`docs/flows/`) actualizados si cambia el comportamiento.
 5. **Cumplimiento de ADRs aplicables**: la tarea declara en su frontmatter `adrs: [NNNN, …]` (los ADRs que tocan el cambio, p. ej. `0004` bordes, `0007` errores, `0008` fechas/moneda, `0006` realtime) y su implementación los respeta. Lo mecánico se apoya en los checks deterministas de cada ADR (schemas zod compartidos, reglas ESLint propias, check de i18n); lo no automatizable lo verifica la revisión de ojos nuevos (punto 6). Un cambio no puede contradecir un ADR aprobado sin un ADR nuevo que lo sustituya.
 6. **QA con ojos nuevos**: un agente que no escribió el código revisa bugs, casos límite, estilo contra `docs/conventions/code-style.md`, cumplimiento de los ADRs declarados en el frontmatter y los criterios de aceptación de la spec/plan. Los hallazgos se corrigen o se rechazan con motivo.
