@@ -22,7 +22,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ADB="${ADB:-$HOME/Library/Android/sdk/platform-tools/adb}"
 APK="${APK:-$ROOT/apps/android/app/build/outputs/apk/debug/app-debug.apk}"
-INSTANCE_URL="${INSTANCE_URL:-http://10.0.2.2:3003}"
+# `adb reverse` puts the host panel on the device's own localhost, so the app
+# does not depend on the LAN IP or on how the dev server binds.
+INSTANCE_URL="${INSTANCE_URL:-http://127.0.0.1:3003}"
 SERIAL="${1:-}"
 
 [[ -x "$ADB" ]] || {
@@ -66,7 +68,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
-panel_code="$(curl -s -o /dev/null -w '%{http_code}' "${INSTANCE_URL/10.0.2.2/127.0.0.1}/api/v1/health" || true)"
+adb reverse tcp:3003 tcp:3003 >/dev/null 2>&1 || true
+panel_code="$(curl -s -o /dev/null -w '%{http_code}' "${INSTANCE_URL}/api/v1/health" || true)"
 if [[ "$panel_code" != "200" ]]; then
   printf 'el panel no responde (código %s); arranca el servidor de desarrollo\n' "$panel_code"
   exit 2
@@ -204,14 +207,35 @@ def nodes():
 
 
 def blur():
-    """A focused field's blinking cursor keeps uiautomator from becoming idle."""
-    labels = [
-        node for node in nodes()
-        if node["class"] == "android.widget.TextView" and node["text"]
-    ]
-    if labels:
-        tap(labels[0])
-        time.sleep(0.3)
+    """A focused field's blinking cursor keeps uiautomator from becoming idle.
+
+    The tap lands on a label that is NOT inside a clickable container: the first
+    text on the invitation screen is the back arrow, and tapping it would leave.
+    """
+    everything = nodes_tree()
+    for node in everything:
+        if node["class"] != "android.widget.TextView" or not node["text"] or not node["bounds"]:
+            continue
+        left, top, right, bottom = node["bounds"]
+        x, y = (left + right) // 2, (top + bottom) // 2
+        inside = [
+            other for other in everything
+            if other["clickable"]
+            and other["bounds"][0] <= x <= other["bounds"][2]
+            and other["bounds"][1] <= y <= other["bounds"][3]
+        ]
+        if not inside:
+            adb("shell", "input", "tap", str(x), str(y))
+            time.sleep(0.3)
+            return
+
+
+def hide_keyboard():
+    """BACK hides the keyboard, but with it already hidden it leaves the screen."""
+    state = adb("shell", "dumpsys", "input_method")
+    if "mInputShown=true" in state:
+        adb("shell", "input", "keyevent", "4")
+        time.sleep(0.4)
 
 
 def fields():
@@ -228,7 +252,7 @@ def tap(node):
     adb("shell", "input", "tap", str((left + right) // 2), str((top + bottom) // 2))
 
 
-def fill(index, text):
+def fill(index, text, clear=False):
     """Fill the index-th field by re-reading its bounds: the layout moves."""
     escaped = text.replace(" ", "%s")
     for _ in range(3):
@@ -243,9 +267,14 @@ def fill(index, text):
             continue
         tap(node)
         time.sleep(0.4)
+        if clear:
+            # Some fields start with a default ("2" in the seat request).
+            adb("shell", "input", "keyevent", "123")
+            for _ in range(12):
+                adb("shell", "input", "keyevent", "67")
         adb("shell", "input", "text", escaped)
         time.sleep(0.4)
-        adb("shell", "input", "keyevent", "4")  # hide the keyboard
+        hide_keyboard()
         time.sleep(0.5)
         blur()
         return True
@@ -262,6 +291,57 @@ def wait_for(predicate, timeout=25, step=1):
             return True
         time.sleep(step)
     return False
+
+
+def nodes_tree():
+    """Every node with its bounds, in document order (no hierarchy needed)."""
+    xml = raw_window()
+    if package not in xml:
+        return []
+    found = []
+    for tag in re.findall(r"<node[^>]*>", xml):
+        def attr(name):
+            match = re.search(rf'{name}="([^"]*)"', tag)
+            return match.group(1) if match else ""
+
+        bounds = [int(value) for value in re.findall(r"\d+", attr("bounds"))]
+        found.append({
+            "text": attr("text"),
+            "class": attr("class"),
+            "clickable": attr("clickable") == "true",
+            "bounds": bounds,
+        })
+    return found
+
+
+def tap_text(fragment, timeout=20):
+    """Taps the clickable ancestor of the first text containing `fragment`."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        everything = nodes_tree()
+        label = next(
+            (node for node in everything
+             if fragment.lower() in node["text"].lower() and node["bounds"]),
+            None,
+        )
+        if label:
+            left, top, right, bottom = label["bounds"]
+            x, y = (left + right) // 2, (top + bottom) // 2
+            containers = [
+                node for node in everything
+                if node["clickable"]
+                and node["bounds"][0] <= x <= node["bounds"][2]
+                and node["bounds"][1] <= y <= node["bounds"][3]
+            ]
+            if containers:
+                tap(min(containers, key=lambda node: (node["bounds"][2] - node["bounds"][0]) * (node["bounds"][3] - node["bounds"][1])))
+                return True
+        time.sleep(0.7)
+    return False
+
+
+def text_on_screen(fragment):
+    return fragment.lower() in " ".join(node["text"] for node in nodes_tree()).lower()
 
 
 def open_link(token):
@@ -372,6 +452,61 @@ profile = psql(
 check(profile.startswith("QA desde la app|"), "el perfil lleva el nombre escrito", profile)
 check(profile.endswith("|1|t") or profile.endswith("|2|t") or profile.endswith("|3|t"),
       "el perfil queda en un nivel de miembro y con invitador", profile)
+
+def ensure_signed_in(email, password):
+    if wait_for(lambda: text_on_screen("club"), timeout=8):
+        return True
+    current = fields()
+    if len(current) >= 2:
+        fill(0, email)
+        fill(1, password)
+        tap_text("sign in") or tap_text("iniciar sesión")
+    return wait_for(lambda: text_on_screen("club"), timeout=30)
+
+
+print("\n-- sin plazas, la app pide y deja la solicitud en revisión")
+original_levels = psql("select value::text from public.settings where key = 'invitations.levels'")
+psql("update public.settings set value = '[{\"level\":1,\"quota\":0}]'::jsonb "
+     "where key = 'invitations.levels'")
+psql("update public.profiles set invite_level = 1 "
+     f"where id = (select id from auth.users where email = '{new_email}')")
+try:
+    check(ensure_signed_in(new_email, "qa-new-member-password"),
+          "the new member is signed in on the shell")
+    check(tap_text("club"), "the club card opens the invitation screen")
+    check(wait_for(lambda: text_on_screen("request seats") or text_on_screen("solicitar plazas")),
+          "the app offers to request seats when none are left")
+
+    request_fields = fields()
+    check(bool(request_fields), "the request form has fields", str(len(request_fields)))
+    if request_fields:
+        fill(0, "2", clear=True)
+        if len(fields()) > 1:
+            fill(1, "prueba automática")
+
+    sent = tap_text("send request") or tap_text("enviar solicitud")
+    if not sent:
+        sent = submit()
+    check(sent, "the request button is tapped")
+    pending = wait_for(
+        lambda: psql("select count(*) from public.invitation_requests r "
+                     "join public.profiles p on p.id = r.requester_id "
+                     f"where p.display_name = 'QA desde la app' and r.state = 'pending'") == "1",
+        timeout=25,
+    )
+    check(
+        pending,
+        "the request reaches the panel as pending",
+        psql("select state, amount from public.invitation_requests "
+             "order by created_at desc limit 3") or "sin solicitudes",
+    )
+    if not pending:
+        snapshot("e2e-request")
+    check(wait_for(lambda: text_on_screen("in review") or text_on_screen("en revisión"), timeout=10),
+          "the app shows the request in review")
+finally:
+    psql(f"update public.settings set value = '{original_levels}'::jsonb "
+         "where key = 'invitations.levels'")
 
 if failures:
     print(f"\n{len(failures)} comprobación(es) fallida(s)")

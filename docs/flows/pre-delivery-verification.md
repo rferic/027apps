@@ -46,13 +46,16 @@ pnpm qa:android              # la app real en el emulador/móvil conectado
 - **`pnpm qa:web`** (Playwright, `apps/admin/e2e`) abre la página de invitación en un navegador de
   verdad: canje con cuenta nueva hasta `/welcome`, email ya registrado que se para y pide la
   contraseña de esa cuenta, y enlace inexistente con su mensaje. En el panel inicia sesión, lista
-  miembros, guarda un nivel y **aprueba una solicitud de plazas** con su importe (el miembro sin
-  plazas la crea en el setup y se comprueba la concesión en su ficha). Crea sus cuentas
+  miembros, guarda un nivel, **aprueba una solicitud de plazas** con su importe (el miembro sin
+  plazas la crea en el setup y se comprueba la concesión en su ficha) y comprueba que **el contador
+  de solicitudes del panel aparece sin recargar** cuando llega una nueva (el badge encuestado). Crea sus cuentas
   `qa-e2e-*@test.local`, las borra al terminar y restaura los niveles que ajusta.
 - **`scripts/e2e-android-invite.sh`** instala el APK debug y conduce la app con `adb`: comprueba que
   el enlace pinta el formulario, que un email registrado **no** entra y deja la invitación pendiente,
-  y que un email nuevo canjea desde la app con su nombre, nivel e invitador. Necesita un
-  emulador/móvil conectado (`INSTANCE_URL` para un móvil en la LAN).
+  que un email nuevo canjea desde la app con su nombre, nivel e invitador, y que **sin plazas el
+  miembro pide y la solicitud queda en revisión** (el panel la recibe como pendiente). Usa
+  `adb reverse` para el panel, así no depende de cómo escuche el dev server; necesita un
+  emulador/móvil conectado.
 
 Los dos deben estar en verde **antes** de decirle al propietario que pruebe algo del club.
 

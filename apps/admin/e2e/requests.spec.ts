@@ -34,3 +34,26 @@ test("the panel lists the request and approving it grants the seats", async ({ p
   await page.goto(`/panel/members/${view.asker.id}`);
   await expect(page.getByText("+2 seat(s)")).toBeVisible();
 });
+
+test("the panel counter shows a new request without reloading", async ({ page, request }) => {
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(view.admin.email);
+  await page.getByLabel("Password", { exact: true }).fill(view.admin.password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.waitForURL(/\/panel/);
+
+  // The badge lives on the dashboard and polls; the request arrives afterwards.
+  await page.goto("/panel");
+  const badge = page.getByLabel(/\d+ pending request/);
+  const before = (await badge.count()) > 0 ? Number(await badge.innerText()) : 0;
+  const created = await request.post(`${view.baseURL}/api/v1/me/invitation-requests`, {
+    headers: { Authorization: `Bearer ${view.asker2.token}` },
+    data: { amount: 1, reason: "Sin plazas" },
+  });
+  expect(created.status()).toBe(201);
+
+  // A tab that regains focus polls immediately, which is the path a person
+  // takes when coming back from another window.
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(badge).toHaveText(String(before + 1), { timeout: 20_000 });
+});

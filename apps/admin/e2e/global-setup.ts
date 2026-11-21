@@ -17,6 +17,7 @@ const FIXTURES = join(__dirname, ".fixtures.json");
 const ADMIN = { email: "qa-e2e-admin@test.local", password: "qa-e2e-admin-password" };
 const EXISTING = { email: "qa-e2e-existing@test.local", password: "qa-e2e-member-password" };
 const ASKER = { email: "qa-e2e-asker@test.local", password: "qa-e2e-asker-password" };
+const ASKER2 = { email: "qa-e2e-asker2@test.local", password: "qa-e2e-asker2-password" };
 const ASKER_REASON = "Sin plazas para la familia";
 
 export interface Fixtures {
@@ -25,6 +26,8 @@ export interface Fixtures {
   invitee: { email: string; name: string; password: string };
   /** One anonymous invitation per scenario, minted by the admin. */
   tokens: { newAccount: string; existingAccount: string };
+  /** A member with no seats and no request yet: the badge test makes one. */
+  asker2: { email: string; password: string; id: string; name: string; token: string };
   /** A member with no seats who already asked for more, and its reason. */
   asker: {
     email: string;
@@ -138,6 +141,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     const adminId = await createUser(ADMIN.email, ADMIN.password);
     const existingId = await createUser(EXISTING.email, EXISTING.password);
     const askerId = await createUser(ASKER.email, ASKER.password);
+    const asker2Id = await createUser(ASKER2.email, ASKER2.password);
     // Level 1 has no seats, so the asker really has to request them; level 2
     // keeps the other fixtures able to invite. Restored on teardown.
     const { rows: levels } = await db.query(
@@ -151,13 +155,14 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     await db.query(
       "insert into public.profiles (id, display_name, role, invite_level, locale) " +
         "values ($1, 'E2E Admin', 'super_admin', null, 'en'), ($2, 'E2E Existing', 'user', 2, 'en'), " +
-        "($3, 'E2E Asker', 'user', 1, 'en') " +
+        "($3, 'E2E Asker', 'user', 1, 'en'), ($4, 'E2E Asker Two', 'user', 1, 'en') " +
         "on conflict (id) do update set display_name = excluded.display_name, role = excluded.role, " +
         "invite_level = excluded.invite_level, locale = excluded.locale",
-      [adminId, existingId, askerId],
+      [adminId, existingId, askerId, asker2Id],
     );
 
     const askerToken = await signIn(ASKER.email, ASKER.password);
+    const asker2Token = await signIn(ASKER2.email, ASKER2.password);
     const asked = await fetch(`${baseURL}/api/v1/me/invitation-requests`, {
       method: "POST",
       headers: { Authorization: `Bearer ${askerToken}`, "Content-Type": "application/json" },
@@ -181,6 +186,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
         newAccount: await mint(baseURL, adminToken),
         existingAccount: await mint(baseURL, adminToken),
       },
+      asker2: { ...ASKER2, id: asker2Id, name: "E2E Asker Two", token: asker2Token },
       asker: {
         ...ASKER,
         id: askerId,
