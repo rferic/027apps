@@ -31,18 +31,14 @@ Cambio en Android
    └─ ¿Es capacidad nueva?           → fila en docs/ai/parity.md con dueño y sprint.
 ```
 
-Comandos:
+Comandos (existen cuando se implemente la fase 1; hoy son el contrato, no código):
 
 ```bash
-pnpm check:parity          # ya existe: valida la matriz y que cada escenario pertenece a una capacidad
-pnpm gen:mobile            # fase 1: DTOs, textos y tokens desde su único origen
-pnpm gen:mobile --check    # fase 1: falla si lo generado está desactualizado
-pnpm spec:test:android     # fase 1: escenarios de spec/mobile/ con Kotlin
+pnpm gen:mobile            # DTOs, textos y tokens desde su único origen
+pnpm gen:mobile --check    # falla si lo generado está desactualizado
+pnpm spec:test:android     # escenarios de spec/mobile/ con Kotlin
+pnpm check:parity          # filas Android hechas sin iOS resuelto ni motivo declarado
 ```
-
-`spec/mobile/` y `pnpm check:parity` existen desde ya: el comportamiento se documenta ahí aunque
-iOS todavía no esté. La regla de divergencia se relaja mientras la matriz declare
-`## Baseline iOS pendiente`, y pasa a estricta al borrar esa sección.
 
 En CI eso son tres gates: `android`, `ios` y `guard-secrets` (que ya incluye
 `check:destructive-db`). Un PR del sprint no se mergea sin los tres verdes.

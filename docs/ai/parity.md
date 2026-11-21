@@ -71,14 +71,6 @@ Estados: `hecho` · `en curso` · `pendiente` · `n/a` (no aplica a esa platafor
 | `push.invitations` | Push de solicitud y de decisión, localizado | hecho | pendiente | Extensión de servicio en iOS |
 | `push.deep-link` | Tocar la push abre la pantalla correcta | hecho | pendiente | |
 
-## Baseline iOS pendiente
-
-iOS no existe todavía: su fase empieza con la [spec iOS](../superpowers/specs/2026-11-21-ios-app.md).
-Mientras esta sección exista, `pnpm check:parity` valida el formato y avisa (no falla) de las filas
-`android: hecho` sin motivo declarado. **El día que arranque la fase 1 se borra esta sección** y la
-regla pasa a estricta: toda fila hecha en Android necesita iOS hecho o un motivo en la última
-columna.
-
 ## Pendiente de rellenar
 
 Las filas se confirman en el arranque auditando la app con `apps/android` en el commit del baseline.
