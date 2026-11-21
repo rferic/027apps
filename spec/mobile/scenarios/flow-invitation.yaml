@@ -1,9 +1,13 @@
-# Club invitations: what both apps must do.
+# Club invitations: the flows a person can observe, written once for both apps.
 #
 # The rules and the data model live in the design spec and in the Core; this
-# file only fixes the behaviour a person can observe, so Android and iOS can be
-# compared. Server-side numbers (quota arithmetic, level capture, token hashing)
-# are deliberately absent.
+# file only fixes behaviour. Server-side numbers (quota arithmetic, level
+# capture, token hashing) are deliberately absent.
+#
+# Shape: `id`, `desc`, and cases with `given` / `when` / `then`. Rule scenarios
+# (pure functions over data) use `cases: [{input, expect}]` as in the iOS spec
+# §5.1; flows like these use the narrative form, which the Android runner maps
+# to its UI/E2E tests.
 feature: invitations
 source: docs/superpowers/specs/2026-11-18-invitation-club-design.md
 

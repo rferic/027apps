@@ -6,14 +6,15 @@ folder in the same PR that implements it; without a scenario it is not a
 contract (`docs/flows/mobile.md`, rule 1).
 
 - `docs/ai/parity.md` says **which capability exists on each app**.
-- `spec/mobile/<area>.yaml` says **what the app must do**, independent of the
-  platform.
+- `spec/mobile/scenarios/*.yaml` says **what the app must do**, independent of
+  the platform. Rule scenarios use `cases: [{input, expect}]`; flows use
+  `given` / `when` / `then`.
 - Android covers the scenario with a test; iOS will cover it with Swift Testing
   when its phase starts.
 
 ## File format
 
-One file per area. Ids start with a capability from the parity matrix
+One file per area or flow, under `scenarios/`. Ids start with a capability from the parity matrix
 (`pnpm check:parity` enforces it), so the two documents cannot drift apart.
 
 ```yaml

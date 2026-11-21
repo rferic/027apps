@@ -40,7 +40,7 @@ pnpm gen:mobile --check    # fase 1: falla si lo generado está desactualizado
 pnpm spec:test:android     # fase 1: escenarios de spec/mobile/ con Kotlin
 ```
 
-`spec/mobile/` y `pnpm check:parity` existen desde ya: el comportamiento se documenta ahí aunque
+`spec/mobile/scenarios/` y `pnpm check:parity` existen desde ya: el comportamiento se documenta ahí aunque
 iOS todavía no esté. La regla de divergencia se relaja mientras la matriz declare
 `## Baseline iOS pendiente`, y pasa a estricta al borrar esa sección.
 
