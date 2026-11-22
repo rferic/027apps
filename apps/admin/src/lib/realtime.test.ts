@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { outboxDepsFromSettings } from "@/lib/realtime";
+import { diagnosePush, outboxDepsFromSettings } from "@/lib/realtime";
 
 const SERVICE_ACCOUNT = JSON.stringify({
   project_id: "demo-project",
@@ -51,5 +51,51 @@ describe("outboxDepsFromSettings", () => {
     });
 
     expect(deps.push).toBeUndefined();
+  });
+});
+
+describe("diagnosePush", () => {
+  const encrypted = [{ value_encrypted: "v1:iv:tag:cipher", provider: "fcm" }];
+
+  it("says ok when the account decrypts into something usable", async () => {
+    expect(
+      await diagnosePush(dbWith(encrypted), {
+        async decrypt() {
+          return SERVICE_ACCOUNT;
+        },
+      }),
+    ).toBe("ok");
+  });
+
+  it("says not_configured when there is no account or the provider is not fcm", async () => {
+    expect(await diagnosePush(dbWith([]), null)).toBe("not_configured");
+    expect(
+      await diagnosePush(dbWith([{ value_encrypted: "x", provider: "none" }]), {
+        async decrypt() {
+          return SERVICE_ACCOUNT;
+        },
+      }),
+    ).toBe("not_configured");
+  });
+
+  it("says unreadable when the master key cannot open it", async () => {
+    expect(await diagnosePush(dbWith(encrypted), null)).toBe("unreadable");
+    expect(
+      await diagnosePush(dbWith(encrypted), {
+        async decrypt() {
+          return null;
+        },
+      }),
+    ).toBe("unreadable");
+  });
+
+  it("says invalid when the decrypted value is not a service account", async () => {
+    expect(
+      await diagnosePush(dbWith(encrypted), {
+        async decrypt() {
+          return JSON.stringify({ hello: "world" });
+        },
+      }),
+    ).toBe("invalid");
   });
 });
