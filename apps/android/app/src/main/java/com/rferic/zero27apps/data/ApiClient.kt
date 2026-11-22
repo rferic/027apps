@@ -424,11 +424,7 @@ class ApiClient(
         }
 
     /** The bypass token to send, or null when this request must not carry it. */
-    private fun bypassToken(): String? {
-        if (!BuildConfig.DEBUG || protectionBypass.isBlank()) return null
-        val host = runCatching { java.net.URI(baseUrl).host }.getOrNull().orEmpty()
-        return if (host.endsWith(".vercel.app")) protectionBypass else null
-    }
+    private fun bypassToken(): String? = vercelProtectionBypass(baseUrl, protectionBypass)
 
     /**
      * The path as it may be logged: UUIDs and bearer tokens (invitations
@@ -475,4 +471,22 @@ class ApiClient(
     }
 
     override fun close() = http.close()
+}
+
+/**
+ * The Vercel protection bypass for a debug build talking to a protected
+ * `*.vercel.app` preview, or null everywhere else: release builds never carry
+ * it and a self-hosted instance must not receive it.
+ *
+ * Shared with [com.rferic.zero27apps.FcmRegistrar], whose raw HTTP call would
+ * otherwise be the only one the deployment protection blocks, leaving the app
+ * able to log in but never registering a push token.
+ */
+internal fun vercelProtectionBypass(
+    baseUrl: String,
+    token: String = BuildConfig.VERCEL_PROTECTION_BYPASS,
+): String? {
+    if (!BuildConfig.DEBUG || token.isBlank()) return null
+    val host = runCatching { java.net.URI(baseUrl).host }.getOrNull().orEmpty()
+    return if (host.endsWith(".vercel.app")) token else null
 }
