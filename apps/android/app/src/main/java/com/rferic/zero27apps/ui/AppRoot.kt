@@ -200,6 +200,7 @@ fun AppRoot(
                         link = current.link,
                         state = invite,
                         onSubmit = viewModel::acceptInvite,
+                        onEmailChanged = viewModel::editInviteIdentity,
                         onRetry = viewModel::retryInvitePreview,
                         onCancel = viewModel::cancelInvite,
                     )

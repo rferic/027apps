@@ -32,6 +32,12 @@ describe("inviteErrorHeading", () => {
     expect(inviteErrorHeading({ ok: false, code }, {})).toBe(expected);
   });
 
+  it("tells an anonymous invitation that another email is allowed", () => {
+    expect(inviteErrorHeading({ ok: false, code: "existing_account" }, {}, true)).toBe(
+      "That email already has an account. Enter its current password, or change the email to accept with another account.",
+    );
+  });
+
   it("translates the heading with the supplied dictionary", () => {
     expect(inviteErrorHeading({ ok: false, code: "not_found" }, MESSAGES)).toBe(
       "Este enlace de invitación no es válido.",

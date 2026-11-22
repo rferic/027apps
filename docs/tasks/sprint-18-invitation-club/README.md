@@ -65,6 +65,7 @@ construye `FirebaseOptions` desde los ajustes públicos de la instancia). Hallaz
 | Un build debug en un despliegue protegido por Vercel no registraba token de push | `FcmRegistrar` no enviaba `x-vercel-protection-bypass`; la regla pasa a un helper compartido con `ApiClient` (solo debug y `*.vercel.app`), PR #145 |
 | En el diálogo de aprobación no se podía borrar el `0`: al teclear 1 quedaba `01` | Estado de texto (no número) como en los otros editores numéricos, acción deshabilitada mientras no sea 1..100 y e2e que vacía el campo |
 | El push solo decía «New invitation request» | El evento lleva `seats` y la app compone «Solicitud de 2 invitaciones» / «Solicitud aprobada · 2 plazas» en 9 idiomas |
+| Un email ya registrado dejaba la invitación anónima en un callejón sin salida: la app deshabilitaba el email y la web seguía pidiendo «contraseña actual» aunque se cambiara | El email sigue editable; al editarlo se abandona esa rama, vuelve el formulario de cuenta nueva y la invitación continúa pendiente (web y app) |
 
 Verificado en el emulador contra `staging`: el token se registra, la notificación llega al pedir
 plazas y la solicitud aprobada desaparece de la app en ≤5 s por el sondeo.

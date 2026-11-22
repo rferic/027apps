@@ -821,6 +821,7 @@
   "That email already belongs to a member.": "Posta elektroniko hori kide bati dagokio jada.",
   "That email already has a pending invitation.": "Posta elektroniko horrek badauka jada gonbidapen bat zain.",
   "That email already has an account. Enter its current password to accept the invitation.": "Email horrek kontua du jada. Idatzi uneko pasahitza gonbidapena onartzeko.",
+  "That email already has an account. Enter its current password, or change the email to accept with another account.": "Posta elektroniko horrek badauka kontu bat. Idatzi uneko pasahitza edo aldatu posta elektronikoa beste kontu batekin onartzeko.",
   "That email already has an account. Sign in with it to accept the invitation.": "Posta elektroniko horrek badauka kontu bat. Sartu harekin gonbidapena onartzeko.",
   "That email already has an account. The email asks it to sign in with its usual password.": "Posta elektroniko horrek badauka kontu bat. Mezuak betiko pasahitzarekin sartzeko eskatzen dio.",
   "That member already has an account.": "Kide horrek badu kontua.",

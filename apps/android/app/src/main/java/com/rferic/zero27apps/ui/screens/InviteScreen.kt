@@ -139,6 +139,7 @@ fun InviteScreen(
     link: InvitationLink,
     state: InviteState,
     onSubmit: (password: String, name: String, email: String) -> Unit,
+    onEmailChanged: () -> Unit,
     onRetry: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -240,16 +241,21 @@ fun InviteScreen(
                             onValueChange = { name = it },
                             label = { Text(strings.inviteDetailsName) },
                             singleLine = true,
-                            enabled = !state.pending && !existing,
+                            // A new email means a new account: the identity stays
+                            // editable even after the "already registered" answer.
+                            enabled = !state.pending,
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Spacer(Modifier.height(8.dp))
                         OutlinedTextField(
                             value = email,
-                            onValueChange = { email = it },
+                            onValueChange = {
+                                email = it
+                                onEmailChanged()
+                            },
                             label = { Text(strings.email) },
                             singleLine = true,
-                            enabled = !state.pending && !existing,
+                            enabled = !state.pending,
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Email,
                                 imeAction = ImeAction.Next,

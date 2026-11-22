@@ -25,7 +25,7 @@ export interface Fixtures {
   existing: { email: string; password: string; id: string; name: string };
   invitee: { email: string; name: string; password: string };
   /** One anonymous invitation per scenario, minted by the admin. */
-  tokens: { newAccount: string; existingAccount: string };
+  tokens: { newAccount: string; existingAccount: string; switchEmail: string };
   /** A member with no seats and no request yet: the badge test makes one. */
   asker2: { email: string; password: string; id: string; name: string; token: string };
   /** A member with no seats who already asked for more, and its reason. */
@@ -204,6 +204,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
       tokens: {
         newAccount: await mint(baseURL, adminToken),
         existingAccount: await mint(baseURL, adminToken),
+        switchEmail: await mint(baseURL, adminToken),
       },
       asker2: { ...ASKER2, id: asker2Id, name: "E2E Asker Two", token: asker2Token },
       asker: {
