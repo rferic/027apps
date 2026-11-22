@@ -74,7 +74,15 @@ data class InviteState(
      * of a new one, and the invitation stays pending.
      */
     val signInRequired: Boolean = false,
-)
+) {
+    /**
+     * Editing the email abandons that branch: a different address is a new
+     * person, so the next submit redeems instead of signing in. Keeping the
+     * flag would make the form try to sign in the new address and dead-end.
+     */
+    fun withEditedIdentity(): InviteState =
+        if (signInRequired) copy(signInRequired = false, error = null) else this
+}
 
 /** Old<->new phone migration (QR); the screens render from this one value. */
 enum class MigrationError { NETWORK, GENERIC, SIGNED_IN, AUTH }

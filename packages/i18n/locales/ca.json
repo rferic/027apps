@@ -821,6 +821,7 @@
   "That email already belongs to a member.": "Aquest correu ja pertany a un membre.",
   "That email already has a pending invitation.": "Aquest correu ja té una invitació pendent.",
   "That email already has an account. Enter its current password to accept the invitation.": "Aquest correu ja té compte. Escriu-ne la contrasenya actual per acceptar la invitació.",
+  "That email already has an account. Enter its current password, or change the email to accept with another account.": "Aquest correu ja té compte. Escriu-ne la contrasenya actual o canvia el correu per acceptar amb un altre compte.",
   "That email already has an account. Sign in with it to accept the invitation.": "Aquest correu ja té un compte. Entra-hi per acceptar la invitació.",
   "That email already has an account. The email asks it to sign in with its usual password.": "Aquest correu ja té un compte. El correu li demana que entri amb la seva contrasenya de sempre.",
   "That member already has an account.": "Aquest membre ja té compte.",

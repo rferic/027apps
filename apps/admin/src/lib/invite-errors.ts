@@ -26,13 +26,22 @@ function lifecycleHeading(code: string | undefined, messages: TranslationMap): s
 }
 
 /** The account behind the address: sign in with it instead of creating one. */
-function accountHeading(code: string | undefined, messages: TranslationMap): string | null {
+function accountHeading(
+  code: string | undefined,
+  messages: TranslationMap,
+  anonymous: boolean,
+): string | null {
   switch (code) {
     case "existing_account":
-      return t(
-        "That email already has an account. Enter its current password to accept the invitation.",
-        messages,
-      );
+      return anonymous
+        ? t(
+            "That email already has an account. Enter its current password, or change the email to accept with another account.",
+            messages,
+          )
+        : t(
+            "That email already has an account. Enter its current password to accept the invitation.",
+            messages,
+          );
     case "existing_account_signin_required":
       return t(
         "That email already has an account. Sign in with it to accept the invitation.",
@@ -79,7 +88,7 @@ export function inviteErrorHeading(
   const code = failure?.code;
   return (
     lifecycleHeading(code, messages) ??
-    accountHeading(code, messages) ??
+    accountHeading(code, messages, anonymous) ??
     requestHeading(code, messages, anonymous)
   );
 }

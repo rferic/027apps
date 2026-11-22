@@ -512,6 +512,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * account's current password ([InviteState.signInRequired]) instead of
      * reporting a bare wrong password on a "choose a password" form.
      */
+    /**
+     * The person changed the email on an anonymous invitation: the previous
+     * "existing account" answer and its error no longer describe this attempt.
+     */
+    fun editInviteIdentity() {
+        _invite.value = _invite.value.withEditedIdentity()
+    }
+
     fun acceptInvite(password: String, name: String, email: String) {
         val link = pendingLink ?: return
         val preview = _invite.value.preview ?: return

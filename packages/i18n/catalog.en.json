@@ -852,6 +852,7 @@
   "That email already belongs to a member.",
   "That email already has a pending invitation.",
   "That email already has an account. Enter its current password to accept the invitation.",
+  "That email already has an account. Enter its current password, or change the email to accept with another account.",
   "That email already has an account. Sign in with it to accept the invitation.",
   "That email already has an account. The email asks it to sign in with its usual password.",
   "That member already has an account.",

@@ -821,6 +821,7 @@
   "That email already belongs to a member.": "Quell'email appartiene già a un membro.",
   "That email already has a pending invitation.": "Quell'email ha già un invito in sospeso.",
   "That email already has an account. Enter its current password to accept the invitation.": "Quell'email ha già un account. Inserisci la password attuale per accettare l'invito.",
+  "That email already has an account. Enter its current password, or change the email to accept with another account.": "Quell'email ha già un account. Inserisci la password attuale oppure cambia l'email per accettare con un altro account.",
   "That email already has an account. Sign in with it to accept the invitation.": "Quell'email ha già un account. Accedi con esso per accettare l'invito.",
   "That email already has an account. The email asks it to sign in with its usual password.": "Quell'email ha già un account. L'email chiede di accedere con la password abituale.",
   "That member already has an account.": "Quel membro ha già un account.",

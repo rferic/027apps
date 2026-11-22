@@ -821,6 +821,7 @@
   "That email already belongs to a member.": "Ese correo xa pertence a un membro.",
   "That email already has a pending invitation.": "Ese correo xa ten unha invitación pendente.",
   "That email already has an account. Enter its current password to accept the invitation.": "Ese email xa ten conta. Escribe o seu contrasinal actual para aceptar a invitación.",
+  "That email already has an account. Enter its current password, or change the email to accept with another account.": "Ese email xa ten conta. Escribe o seu contrasinal actual ou cambia o correo para aceptar con outra conta.",
   "That email already has an account. Sign in with it to accept the invitation.": "Ese correo xa ten unha conta. Entra con ela para aceptar a invitación.",
   "That email already has an account. The email asks it to sign in with its usual password.": "Ese correo xa ten unha conta. O correo pídelle que entre co seu contrasinal de sempre.",
   "That member already has an account.": "Ese membro xa ten conta.",

@@ -129,13 +129,20 @@ function submitLabel(
   return existing ? t("Sign in and accept", messages) : t("Accept invitation", messages);
 }
 
-/** The name and email an anonymous invitation collects at redemption. */
+/**
+ * The name and email an anonymous invitation collects at redemption. Editing
+ * the email leaves the "existing account" branch behind: a fresh address means
+ * a new account, so the form asks for a new password again instead of staying
+ * stuck on that account's current one.
+ */
 function IdentityFields({
   errors,
   messages,
+  onEmailChange,
 }: {
   errors: InviteFieldErrors;
   messages: TranslationMap;
+  onEmailChange: () => void;
 }) {
   return (
     <>
@@ -172,6 +179,7 @@ function IdentityFields({
           required
           maxLength={320}
           autoComplete="email"
+          onChange={onEmailChange}
           {...fieldProps("email", errors, "invite-email-hint")}
           className={inputClass}
         />
@@ -308,6 +316,17 @@ export function InviteForm({
   const [detectedExisting, setDetectedExisting] = useState(false);
   const existing = view.account_exists || detectedExisting;
 
+  /**
+   * A different address is a different person: the previous attempt (and its
+   * "existing account" answer) no longer applies. The invitation stays pending
+   * because no redemption succeeded.
+   */
+  function handleEmailChange() {
+    setDetectedExisting(false);
+    setFailure(null);
+    setFieldErrors((current) => ({ ...current, email: undefined }));
+  }
+
   /** The action, with the transport failure the form must survive. */
   async function askServer(data: FormData): Promise<SubmitOutcome | null> {
     try {
@@ -365,7 +384,13 @@ export function InviteForm({
       noValidate
       className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4"
     >
-      {view.requires_identity && <IdentityFields errors={fieldErrors} messages={messages} />}
+      {view.requires_identity && (
+        <IdentityFields
+          errors={fieldErrors}
+          messages={messages}
+          onEmailChange={handleEmailChange}
+        />
+      )}
 
       {existing ? (
         <CurrentPasswordFields errors={fieldErrors} messages={messages} />
