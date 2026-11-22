@@ -170,6 +170,15 @@ async function createInfra() {
       },
     },
     withTransaction: runInTransaction,
+    // A configured push sender that cannot be built is degraded, not silent.
+    extraDegradedReasons: async () => {
+      const { diagnosePush } = await import("@/lib/realtime");
+      const health = await diagnosePush(
+        { query: (sql: string, params: unknown[] = []) => pool.query(sql, params).then((r) => ({ rows: r.rows as Record<string, unknown>[] })) },
+        encryption,
+      );
+      return health === "ok" || health === "not_configured" ? [] : [`push_${health}`];
+    },
   };
 
   /** Currencies service deps: real DB port + default currency from settings. */

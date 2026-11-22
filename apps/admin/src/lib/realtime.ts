@@ -26,6 +26,32 @@ type Db = {
   query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
 };
 
+/**
+ * Why the push sender could not be built, or `ok`. The panel shows this as a
+ * degraded health reason: a configured integration that silently cannot send is
+ * worse than one that is not configured at all.
+ */
+export type PushHealth = "ok" | "not_configured" | "unreadable" | "invalid";
+
+export async function diagnosePush(
+  db: Db,
+  encryption: { decrypt(value: string, slot: string): Promise<string | null> } | null,
+): Promise<PushHealth> {
+  const key = "notifications.push.fcm_service_account";
+  const { rows } = await db.query(
+    "select value_encrypted, (select value from public.settings where key = 'notifications.push.provider') as provider from public.settings where key = $1",
+    [key],
+  );
+  const provider = rows[0]?.provider;
+  const encrypted = rows[0]?.value_encrypted;
+  if (!encrypted) return "not_configured";
+  if (provider !== "fcm") return "not_configured";
+  if (!encryption) return "unreadable";
+  const json = await encryption.decrypt(String(encrypted), key);
+  if (!json) return "unreadable";
+  return createFcmPush(json) ? "ok" : "invalid";
+}
+
 /** Builds the FCM port from the encrypted service-account setting (optional). */
 export async function createPushFromSettings(
   db: Db,
