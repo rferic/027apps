@@ -24,7 +24,12 @@ test("the panel lists the request and approving it grants the seats", async ({ p
 
   await page.getByRole("button", { name: "Approve", exact: true }).click();
   const amount = page.locator(`#approve-amount-table-${view.asker.requestId}`);
-  await amount.fill("2");
+  // Regression: the field used to coerce every keystroke to a number, so a
+  // cleared field came back as "0" and typing 1 produced "01" (and 0 seats).
+  await amount.fill("");
+  await expect(amount).toHaveValue("");
+  await amount.pressSequentially("2");
+  await expect(amount).toHaveValue("2");
   // The confirm button names the amount it is about to grant.
   await page.getByRole("button", { name: "Approve 2 seat(s)" }).click();
 

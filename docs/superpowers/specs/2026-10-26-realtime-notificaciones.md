@@ -82,11 +82,12 @@ El manifest (task-03 §3) declara:
 - Los eventos de **negocio** los declara cada módulo en su manifest (tipo, target, subject, notify) — el Core no los conoce.
 - Un evento cuyo consumidor no exista en v1 no entra en el catálogo.
 - `invitation.requested` y `invitation.request_resolved` llevan push **data-only** con `key`
-  (`push.invitation_requested` / `push.invitation_request_resolved`) y, para el segundo, `state`
-  (`approved` | `rejected`). El push lleva solo `{key, module, state}` — o `{key, module}` cuando no
-  hay `state` — y **nunca** `amount` ni `places`: la app no pinta importes ni números de plazas
-  (delta al sprint 18, decisión R5 de la spec de invitaciones). El detalle se pide a la API al
-  abrir.
+  (`push.invitation_requested` / `push.invitation_request_resolved`), `seats` (las plazas
+  solicitadas o concedidas) y, para el segundo, `state` (`approved` | `rejected`). **Nunca** llevan
+  `amount` (la app formatea esa clave como dinero) ni el nombre del solicitante; la app compone una
+  frase localizada con el número de plazas y pide el detalle a la API al abrir (delta al sprint 18,
+  decisión R5 de la spec de invitaciones, revisada en la ronda de QA del 2026-11-22: sin la cifra la
+  notificación no decía de qué solicitud se trataba).
 
 ## 5. Publicación: outbox transaccional (at-least-once)
 

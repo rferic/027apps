@@ -133,7 +133,7 @@ La conversación con el propietario (2026-11-18) cerró el «qué». Esta spec f
 | R2 | No había endpoint para listar las concesiones y poder retirarlas. | `GET /users/{id}/invitation-grants`, con activas e histórico. |
 | R3 | `cancelled` existía en el diagrama sin operación, y una pendiente bloquea para siempre. | `POST /me/invitation-requests/{id}/cancel`; el índice único se libera al cancelar. |
 | R4 | El miembro no podía leer el resultado de su solicitud. | `GET /me/invitations` devuelve `requests[]` (últimas 10) con estado e importe concedido. |
-| R5 | En Android `amount` se pinta como dinero y `key` no se renderiza. | El push nuevo **no envía `amount`**: envía `key` y `state`. La app añade dos textos fijos localizados (9 idiomas), sin importes ni nombres; el detalle está al abrir. |
+| R5 | En Android `amount` se pinta como dinero y `key` no se renderiza. | El push nuevo **no envía `amount`** (la app lo pinta como dinero): envía `key`, `seats` (solicitadas o concedidas) y `state`. La app compone una frase localizada con la cifra (9 idiomas), sin importes ni nombres; el detalle está al abrir. Revisado en la ronda de QA del 2026-11-22: sin la cifra, la notificación no decía de qué solicitud se trataba. |
 | R6 | Una invitación con rol `admin` no puede tener nivel. | `invite_level = null` cuando el rol es `admin`; `invited_by` se guarda igual. La cuota cuenta solo perfiles con rol `user`. |
 | R7 | Renovar, rotar y reenviar no tienen sentido en una invitación anónima. | Se rechazan con `invitation_not_renewable` y el panel las oculta; solo se revocan. La unicidad por email pendiente no aplica a las anónimas. |
 

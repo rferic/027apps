@@ -3,10 +3,11 @@ import type { QueryClient } from "../api/rate-limit-storage.js";
 import { publishPending, type PushPort, type RealtimePort } from "./service.js";
 
 /**
- * The push data map (sprint 18, task 5): an `invitation.*` push carries only
- * `key`/`module` (+ `state` for the resolved event) — never a name, an amount
- * or a seat count (spec §10/R5). Business events (owe-no) keep their
- * description/group/actor/amount/currency unchanged.
+ * The push data map (sprint 18, task 5): an `invitation.*` push carries
+ * `key`/`module`, `state` for the resolved event and the seat count as
+ * `seats` — never a name and never `amount`, which the app renders as money
+ * (spec §10/R5, revised after the QA round). Business events (owe-no) keep
+ * their description/group/actor/amount/currency unchanged.
  */
 
 interface RecordedQuery {
@@ -82,13 +83,14 @@ async function pushDataFor(
 }
 
 describe("push data map", () => {
-  it("invitation.request_resolved sends only key, module and state", async () => {
+  it("invitation.request_resolved sends key, module, state and the seat count", async () => {
     const { data } = await pushDataFor(claimedEvent());
 
     expect(data).toEqual({
       key: "push.invitation_request_resolved",
       module: "027apps",
       state: "approved",
+      seats: "3",
     });
     expect(data).not.toHaveProperty("amount");
     expect(data).not.toHaveProperty("places");
@@ -96,7 +98,7 @@ describe("push data map", () => {
     expect(data).not.toHaveProperty("description");
   });
 
-  it("invitation.requested sends only key and module, never a name or a seat count", async () => {
+  it("invitation.requested names the seat count, never a name or a money amount", async () => {
     const { data } = await pushDataFor(
       claimedEvent({
         type: "invitation.requested",
@@ -109,6 +111,7 @@ describe("push data map", () => {
     expect(data).toEqual({
       key: "push.invitation_requested",
       module: "027apps",
+      seats: "5",
     });
     expect(data).not.toHaveProperty("actor");
     expect(data).not.toHaveProperty("places");

@@ -52,15 +52,21 @@ export function InvitationRequestActions({
   const router = useRouter();
   const approveRef = useRef<HTMLDialogElement>(null);
   const rejectRef = useRef<HTMLDialogElement>(null);
-  const [approveAmount, setApproveAmount] = useState(amount);
+  // The raw text, not a number: coercing on every keystroke turned a cleared
+  // field back into "0", so typing 1 gave "01" (and 0 seats). Same rule as the
+  // invitation levels editor and the API-key expiry field.
+  const [approveAmount, setApproveAmount] = useState(String(amount));
+  const seats = Number(approveAmount);
+  const seatsValid = /^\d{1,3}$/.test(approveAmount) && seats >= 1 && seats <= 100;
   const [rejectReason, setRejectReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function approve() {
+    if (!seatsValid) return;
     setBusy(true);
     setError(null);
-    const result = await approveInvitationRequest(id, approveAmount);
+    const result = await approveInvitationRequest(id, seats);
     setBusy(false);
     if (!result.ok) {
       setError(requestActionFailureMessage(result.code, messages));
@@ -126,13 +132,22 @@ export function InvitationRequestActions({
           <FormField id={`approve-amount-${layout}-${id}`} label={t("Seats", messages)}>
             <input
               id={`approve-amount-${layout}-${id}`}
-              type="number"
+              type="text"
               inputMode="numeric"
-              min={1}
-              max={100}
+              pattern="[0-9]*"
+              maxLength={3}
               value={approveAmount}
               disabled={busy}
-              onChange={(event) => setApproveAmount(Number(event.target.value))}
+              onChange={(event) => {
+                const raw = event.target.value;
+                if (!/^\d{0,3}$/.test(raw)) return;
+                setApproveAmount(raw);
+              }}
+              onBlur={() => {
+                // "01" is the same grant as "1": normalize once the field loses
+                // focus, but keep an empty draft empty so it never snaps to 0.
+                if (seatsValid) setApproveAmount(String(seats));
+              }}
               className="min-h-11 rounded-control border border-border bg-background px-2.5 text-base text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:text-sm"
             />
           </FormField>
@@ -156,10 +171,12 @@ export function InvitationRequestActions({
           <Button
             variant="primary"
             className="min-h-11"
-            disabled={busy}
+            disabled={busy || !seatsValid}
             onClick={() => void approve()}
           >
-            {t("Approve {amount} seat(s)", messages, { amount: approveAmount })}
+            {seatsValid
+              ? t("Approve {amount} seat(s)", messages, { amount: seats })
+              : t("Approve", messages)}
           </Button>
         </FormActions>
       </Dialog>
