@@ -34,3 +34,6 @@ private/
 apps/admin/e2e/.fixtures.json
 apps/admin/playwright-report/
 apps/admin/test-results/
+
+# APK de pruebas servido por LAN para instalar el build de staging en un móvil.
+/app-debug.apk

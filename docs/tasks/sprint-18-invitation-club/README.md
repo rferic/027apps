@@ -55,6 +55,20 @@ datos reales), `pnpm qa:web` (navegador real: invitación y panel), `pnpm qa:and
 emulador) y `pnpm qa:push` (evento y despacho del push). Ver
 [`docs/flows/pre-delivery-verification.md`](../../flows/pre-delivery-verification.md).
 
+## Ronda de QA 2 (2026-11-22)
+
+Push real en `staging` con un emulador: token FCM de verdad, sin `google-services.json` (la app
+construye `FirebaseOptions` desde los ajustes públicos de la instancia). Hallazgos y arreglos:
+
+| Hallazgo | Arreglo |
+|---|---|
+| Un build debug en un despliegue protegido por Vercel no registraba token de push | `FcmRegistrar` no enviaba `x-vercel-protection-bypass`; la regla pasa a un helper compartido con `ApiClient` (solo debug y `*.vercel.app`), PR #145 |
+| En el diálogo de aprobación no se podía borrar el `0`: al teclear 1 quedaba `01` | Estado de texto (no número) como en los otros editores numéricos, acción deshabilitada mientras no sea 1..100 y e2e que vacía el campo |
+| El push solo decía «New invitation request» | El evento lleva `seats` y la app compone «Solicitud de 2 invitaciones» / «Solicitud aprobada · 2 plazas» en 9 idiomas |
+
+Verificado en el emulador contra `staging`: el token se registra, la notificación llega al pedir
+plazas y la solicitud aprobada desaparece de la app en ≤5 s por el sondeo.
+
 ### Auditoría de seguridad
 
 La ronda la auditó **otro agente** (el DoD pide alguien distinto del autor). Veredicto: **APTO**, sin
@@ -86,7 +100,7 @@ límite propio, push sin nombres ni importes, y scripts de QA con guardia local 
 | `pnpm qa:invitations` | verde (~50 comprobaciones, API y base de datos reales) |
 | `pnpm qa:web` | 7/7 (Chromium real) |
 | `pnpm qa:android` | verde (emulador: canje nuevo, email existente, solicitud de plazas) |
-| `pnpm qa:push` | verde: eventos encolados y despachados; sin dispositivos locales (build debug sin `google-services.json`) |
+| `pnpm qa:push` | verde: eventos encolados y despachados; el push real se verificó a mano en staging con el emulador (token FCM, notificación recibida) |
 | `./gradlew :app:testDebugUnitTest :app:assembleDebug` | BUILD SUCCESSFUL |
 
 `db-tests` completo no se ejecuta contra la instancia del propietario (asume una instancia limpia,
@@ -126,7 +140,7 @@ ver `docs/flows/pre-delivery-verification.md`); sus suites de invitaciones se cu
 
 - Implementación, revisión por tarea y revisión final del branch completadas.
 - Auditoría de seguridad: **APTO**; los dos High de fuga del Bearer por deep link a un host ajeno
-  están cerrados, y el push de invitación solo lleva `{key, module, state}`.
+  están cerrados, y el push de invitación solo lleva `{key, module, seats, state}` (sin nombre ni importe).
 - Ramo: `a3a9348..5e38739` (24 commits), rama `sprint/18-invitation-club`.
 - Verificación: core 620, admin 1344, i18n 1102 cadenas/9 locales, OpenAPI 121/121, Android 122;
   `db-tests` completo tiene 5 fallos preexistentes por datos de demo locales, y las suites

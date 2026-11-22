@@ -18,10 +18,15 @@ describe("InvitationRequestActions", () => {
       <InvitationRequestActions layout="table" id="r1" amount={2} messages={{}} />,
     );
 
-    expect(html).toContain("Approve");
+    expect(html).toContain("Approve 2 seat(s)");
     expect(html).toContain("Reject");
     expect(html).toContain('value="2"');
     expect(html).toContain('id="approve-amount-table-r1"');
+    // A text field with numeric hints, not `type="number"`: the draft has to be
+    // able to stay empty while typing, or clearing it snaps back to "0".
+    expect(html).toContain('type="text"');
+    expect(html).toContain('pattern="[0-9]*"');
+    expect(html).not.toContain('type="number"');
   });
 
   it("asks for an optional reason when rejecting", () => {
