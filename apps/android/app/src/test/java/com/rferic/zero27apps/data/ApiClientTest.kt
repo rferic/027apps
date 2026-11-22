@@ -11,6 +11,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.io.IOException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -466,5 +467,19 @@ class ApiPathRedactionTest {
             "bypass-secret",
         ).invitationPreview("027_inv_abcdefghijklmnop")
         assertEquals(null, seen)
+    }
+
+    // Regression: the push registrar made its own HTTP call without the
+    // bypass, so on a protected preview it never reached the instance and no
+    // FCM token was ever registered.
+    @Test
+    fun `the shared bypass helper answers only for a protected preview`() {
+        assertEquals(
+            "bypass-secret",
+            vercelProtectionBypass("https://027apps-git-staging-eric-rf.vercel.app", "bypass-secret"),
+        )
+        assertNull(vercelProtectionBypass("https://027apps.ericrf.com", "bypass-secret"))
+        assertNull(vercelProtectionBypass("https://027apps-git-staging-eric-rf.vercel.app", ""))
+        assertNull(vercelProtectionBypass("not a url", "bypass-secret"))
     }
 }

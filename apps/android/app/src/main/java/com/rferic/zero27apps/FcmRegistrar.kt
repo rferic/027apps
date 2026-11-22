@@ -9,6 +9,7 @@ import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.FirebaseMessaging
 import com.rferic.zero27apps.auth.EncryptedStringStore
 import com.rferic.zero27apps.auth.KeystoreSecretCipher
+import com.rferic.zero27apps.data.vercelProtectionBypass
 import com.rferic.zero27apps.prefs.PrefsStringStore
 import java.net.HttpURLConnection
 import java.net.URL
@@ -174,6 +175,11 @@ class FcmRegistrar(private val context: Context) {
             connection.connectTimeout = 10_000
             connection.readTimeout = 10_000
             connection.setRequestProperty("Authorization", "Bearer $jwt")
+            // A protected preview blocks every request without this header,
+            // including the instance read that starts push registration.
+            vercelProtectionBypass(url)?.let {
+                connection.setRequestProperty("x-vercel-protection-bypass", it)
+            }
             if (body != null) {
                 connection.doOutput = true
                 connection.setRequestProperty("Content-Type", "application/json")
