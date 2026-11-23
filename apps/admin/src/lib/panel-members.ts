@@ -37,6 +37,8 @@ export interface MemberRow {
 
 export type MemberDetail = MemberRow;
 
+export type MemberNotifications = "active" | "off" | "none" | "unknown";
+
 export type MemberListSuccess = {
   ok: true;
   users: MemberRow[];
@@ -314,6 +316,30 @@ export async function loadMember(id: string): Promise<MemberDetailResult> {
 
   const emails = await emailsFor([user.id]);
   return { ok: true, member: withEmail(user, emails) };
+}
+
+/**
+ * The member's push state for the profile card, read from `public.devices` with
+ * the service pool (the users API deliberately does not expose devices). Any
+ * device with the master switch on and not revoked is active; none registered
+ * is "none"; a failed read is "unknown" and the card stays silent.
+ */
+export async function loadMemberNotifications(id: string): Promise<MemberNotifications> {
+  try {
+    const { settingsDeps } = await getInfra();
+    const { rows } = await settingsDeps.db.query(
+      `select count(*)::int as total,
+              count(*) filter (where push_enabled and revoked_at is null)::int as active
+         from public.devices where user_id = $1`,
+      [id],
+    );
+    const total = Number(rows[0]?.total ?? 0);
+    const active = Number(rows[0]?.active ?? 0);
+    if (total === 0) return "none";
+    return active > 0 ? "active" : "off";
+  } catch {
+    return "unknown";
+  }
 }
 
 function requestIdOf(call: RouteSuccess): { requestId?: string } {

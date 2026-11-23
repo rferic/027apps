@@ -16,7 +16,14 @@ import { loadMemberInvitation } from "@/lib/invitation-grants";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { loadPanelTimeZone } from "@/lib/panel-settings";
 import { requirePanel } from "@/lib/panel-guard";
-import { loadInvitees, loadMember, loadMemberInviter, type MemberDetail } from "@/lib/panel-members";
+import {
+  loadInvitees,
+  loadMember,
+  loadMemberInviter,
+  loadMemberNotifications,
+  type MemberDetail,
+  type MemberNotifications,
+} from "@/lib/panel-members";
 
 /**
  * The page reads the session and the member while rendering; the layout's
@@ -69,11 +76,13 @@ function MemberBreadcrumb({ name, messages }: { name: string; messages: Translat
 
 function MemberHeader({
   member,
+  notifications,
   locale,
   timeZone,
   messages,
 }: {
   member: MemberDetail;
+  notifications: MemberNotifications;
   locale: Locale;
   timeZone: string;
   messages: TranslationMap;
@@ -88,6 +97,22 @@ function MemberHeader({
         </Badge>
       </span>
       <p className="text-xs text-muted-foreground">{memberEmail(member, messages)}</p>
+      {notifications !== "unknown" && (
+        <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+          {t("Notifications", messages)}:
+          <Badge
+            variant={
+              notifications === "active" ? "success" : notifications === "off" ? "warning" : "neutral"
+            }
+          >
+            {notifications === "active"
+              ? t("Enabled", messages)
+              : notifications === "off"
+                ? t("Disabled", messages)
+                : t("None", messages)}
+          </Badge>
+        </p>
+      )}
       <p className="text-xs text-muted-foreground">
         {t("Joined", messages)}: {formatDate(member.created_at, { locale, timeZone })}
       </p>
@@ -231,10 +256,11 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
 
   const member = result.member;
   const isSelf = gate.user.id === member.id;
-  const [invitation, invitees, inviter] = await Promise.all([
+  const [invitation, invitees, inviter, notifications] = await Promise.all([
     loadMemberInvitation(member.id),
     loadInvitees(member.id),
     loadMemberInviter(member.id),
+    loadMemberNotifications(member.id),
   ]);
   // Only a successful read that genuinely found no parent marks an orphan; a
   // failed read keeps the member page rendering without the false note.
@@ -242,7 +268,13 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
   return (
     <section className="flex flex-col gap-5">
       <MemberBreadcrumb name={memberName(member)} messages={messages} />
-      <MemberHeader member={member} locale={locale} timeZone={timeZone} messages={messages} />
+      <MemberHeader
+        member={member}
+        notifications={notifications}
+        locale={locale}
+        timeZone={timeZone}
+        messages={messages}
+      />
       <MemberCategories member={member} messages={messages} />
       {invitation.ok ? (
         <MemberInvitationPanel
