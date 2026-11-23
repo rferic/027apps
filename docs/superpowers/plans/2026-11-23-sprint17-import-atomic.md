@@ -14,10 +14,10 @@ dentro de la misma transacción, reutilizando la lógica de `addMember` sobre el
 
 **Spec:** [`docs/tasks/sprint-17-panel-y-notificaciones/README.md`](../tasks/sprint-17-panel-y-notificaciones/README.md)
 
-> **Estado 2026-11-23:** tarea 01 cerrada en `test`. El test de concurrencia fallaba con el código
-> anterior (`expected 2, received 4`) y pasa con el arreglo; la suite de importaciones queda 12/12.
-> Revisada por dos agentes: el test ya no desinstala un módulo existente (solo limpia su grupo) y
-> los hallazgos de estilo quedaron cerrados.
+> **Estado 2026-11-23:** tarea 01 **finalizada** (PR #152, CI en verde). El test de concurrencia
+> fallaba con el código anterior (`expected 2, received 4`) y pasa con el arreglo; la suite de
+> importaciones queda 12/12. Revisada por dos agentes: el test ya no desinstala un módulo existente
+> (solo limpia su grupo) y los hallazgos de estilo quedaron cerrados.
 > Pendiente de revisión y auditoría de seguridad antes de `finalizada`.
 
 ## Global Constraints

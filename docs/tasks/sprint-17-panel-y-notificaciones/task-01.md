@@ -2,7 +2,7 @@
 id: sprint-17-task-01
 titulo: Import atómico y candado de duplicados
 area: core + web + app
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-23-sprint17-import-atomic.md
 fuente: docs/tasks/sprint-17-panel-y-notificaciones/README.md
 adrs: [0004, 0007]
@@ -12,7 +12,8 @@ adrs: [0004, 0007]
 grupo no puedan duplicar movimientos, y que los miembros del mapeo nazcan dentro de esa misma
 transacción.
 
-**Estado (2026-11-23)**: implementada y verificada; pendiente de revisión y auditoría.
+**Estado (2026-11-23)**: **finalizada**. Implementada, revisada, auditada y con el CI del PR en
+verde ([#152](https://github.com/rferic/027apps/pull/152)).
 
 - El candado está cubierto por un test de regresión (`owe-no-imports.test.ts`, «two overlapping
   commits of the same file do not duplicate movements»): fallaba con `expected 2, received 4` y

@@ -141,6 +141,9 @@ puede cambiar el orden.
 
 ## Evidencia (tarea 01, 2026-11-23)
 
+PR: [#152](https://github.com/rferic/027apps/pull/152) (draft contra `staging`), siete checks en
+verde: `admin`, `android`, `supabase`, `guard-secrets`, `ai-docs`, `commitlint` y Vercel.
+
 | Comprobación | Resultado |
 |---|---|
 | `owe-no-imports.test.ts` | 12/12; el test nuevo fallaba antes del arreglo con `expected 2, received 4` |
