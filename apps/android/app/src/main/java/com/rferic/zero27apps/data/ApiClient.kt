@@ -239,13 +239,19 @@ class ApiClient(
         groupId: String,
         csv: String,
         mapping: Map<String, String>?,
+        newMembers: List<OweImportNewMember>?,
         confirmDuplicates: Boolean,
     ): OweImportResultDto =
         read(
             request(
                 HttpMethod.Post,
                 "/api/v1/owe-no/groups/$groupId/imports",
-                OweImportCommitBody(csv, mapping, if (confirmDuplicates) true else null),
+                OweImportCommitBody(
+                    csv,
+                    mapping,
+                    newMembers,
+                    if (confirmDuplicates) true else null,
+                ),
             ),
         )
 

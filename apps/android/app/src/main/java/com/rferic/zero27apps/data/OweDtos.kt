@@ -218,9 +218,17 @@ data class OweImportResultDto(
 data class OweImportPreviewBody(val csv: String)
 
 @Serializable
+data class OweImportNewMember(
+    val name: String,
+    @SerialName("display_name") val displayName: String? = null,
+    @SerialName("user_id") val userId: String? = null,
+)
+
+@Serializable
 data class OweImportCommitBody(
     val csv: String,
     val mapping: Map<String, String>? = null,
+    @SerialName("new_members") val newMembers: List<OweImportNewMember>? = null,
     @SerialName("confirm_duplicates") val confirmDuplicates: Boolean? = null,
 )
 

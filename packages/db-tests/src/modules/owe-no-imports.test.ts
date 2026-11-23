@@ -2,8 +2,8 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { ClientBase } from "pg";
-import { createTestUser, query, withClient } from "../pg.js";
+import { Client, type ClientBase } from "pg";
+import { count, createTestUser, dbUrl, query, withClient } from "../pg.js";
 import {
   activateModule,
   installModule,
@@ -11,7 +11,7 @@ import {
   type ModulesDeps,
 } from "@027apps/core/modules/service.js";
 import type { Caller } from "@027apps/core/api/types.js";
-import { addMember, createGroup, groupBalances, listMembers, type OweDeps } from "@027apps/owe-no/domain/service.js";
+import { addMember, createGroup, groupBalances, listMembers, type OweDb, type OweDeps } from "@027apps/owe-no/domain/service.js";
 import {
   commitImport,
   importMappingOptions,
@@ -459,5 +459,311 @@ describe("owe-no reset with mapped members", () => {
       const listed = await listMembers(deps, ana.userId, group.id);
       expect(listed.some((member) => member.id === bolli.id)).toBe(true);
     });
+  });
+});
+
+describe("owe-no importer members", () => {
+  async function setup(c: ClientBase) {
+    const admin = await session(c, "admin", "Admin");
+    const manifest = JSON.parse(await readFile(resolve(ROOT, "manifest.json"), "utf8"));
+    const { rows: installed } = await query(
+      c,
+      "select 1 from public.module_registry where key = 'owe-no'",
+    );
+    if (installed[0]) {
+      await uninstallModule(
+        modulesDeps(c),
+        await session(c, "super_admin", "Root"),
+        "owe-no",
+        manifest,
+        true,
+      );
+    }
+    await installModule(modulesDeps(c), admin, manifest);
+    await activateModule(modulesDeps(c), admin, "owe-no");
+    return admin;
+  }
+
+  it("creates the mapping's new members inside the commit", async () => {
+    await inRollback(async (c) => {
+      await setup(c);
+      const ana = await session(c, "user", "Ana");
+      const luis = await session(c, "user", "Luis");
+      const deps = oweDeps(c);
+      const group = await createGroup(deps, ana.userId, { name: "Casa", currency: "EUR" });
+
+      const csv = [
+        "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Luis",
+        "2026-03-01,Cena,Comida,20.00,EUR,-10.00,10.00",
+      ].join("\n");
+
+      const result = await commitImport(deps, ana.userId, group.id, csv, {
+        newMembers: [{ name: "Luis", userId: luis.userId }],
+      });
+
+      expect(result).toMatchObject({ created: 1, errors: 0 });
+      const members = await listMembers(deps, ana.userId, group.id);
+      const invited = members.find((member) => member.display_name === "Luis");
+      // A real account enters invited and is charged from the start (D15).
+      expect(invited?.state).toBe("invited");
+    });
+  });
+
+  it("rejects a new member whose name is not in the file", async () => {
+    await inRollback(async (c) => {
+      await setup(c);
+      const ana = await session(c, "user", "Ana");
+      const deps = oweDeps(c);
+      const group = await createGroup(deps, ana.userId, { name: "Casa", currency: "EUR" });
+      const csv = [
+        "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Luis",
+        "2026-03-01,Cena,Comida,10.00,EUR,-5.00,5.00",
+      ].join("\n");
+
+      await expect(
+        commitImport(deps, ana.userId, group.id, csv, {
+          newMembers: [{ name: "Inventado" }],
+        }),
+      ).rejects.toMatchObject({ details: { code: "unmapped_identity" } });
+    });
+  });
+
+  it("leaves no member behind when the commit fails after creating them", async () => {
+    await inRollback(async (c) => {
+      await setup(c);
+      const ana = await session(c, "user", "Ana");
+      const deps = oweDeps(c);
+      const group = await createGroup(deps, ana.userId, { name: "Casa", currency: "EUR" });
+      const csv = [
+        "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Bolli",
+        "2026-03-01,Cena,Comida,10.00,EUR,-5.00,5.00",
+      ].join("\n");
+
+      // Fail after the member was created but before the batch is written.
+      const run = deps.withTransaction!;
+      const broken: OweDeps = {
+        db: deps.db,
+        withTransaction: (fn) =>
+          run((tx) =>
+            fn({
+              query: async (sql: string, params: unknown[] = []) => {
+                if (sql.includes("insert into module_owe_no.owe_no_imports")) {
+                  throw new Error("db down");
+                }
+                return tx.query(sql, params);
+              },
+            }),
+          ),
+      };
+
+      await expect(
+        commitImport(broken, ana.userId, group.id, csv, { newMembers: [{ name: "Bolli" }] }),
+      ).rejects.toThrow("db down");
+
+      const members = await listMembers(deps, ana.userId, group.id);
+      expect(members.some((member) => member.display_name === "Bolli")).toBe(false);
+    });
+  });
+});
+
+/**
+ * Deps with a real connection per transaction, so two commits can overlap.
+ * The rest of the suite uses savepoints on one connection, and a savepoint
+ * cannot hold an advisory lock in another session.
+ */
+async function liveDeps(): Promise<{ deps: OweDeps; close: () => Promise<void> }> {
+  const clients: Client[] = [];
+  const open = async (): Promise<Client> => {
+    const client = new Client({ connectionString: dbUrl() });
+    await client.connect();
+    clients.push(client);
+    return client;
+  };
+  const base = await open();
+  return {
+    deps: {
+      db: {
+        query: (sql: string, params: unknown[] = []) => query(base, sql, params),
+      },
+      withTransaction: async <T,>(fn: (tx: OweDb) => Promise<T>): Promise<T> => {
+        const client = await open();
+        await client.query("BEGIN");
+        try {
+          const tx: OweDb = {
+            query: (sql: string, params: unknown[] = []) => query(client, sql, params),
+          };
+          const result = await fn(tx);
+          await client.query("COMMIT");
+          return result;
+        } catch (error) {
+          await client.query("ROLLBACK");
+          throw error;
+        }
+      },
+    },
+    close: async () => {
+      for (const client of clients) await client.end();
+    },
+  };
+}
+
+describe("owe-no importer concurrency", () => {
+  it("two overlapping commits of the same file do not duplicate movements", async () => {
+    const manifest = JSON.parse(await readFile(resolve(ROOT, "manifest.json"), "utf8"));
+    const live: Array<{ close: () => Promise<void> }> = [];
+    let blocker: Client | null = null;
+    let monitor: Client | null = null;
+    let adminId = "";
+    let anaId = "";
+    let groupId = "";
+    let root: Caller | null = null;
+
+    try {
+      await withClient(async (c) => {
+        adminId = (
+          await createTestUser(c, {
+            email: email("race-root"),
+            role: "super_admin",
+            displayName: "Root",
+          })
+        ).id;
+        anaId = (
+          await createTestUser(c, {
+            email: email("race-ana"),
+            role: "user",
+            displayName: "Ana",
+          })
+        ).id;
+      });
+      root = { kind: "session", userId: adminId, role: "super_admin" };
+
+      await withClient(async (c) => {
+        await c.query("BEGIN");
+        try {
+          const { rows } = await query(
+            c,
+            "select 1 from public.module_registry where key = 'owe-no'",
+          );
+          if (rows[0]) await uninstallModule(modulesDeps(c), root!, "owe-no", manifest, true);
+          await installModule(modulesDeps(c), root!, manifest);
+          await activateModule(modulesDeps(c), root!, "owe-no");
+          await c.query("COMMIT");
+        } catch (error) {
+          await c.query("ROLLBACK");
+          throw error;
+        }
+      });
+
+      // Committed: the two overlapping transactions must see it from their own
+      // connections, which a rollback transaction cannot provide.
+      await withClient(async (c) => {
+        await c.query("BEGIN");
+        try {
+          const deps = oweDeps(c);
+          const group = await createGroup(deps, anaId, { name: "Carrera", currency: "EUR" });
+          groupId = group.id;
+          await addMember(deps, anaId, groupId, { displayName: "Luis" });
+          await c.query("COMMIT");
+        } catch (error) {
+          await c.query("ROLLBACK");
+          throw error;
+        }
+      });
+
+      const csv = [
+        "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Luis",
+        "2026-02-01,Cena,Comida,10.00,EUR,-5.00,5.00",
+        "2026-02-02,Cine,Ocio,8.00,EUR,-4.00,4.00",
+      ].join("\n");
+
+      // Hold the group's lock so both commits queue behind it. Whichever reads
+      // the hashes before taking the lock will see an empty set and duplicate.
+      blocker = new Client({ connectionString: dbUrl() });
+      await blocker.connect();
+      await blocker.query("BEGIN");
+      await blocker.query("select pg_advisory_xact_lock(hashtext($1::text))", [groupId]);
+
+      const first = await liveDeps();
+      const second = await liveDeps();
+      live.push(first, second);
+      const commits = [
+        commitImport(first.deps, anaId, groupId, csv),
+        commitImport(second.deps, anaId, groupId, csv),
+      ];
+
+      monitor = new Client({ connectionString: dbUrl() });
+      await monitor.connect();
+      const deadline = Date.now() + 5_000;
+      let waiting = 0;
+      while (Date.now() < deadline) {
+        waiting = await count(
+          monitor,
+          `select count(*) from pg_stat_activity
+            where datname = current_database()
+              and wait_event_type = 'Lock'
+              and query ilike '%pg_advisory_xact_lock%'`,
+        );
+        if (waiting >= 2) break;
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+      expect(waiting).toBeGreaterThanOrEqual(2);
+
+      await blocker.query("ROLLBACK");
+      const results = await Promise.allSettled(commits);
+      expect(results.map((result) => result.status)).toEqual(["fulfilled", "fulfilled"]);
+
+      await withClient(async (c) => {
+        const movements = await count(
+          c,
+          "select count(*) from module_owe_no.owe_no_movements where group_id = $1",
+          [groupId],
+        );
+        expect(movements).toBe(2);
+        const tracked = await count(
+          c,
+          `select count(*) from module_owe_no.owe_no_import_rows r
+             join module_owe_no.owe_no_imports i on i.id = r.import_id
+            where i.group_id = $1`,
+          [groupId],
+        );
+        expect(tracked).toBe(2);
+      });
+    } finally {
+      for (const item of live) await item.close().catch(() => undefined);
+      if (blocker) {
+        await blocker.query("ROLLBACK").catch(() => undefined);
+        await blocker.end().catch(() => undefined);
+      }
+      if (monitor) await monitor.end().catch(() => undefined);
+      await withClient(async (c) => {
+        await c.query("BEGIN");
+        try {
+          const { rows } = await query(
+            c,
+            "select 1 from public.module_registry where key = 'owe-no'",
+          );
+          if (rows[0] && root) {
+            await uninstallModule(modulesDeps(c), root, "owe-no", manifest, true);
+          }
+          if (groupId) {
+            await c.query("delete from public.event_outbox where resource->>'group_id' = $1", [
+              groupId,
+            ]);
+          }
+          if (adminId) {
+            await c.query("delete from public.profiles where id = any($1::uuid[])", [
+              [adminId, anaId],
+            ]);
+            await c.query("delete from auth.users where id = any($1::uuid[])", [
+              [adminId, anaId],
+            ]);
+          }
+          await c.query("COMMIT");
+        } catch (error) {
+          await c.query("ROLLBACK");
+          throw error;
+        }
+      }).catch(() => undefined);
+    }
   });
 });

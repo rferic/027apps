@@ -51,10 +51,20 @@ export type CreateMovementBody = z.infer<typeof createMovementSchema>;
 
 export const importPreviewSchema = z.object({ csv: z.string().min(1).max(2 * 1024 * 1024) }).strict();
 
+/** A CSV name with no member yet: the commit creates it in the same transaction. */
+const importNewMemberSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200),
+    display_name: z.string().trim().min(1).max(80).optional(),
+    user_id: z.uuid().optional(),
+  })
+  .strict();
+
 export const importCommitSchema = z
   .object({
     csv: z.string().min(1).max(2 * 1024 * 1024),
     mapping: z.record(z.string(), z.uuid()).optional(),
+    new_members: z.array(importNewMemberSchema).max(200).optional(),
     confirm_duplicates: z.boolean().optional(),
     reset: z.boolean().optional(),
   })
