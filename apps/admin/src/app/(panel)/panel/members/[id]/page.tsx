@@ -161,7 +161,7 @@ function MemberTree({
       {isOrphan && (
         <p role="status" className="text-xs font-semibold text-warning">
           {t(
-            "Their inviter was removed, so their invitees no longer count against anyone.",
+            "This member has no inviter, so they do not take a seat from anyone.",
             messages,
           )}
         </p>

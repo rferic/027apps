@@ -66,6 +66,8 @@ construye `FirebaseOptions` desde los ajustes públicos de la instancia). Hallaz
 | En el diálogo de aprobación no se podía borrar el `0`: al teclear 1 quedaba `01` | Estado de texto (no número) como en los otros editores numéricos, acción deshabilitada mientras no sea 1..100 y e2e que vacía el campo |
 | El push solo decía «New invitation request» | El evento lleva `seats` y la app compone «Solicitud de 2 invitaciones» / «Solicitud aprobada · 2 plazas» en 9 idiomas |
 | Un email ya registrado dejaba la invitación anónima en un callejón sin salida: la app deshabilitaba el email y la web seguía pidiendo «contraseña actual» aunque se cambiara | El email sigue editable; al editarlo se abandona esa rama, vuelve el formulario de cuenta nueva y la invitación continúa pendiente (web y app) |
+| Cerrar sesión no revocaba el dispositivo de push: el token guardado había caducado y el servidor respondía 401, así que seguía activo | La revocación pasa por el cliente API, que refresca el token y reintenta el 401; comprobado en el emulador con el reloj adelantado 20 minutos, y una solicitud con la sesión cerrada no genera notificación |
+| La ficha de un miembro creado por un administrador decía «su invitador fue eliminado» | Texto neutro y cierto en ambos casos: no tiene invitador, así que no ocupa la plaza de nadie (9 idiomas) |
 
 Verificado en el emulador contra `staging`: el token se registra, la notificación llega al pedir
 plazas y la solicitud aprobada desaparece de la app en ≤5 s por el sondeo.

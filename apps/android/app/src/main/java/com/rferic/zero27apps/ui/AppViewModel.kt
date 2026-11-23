@@ -729,9 +729,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (!revoked) {
             // Revoke the device while the session is still valid: otherwise the
             // server keeps pushing a signed-out account's groups to this phone.
-            FcmRegistrar(getApplication()).revoke(
-                supabase?.auth?.currentSessionOrNull()?.accessToken,
-            )
+            // The API client refreshes a stale token and retries the 401.
+            val registrar = FcmRegistrar(getApplication())
+            registrar.deviceId()?.let { id -> runCatching { client?.revokeOwnDevice(id) } }
+            registrar.forgetLocalDevice()
             runCatching { supabase?.auth?.signOut(SignOutScope.LOCAL) }
         }
         // Either way this device forgets the session, in memory and on disk.
@@ -903,9 +904,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun changeInstance(raw: String): Boolean {
         val normalized = ServerUrl.normalize(raw, requireHttps = !BuildConfig.DEBUG) ?: return false
         viewModelScope.launch {
-            FcmRegistrar(getApplication()).revoke(
-                supabase?.auth?.currentSessionOrNull()?.accessToken,
-            )
+            val registrar = FcmRegistrar(getApplication())
+            registrar.deviceId()?.let { id -> runCatching { client?.revokeOwnDevice(id) } }
+            registrar.forgetLocalDevice()
             runCatching { supabase?.auth?.signOut(SignOutScope.LOCAL) }
             sessionStore.clear()
             clearWidget()

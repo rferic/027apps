@@ -78,6 +78,22 @@ class FcmRegistrar(private val context: Context) {
     fun deviceId(): String? = prefs.getString("device_id", null)
 
     /**
+     * Deletes the FCM token and forgets this install's device, without a server
+     * call. Sign-out revokes the server side through the API client, which
+     * refreshes a stale session token; the raw call here answered 401 and the
+     * device stayed active.
+     */
+    fun forgetLocalDevice() {
+        runCatching {
+            if (FirebaseApp.getApps(context).isNotEmpty()) {
+                FirebaseMessaging.getInstance().deleteToken()
+            }
+        }.onFailure { Log.w(TAG, "Could not delete the FCM token", it) }
+        prefs.edit().remove("push_token").remove("device_id").remove("instance_url").apply()
+        clear()
+    }
+
+    /**
      * `accessToken` is the live Supabase token: the one kept from `configure`
      * expires after 15 minutes, and sending it would leave the device
      * registered forever. Falls back to the stored one when none is given.

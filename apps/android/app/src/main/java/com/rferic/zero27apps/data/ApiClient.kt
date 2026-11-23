@@ -290,6 +290,15 @@ class ApiClient(
      * device to keep. Built as a JSON object because the serializer drops null
      * fields and the endpoint requires the key.
      */
+    /**
+     * Revokes this install's push device. It goes through this client (not the
+     * registrar's raw call) so a stale access token is refreshed and the call
+     * retried: a 401 there left the server pushing a signed-out account.
+     */
+    suspend fun revokeOwnDevice(deviceId: String) {
+        expectSuccess(request(HttpMethod.Delete, "/api/v1/devices/$deviceId?sessions=local"))
+    }
+
     suspend fun revokeOtherDevices(keepDeviceId: String?): RevokeOthersResponse =
         read(
             request(
