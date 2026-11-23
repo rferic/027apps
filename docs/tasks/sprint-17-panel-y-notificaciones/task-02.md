@@ -2,12 +2,32 @@
 id: sprint-17-task-02
 titulo: Preferencias de notificación por móvil (maestro, generales y módulos)
 area: core + app + SQL
-estado: pendiente (mockup aprobado 2026-11-23)
-plan: pendiente (se escribe al arrancar)
+estado: test
+plan: docs/superpowers/plans/2026-11-23-sprint17-notification-preferences.md
 fuente: docs/tasks/sprint-17-panel-y-notificaciones/README.md
 mockup: docs/mockups/sprint-17-notifications/index.html
 adrs: [0004, 0007]
 ---
+
+**Estado (2026-11-23)**: implementada y verificada en local; pendiente la revisión, la auditoría y
+la prueba con dos móviles reales (puerta del propietario).
+
+- Migración `0040`: `devices.push_enabled` y `device_notification_mutes` con RLS del dueño.
+- Catálogo de avisos en `packages/core/src/notifications/catalog.ts` (cuatro tipos; corregido y
+  borrado comparten casilla; un evento desconocido nunca se silencia).
+- `GET`/`PUT /api/v1/devices/{id}/notification-preferences`: maestro y grupos (generales primero,
+  cada módulo activo después), solo el dueño; otro usuario recibe `not_found`.
+- El emisor filtra `push_enabled` y el tipo silenciado en las cuatro consultas de destinatarios,
+  antes de FCM.
+- App: pantalla `NotificationsScreen` con el maestro, el permiso de Android (bloqueado si se
+  deniega, con salida a los ajustes), generales y un desplegable por módulo con su logo y «1 de 2»;
+  Ajustes abre la pantalla y la fila conserva el resumen.
+- Verificación: `preferences.test.ts` 7/7 y `realtime/service.test.ts` 8/8; `core` 638; `admin`
+  1363; Android `:app:testDebugUnitTest` BUILD SUCCESSFUL (incluye `NotificationToggleTest` y
+  `AppStringsTest` con las 9 locales); `pnpm lint` 0 errores; `pnpm tsc` 7 áreas;
+  `pnpm check:openapi` 124/124; `pnpm i18n:check` OK; `pnpm --filter admin build` OK.
+- Pendiente de la puerta real: dos Android con FCM (silenciar en uno y comprobar que el otro sigue
+  recibiendo). No se ha podido probar el envío real desde aquí.
 
 **Mockup (2026-11-23)**: [`docs/mockups/sprint-17-notifications/`](../../mockups/sprint-17-notifications/README.md),
 cinco estados en claro y oscuro. **Aprobado por el propietario el 2026-11-23** (puerta P3): la UI
@@ -72,4 +92,4 @@ preferencia es de cada dispositivo.
 
 **Puerta**: mockup de la pantalla (claro y oscuro) aprobado antes de escribir la UI.
 
-**Plan**: pendiente.
+**Plan**: [2026-11-23-sprint17-notification-preferences](../../superpowers/plans/2026-11-23-sprint17-notification-preferences.md), tareas 1–5.
