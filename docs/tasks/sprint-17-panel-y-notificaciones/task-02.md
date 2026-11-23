@@ -26,6 +26,16 @@ la prueba con dos móviles reales (puerta del propietario).
   1363; Android `:app:testDebugUnitTest` BUILD SUCCESSFUL (incluye `NotificationToggleTest` y
   `AppStringsTest` con las 9 locales); `pnpm lint` 0 errores; `pnpm tsc` 7 áreas;
   `pnpm check:openapi` 124/124; `pnpm i18n:check` OK; `pnpm --filter admin build` OK.
+- Revisión (2026-11-23, dos agentes): calidad y OWASP **APTO**; el de estilo pidió dos
+  correcciones obligatorias. Corregido: el test del módulo inactivo ahora lo pone en `disabled` y
+  comprueba que no aparece (antes no podía fallar); se eliminó `notificationKindsOf` (sin uso en
+  producción); con el maestro apagado o el permiso denegado las secciones se atenúan y sus switches
+  se deshabilitan (estados 3 y 4 del mockup); el estado del push y las etiquetas viven en
+  `NotificationModel.kt`, compartido con Ajustes; el fragmento SQL del silenciado se extrajo en el
+  emisor; y la limpieza de estilo (imports, iconos, comentarios, aserciones).
+- Observación aceptada sin cambio: un administrador podría actualizar `devices.push_enabled` por
+  PostgREST directo, porque la política `devices_admin_all` de `0009` cubre la columna nueva. La
+  app solo usa `/api/v1`, donde `ownedDevice` lo impide; endurecer esa política queda como deuda.
 - Pendiente de la puerta real: dos Android con FCM (silenciar en uno y comprobar que el otro sigue
   recibiendo). No se ha podido probar el envío real desde aquí.
 
