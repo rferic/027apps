@@ -470,17 +470,12 @@ describe("owe-no importer members", () => {
       c,
       "select 1 from public.module_registry where key = 'owe-no'",
     );
-    if (installed[0]) {
-      await uninstallModule(
-        modulesDeps(c),
-        await session(c, "super_admin", "Root"),
-        "owe-no",
-        manifest,
-        true,
-      );
+    // Reuse an existing install (rolled back with the test anyway); only a clean
+    // database needs the install here.
+    if (!installed[0]) {
+      await installModule(modulesDeps(c), admin, manifest);
+      await activateModule(modulesDeps(c), admin, "owe-no");
     }
-    await installModule(modulesDeps(c), admin, manifest);
-    await activateModule(modulesDeps(c), admin, "owe-no");
     return admin;
   }
 
@@ -551,6 +546,25 @@ describe("owe-no importer members", () => {
       expect(result).toMatchObject({ created: 1, errors: 0 });
       const members = await listMembers(deps, ana.userId, group.id);
       expect(members.some((member) => member.id === bolli.id)).toBe(true);
+    });
+  });
+
+  it("rejects the same name twice", async () => {
+    await inRollback(async (c) => {
+      await setup(c);
+      const ana = await session(c, "user", "Ana");
+      const deps = oweDeps(c);
+      const group = await createGroup(deps, ana.userId, { name: "Casa", currency: "EUR" });
+      const csv = [
+        "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Bolli",
+        "2026-03-01,Cena,Comida,10.00,EUR,-5.00,5.00",
+      ].join("\n");
+
+      await expect(
+        commitImport(deps, ana.userId, group.id, csv, {
+          newMembers: [{ name: "Bolli" }, { name: "Bolli" }],
+        }),
+      ).rejects.toMatchObject({ details: { code: "duplicate_new_member" } });
     });
   });
 
@@ -744,6 +758,9 @@ describe("owe-no importer concurrency", () => {
         commitImport(first.deps, anaId, groupId, csv),
         commitImport(second.deps, anaId, groupId, csv),
       ];
+      // Attach the handlers now: if an assertion below throws before the wait,
+      // an early rejection must not become an unhandled one.
+      const settled = Promise.allSettled(commits);
 
       monitor = new Client({ connectionString: dbUrl() });
       await monitor.connect();
@@ -763,7 +780,7 @@ describe("owe-no importer concurrency", () => {
       expect(waiting).toBeGreaterThanOrEqual(2);
 
       await blocker.query("ROLLBACK");
-      const results = await Promise.allSettled(commits);
+      const results = await settled;
       expect(results.map((result) => result.status)).toEqual(["fulfilled", "fulfilled"]);
 
       await withClient(async (c) => {

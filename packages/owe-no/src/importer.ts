@@ -3,9 +3,7 @@ import { addMember, addMovement, listMembers, type OweDb, type OweDeps } from ".
 import { OweDomainError } from "./service";
 import { parseSplitwiseCsv, type ParsedMovement } from "./splitwise";
 
-/** 2 MB and 5.000 rows, as the spec caps a user file. */
-// The API door caps a request body at 1 MB; leave room for JSON escaping.
-/** The same limit the API declares (2 MB): a bigger export is split, not truncated. */
+/** The same cap the API declares: 2 MB and 5.000 rows. A bigger export is split, not truncated. */
 const MAX_BYTES = 2 * 1024 * 1024;
 const MAX_ROWS = 5_000;
 
@@ -219,14 +217,22 @@ export async function commitImport(
   }
 
   // Only names the file actually uses may become members: a client is not a
-  // place to invent people.
+  // place to invent people, and listing one twice would create two of them.
   const csvNames = new Set(
     parsed.movements.flatMap((movement) => [
       movement.payer,
       ...movement.shares.map((share) => share.name),
     ]),
   );
+  const listed = new Set<string>();
   for (const input of options.newMembers ?? []) {
+    if (listed.has(input.name)) {
+      throw new OweDomainError("validation_failed", "a name is listed twice", {
+        code: "duplicate_new_member",
+        names: [input.name],
+      });
+    }
+    listed.add(input.name);
     if (!csvNames.has(input.name)) {
       throw new OweDomainError("validation_failed", "that name is not in the file", {
         code: "unmapped_identity",

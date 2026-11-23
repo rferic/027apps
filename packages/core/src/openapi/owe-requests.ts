@@ -57,4 +57,10 @@ export const oweImportCommit = z
     confirm_duplicates: z.boolean().optional(),
     reset: z.boolean().optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (value) =>
+      new Set((value.new_members ?? []).map((member) => member.name)).size ===
+      (value.new_members ?? []).length,
+    { message: "new members must have distinct names", path: ["new_members"] },
+  );

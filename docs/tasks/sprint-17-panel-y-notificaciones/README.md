@@ -143,7 +143,7 @@ puede cambiar el orden.
 
 | Comprobación | Resultado |
 |---|---|
-| `owe-no-imports.test.ts` | 11/11; el test nuevo fallaba antes del arreglo con `expected 2, received 4` |
+| `owe-no-imports.test.ts` | 12/12; el test nuevo fallaba antes del arreglo con `expected 2, received 4` |
 | `@027apps/core` | 46 ficheros / 634 tests |
 | `admin` | 172 ficheros / 1363 tests |
 | `@027apps/owe-no` | 2 ficheros / 26 tests |

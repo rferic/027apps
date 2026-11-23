@@ -10,7 +10,7 @@ import org.junit.Test
 /**
  * Mapping a CSV name must not touch the group: the member is created by the
  * import commit, in its own transaction, so closing the screen leaves nothing
- * behind (sprint 17, task 01).
+ * behind.
  */
 class OweImportMappingTest {
     private val ana = OweMappingOptionDto(id = "member-ana", displayName = "Ana", kind = "member")

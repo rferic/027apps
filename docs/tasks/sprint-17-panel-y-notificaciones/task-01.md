@@ -22,7 +22,7 @@ transacción.
 - Un miembro invitado (cuenta real) resuelve nombres como uno ficticio, que es lo que la spec ya
   decía (D15) y el filtro `active` impedía.
 - Mensaje del límite corregido a 2 MB.
-- Verificación: `owe-no-imports.test.ts` 11/11; `@027apps/core` 46/634; `admin` 172/1363;
+- Verificación: `owe-no-imports.test.ts` 12/12; `@027apps/core` 46/634; `admin` 172/1363;
   `@027apps/owe-no` 26/26; `:app:testDebugUnitTest` BUILD SUCCESSFUL; `pnpm lint` 0 errores;
   `pnpm tsc` 7 áreas; `pnpm check:openapi` 122/122; `pnpm i18n:check` 1116 cadenas/9 locales;
   `pnpm --filter admin build` OK. `db-tests` completo no se lanza contra la instancia del
@@ -33,7 +33,11 @@ transacción.
   locales de OweNo; ahora reutiliza una instalación existente y solo limpia el grupo que creó
   (probado con el módulo instalado: sigue instalado después). También: versión y changelog de la
   app, `reset` conserva el miembro mapeado aunque su nombre no coincida con el CSV, y el estilo
-  (imports, nombres, enlaces de docs).
+  (imports, nombres, enlaces de docs). Un `new_members` con un nombre repetido se rechaza
+  (`duplicate_new_member`).
+- Deuda aceptada de la revisión: el helper de instalación se repite entre los tests del fichero, y
+  el esquema de `new_members` vive duplicado en el módulo y en OpenAPI (la duplicación ya existía
+  para el resto del commit).
 
 **Punto de partida**
 

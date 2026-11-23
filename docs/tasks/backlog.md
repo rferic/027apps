@@ -9,9 +9,9 @@ aquí.
 |---|---|---|---|---|
 | — | *sin entradas pendientes a 2026-11-23* | — | — | — |
 
-> **Vacío a 2026-11-23.** Las seis entradas anteriores pasaron al
-> [sprint 17](sprint-17-panel-y-notificaciones/README.md), que se reescribió ese día tras una
-> re-auditoría contra el código:
+> **Cerrado a 2026-11-23.** Las seis entradas anteriores se resolvieron: cinco pasaron al
+> [sprint 17](sprint-17-panel-y-notificaciones/README.md) —que se reescribió ese día tras una
+> re-auditoría contra el código— y la sexta ya estaba hecha.
 >
 > - *Ajuste para activar/desactivar push*, *Editar una liquidación*, *El importador crea miembros
 >   antes de confirmar* e *Idempotencia del commit del importador* son las tareas 02, 03, 01 y 04.

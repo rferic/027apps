@@ -20,9 +20,9 @@ import { importCommitAction } from "./owe-no-import-actions";
 
 /**
  * The wizard used to create the mapping's members before committing, so a
- * failed or cancelled import left the group with new people (sprint 17, task
- * 01). The names now travel with the commit and the domain creates them inside
- * the import's own transaction.
+ * failed or cancelled import left the group with new people. The names now
+ * travel with the commit and the domain creates them inside the import's own
+ * transaction.
  */
 describe("import commit action", () => {
   beforeEach(() => {
