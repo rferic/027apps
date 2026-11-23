@@ -2,11 +2,16 @@
 id: sprint-17-task-02
 titulo: Preferencias de notificación por móvil (maestro, generales y módulos)
 area: core + app + SQL
-estado: pendiente
+estado: pendiente (mockup P3 listo para aprobar)
 plan: pendiente (se escribe al arrancar)
 fuente: docs/tasks/sprint-17-panel-y-notificaciones/README.md
+mockup: docs/mockups/sprint-17-notifications/index.html
 adrs: [0004, 0007]
 ---
+
+**Mockup (2026-11-23)**: [`docs/mockups/sprint-17-notifications/`](../../mockups/sprint-17-notifications/README.md),
+cinco estados en claro y oscuro. Es la puerta **P3**: no se escribe UI hasta que el propietario lo
+apruebe.
 
 **Tarea**: que el propietario pueda apagar y encender las notificaciones desde la app, por tipo y
 por módulo, y que el servidor deje de enviar lo silenciado en vez de que el móvil lo ignore. La

@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>027Apps · Mockup de notificaciones</title>
+  <style>
+    /* Tokens de apps/admin/tokens.json. No hay colores libres en las pantallas. */
+    :root {
+      color-scheme: light;
+      --background: #F6F7F8;
+      --surface: #FFFFFF;
+      --surface-2: #F6F7F8;
+      --muted: #ECEEF0;
+      --muted-foreground: #5B6472;
+      --foreground: #17191C;
+      --primary: #17191C;
+      --primary-foreground: #FFFFFF;
+      --accent: #09795F;
+      --accent-foreground: #FFFFFF;
+      --brand: #0F9B7D;
+      --border: #E3E5E8;
+      --destructive: #BE123C;
+      --destructive-subtle: rgba(190, 18, 60, .08);
+      --success: #15803D;
+      --success-subtle: rgba(34, 197, 94, .12);
+      --warning: #B93815;
+      --warning-subtle: rgba(185, 56, 21, .10);
+      --stage: #E7EAEE;
+      --shadow: 0 18px 50px rgba(23, 25, 28, .14);
+      --card-radius: 16px;
+      --control-radius: 12px;
+    }
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --background: #08090A;
+      --surface: #0E0F11;
+      --surface-2: #141517;
+      --muted: #1A1B1E;
+      --muted-foreground: #8A8F98;
+      --foreground: #F7F8F8;
+      --primary: #F7F8F8;
+      --primary-foreground: #08090A;
+      --accent: #1CC29F;
+      --accent-foreground: #05231C;
+      --brand: #1CC29F;
+      --border: rgba(255, 255, 255, .09);
+      --destructive: #FB7185;
+      --destructive-subtle: rgba(251, 113, 133, .12);
+      --success: #4ADE80;
+      --success-subtle: rgba(74, 222, 128, .12);
+      --warning: #FF8A5C;
+      --warning-subtle: rgba(255, 138, 92, .12);
+      --stage: #050607;
+      --shadow: 0 18px 50px rgba(0, 0, 0, .55);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--stage);
+      color: var(--foreground);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+    }
+    button { font: inherit; cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .toolbar {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+      padding: 14px 24px;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+    }
+    .toolbar strong { display: block; font-size: 14px; }
+    .toolbar .muted { display: block; font-size: 12px; margin-top: 2px; }
+    .theme {
+      height: 34px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--surface); color: var(--foreground); font-size: 12px; font-weight: 600;
+    }
+
+    main { padding: 28px 24px 80px; display: grid; gap: 44px; max-width: 1240px; margin: 0 auto; }
+    section > h2 { font-size: 20px; margin: 0 0 4px; }
+    section > p.lead { margin: 0 0 20px; color: var(--muted-foreground); max-width: 760px; }
+    h3 { font-size: 13px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted-foreground); }
+    .gallery { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+    .muted { color: var(--muted-foreground); }
+    .small { font-size: 12px; }
+    .tiny { font-size: 11px; }
+    .row { display: flex; align-items: center; gap: 10px; }
+    .row.between { justify-content: space-between; }
+    .col { display: flex; flex-direction: column; gap: 10px; }
+    .grow { flex: 1; }
+    .stack { display: flex; flex-direction: column; gap: 14px; }
+
+    /* ---------- Móvil ---------- */
+    .phone {
+      width: 390px; background: var(--background); border: 1px solid var(--border);
+      border-radius: 34px; overflow: hidden; box-shadow: var(--shadow); flex: 0 0 auto;
+      position: relative;
+    }
+    .statusbar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 18px 4px; font-size: 11px; font-weight: 700; color: var(--muted-foreground);
+    }
+    .statusbar .icons { display: flex; gap: 5px; }
+    .appbar { display: flex; align-items: center; gap: 10px; padding: 8px 16px 10px; }
+    .appbar .back {
+      width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+      border: 0; background: transparent; color: var(--foreground); font-size: 16px;
+    }
+    .appbar h4 { margin: 0; font-size: 17px; }
+    .screen { padding: 6px 16px 18px; display: flex; flex-direction: column; gap: 14px; min-height: 660px; }
+    .caption { padding: 10px 16px 16px; font-size: 11px; color: var(--muted-foreground); border-top: 1px solid var(--border); }
+
+    /* ---------- Listas y tarjetas ---------- */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--card-radius); padding: 4px 14px;
+    }
+    .card.solo { padding: 14px; }
+    .section-title {
+      margin: 10px 4px 0; font-size: 11px; font-weight: 800; letter-spacing: .09em;
+      text-transform: uppercase; color: var(--muted-foreground);
+    }
+    .line {
+      display: flex; align-items: center; gap: 12px; padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .line:last-child { border-bottom: 0; }
+    .line .text { flex: 1; min-width: 0; }
+    .line .name { font-size: 14px; font-weight: 600; }
+    .line .note { font-size: 11px; color: var(--muted-foreground); margin-top: 2px; }
+    .line.module { align-items: flex-start; padding: 14px 0; }
+    .module-head { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+    .module-head .chev { color: var(--muted-foreground); font-size: 17px; width: 18px; text-align: center; }
+    .nested { padding-left: 46px; }
+    .nested .line { padding: 10px 0; }
+    .nested .name { font-size: 13px; font-weight: 600; }
+
+    .tile {
+      width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+      background: var(--accent); color: var(--accent-foreground); flex: 0 0 auto;
+    }
+    .tile svg { width: 20px; height: 20px; }
+
+    .switch {
+      width: 42px; height: 24px; border-radius: 999px; border: 1px solid var(--border);
+      background: var(--muted); position: relative; flex: 0 0 auto; padding: 0;
+    }
+    .switch::after {
+      content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px;
+      border-radius: 50%; background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.25);
+    }
+    .switch[data-on="true"] { background: var(--accent); border-color: var(--accent); }
+    .switch[data-on="true"]::after { transform: translateX(18px); background: var(--accent-foreground); }
+    .switch[data-locked="true"] { opacity: .55; }
+
+    .count {
+      font-size: 10px; font-weight: 800; letter-spacing: .02em; padding: 3px 7px;
+      border-radius: 999px; background: var(--muted); color: var(--muted-foreground);
+      white-space: nowrap;
+    }
+    .count.warn { background: var(--warning-subtle); color: var(--warning); }
+
+    .master .name { font-size: 15px; font-weight: 700; }
+    .master .note { font-size: 11px; color: var(--muted-foreground); margin-top: 3px; max-width: 240px; }
+
+    .off .line, .off .section-title { opacity: .45; }
+    .off .switch { opacity: .45; }
+
+    .warnbox {
+      display: flex; gap: 10px; align-items: flex-start;
+      background: var(--warning-subtle); border: 1px solid transparent;
+      border-radius: var(--card-radius); padding: 12px 14px;
+    }
+    .warnbox .warn-title { font-size: 12px; font-weight: 750; color: var(--warning); }
+    .warnbox .warn-note { font-size: 11px; color: var(--muted-foreground); margin-top: 2px; }
+    .warnbox svg { width: 18px; height: 18px; flex: 0 0 auto; color: var(--warning); margin-top: 1px; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 36px; padding: 0 14px; border-radius: var(--control-radius);
+      border: 1px solid var(--border); background: var(--surface); color: var(--foreground);
+      font-size: 12px; font-weight: 650;
+    }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-foreground); }
+    .btn.ghost { background: transparent; border-color: transparent; color: var(--accent); }
+    .btn.danger { background: var(--destructive-subtle); border-color: transparent; color: var(--destructive); }
+
+    .note-card { background: var(--surface-2); border-radius: var(--card-radius); padding: 12px 14px; }
+    .note-card .name { font-size: 12px; font-weight: 700; }
+    .note-card .note { font-size: 11px; color: var(--muted-foreground); margin-top: 3px; }
+
+    /* ---------- Notas ---------- */
+    .notes { max-width: 860px; display: grid; gap: 18px; }
+    .notes h3 { margin: 0; }
+    .notes ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted-foreground); }
+    .notes li { margin: 4px 0; }
+
+    @media (max-width: 460px) {
+      .toolbar { padding: 12px 16px; }
+      main { padding: 18px 14px 60px; }
+      .phone { width: 100%; max-width: 390px; border-radius: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="toolbar">
+    <div>
+      <strong>027Apps · Ajustes → Notificaciones</strong>
+      <span class="muted">Mockup de la tarea 02 del sprint 17 · claro y oscuro</span>
+    </div>
+    <button class="theme" id="theme" type="button">Tema: claro</button>
+  </header>
+
+  <main>
+    <section>
+      <h2>Los cinco estados de la pantalla</h2>
+      <p class="lead">
+        El maestro manda; debajo van las <strong>generales</strong> (las que no son de ningún
+        módulo) y los <strong>módulos</strong> en desplegable, con su logo, su nombre y un switch
+        que marca o desmarca todas sus casillas. Ningún color es libre: todo sale de los tokens.
+      </p>
+
+      <div class="gallery">
+        <!-- 1 · Todo encendido, módulo cerrado -->
+        <figure class="phone" style="margin:0">
+          <div class="statusbar"><span>9:41</span><span class="icons">▮▮▮ ᯤ ▰</span></div>
+          <div class="appbar">
+            <button class="back" type="button" aria-label="Volver">‹</button>
+            <h4>Notificaciones</h4>
+          </div>
+          <div class="screen">
+            <div class="card solo master">
+              <div class="row between">
+                <div class="text">
+                  <div class="name">Recibir notificaciones en este móvil</div>
+                  <div class="note">Puedes apagarlas cuando quieras; este móvil deja de recibirlas.</div>
+                </div>
+                <button class="switch" data-on="true" aria-label="Recibir notificaciones" aria-checked="true" role="switch"></button>
+              </div>
+            </div>
+
+            <div class="section-title">Generales</div>
+            <div class="card">
+              <div class="line">
+                <div class="text"><div class="name">Solicitudes de plazas</div></div>
+                <button class="switch" data-on="true" role="switch" aria-checked="true" aria-label="Solicitudes de plazas"></button>
+              </div>
+              <div class="line">
+                <div class="text"><div class="name">Respuestas a mis solicitudes</div></div>
+                <button class="switch" data-on="true" role="switch" aria-checked="true" aria-label="Respuestas a mis solicitudes"></button>
+              </div>
+            </div>
+
+            <div class="section-title">Módulos</div>
+            <div class="card">
+              <div class="line module">
+                <div class="module-head">
+                  <span class="tile" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2.5" y="6" width="19" height="12" rx="2.5" />
+                      <circle cx="12" cy="12" r="2.6" />
+                      <path d="M6 9.5v5M18 9.5v5" />
+                    </svg>
+                  </span>
+                  <div class="text">
+                    <div class="name">OweNo</div>
+                    <div class="note">Gastos compartidos</div>
+                  </div>
+                </div>
+                <button class="switch" data-on="true" role="switch" aria-checked="true" aria-label="Notificaciones de OweNo"></button>
+                <span class="chev" aria-hidden="true">▾</span>
+              </div>
+            </div>
+          </div>
+          <div class="caption">1 · Todo encendido, el módulo cerrado. El maestro no se toca.</div>
+        </figure>
+
+        <!-- 2 · Módulo abierto, a medias -->
+        <figure class="phone" style="margin:0">
+          <div class="statusbar"><span>9:41</span><span class="icons">▮▮▮ ᯤ ▰</span></div>
+          <div class="appbar">
+            <button class="back" type="button" aria-label="Volver">‹</button>
+            <h4>Notificaciones</h4>
+          </div>
+          <div class="screen">
+            <div class="card solo master">
+              <div class="row between">
+                <div class="text">
+                  <div class="name">Recibir notificaciones en este móvil</div>
+                  <div class="note">Puedes apagarlas cuando quieras; este móvil deja de recibirlas.</div>
+                </div>
+                <button class="switch" data-on="true" role="switch" aria-checked="true" aria-label="Recibir notificaciones"></button>
+              </div>
+            </div>
+
+            <div class="section-title">Generales</div>
+            <div class="card">
+              <div class="line">
+                <div class="text"><div class="name">Solicitudes de plazas</div></div>
+                <button class="switch" data-on="true" role="switch" aria-checked="true" aria-label="Solicitudes de plazas"></button>
+              </div>
+              <div class="line">
+                <div class="text"><div class="name">Respuestas a mis solicitudes</div></div>
+                <button class="switch" data-on="false" role="switch" aria-checked="false" aria-label="Respuestas a mis solicitudes"></button>
+              </div>
+            </div>
+
+            <div class="section-title">Módulos</div>
+            <div class="card">
+              <div class="line module">
+                <div class="module-head">
+                  <span class="tile" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2.5" y="6" width="19" height="12" rx="2.5" />
+                      <circle cx="12" cy="12" r="2.6" />
+                      <path d="M6 9.5v5M18 9.5v5" />
+                    </svg>
+                  </span>
+                  <div class="text">
+                    <div class="name">OweNo</div>
+                    <div class="note">Gastos compartidos</div>
+                  </div>
+                </div>
+                <span class="count warn" aria-label="Una de dos activas">1 de 2</span>
+                <button class="switch" data-on="true" role="switch" aria-checked="true" aria-label="Notificaciones de OweNo"></button>
+                <span class="chev" aria-hidden="true">▴</span>
+              </div>
+              <div class="nested">
+                <div class="line">
+                  <div class="text"><div class="name">Gasto nuevo</div></div>
+                  <button class="switch" data-on="true" role="switch" aria-checked="true" aria-label="Gasto nuevo"></button>
+                </div>
+                <div class="line">
+                  <div class="text"><div class="name">Gasto corregido o borrado</div></div>
+                  <button class="switch" data-on="false" role="switch" aria-checked="false" aria-label="Gasto corregido o borrado"></button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="caption">2 · Desplegado y a medias: «1 de 2» en la cabecera, que sigue encendida. Tocar la cabecera abre; tocar el switch apaga el módulo entero.</div>
+        </figure>
+
+        <!-- 3 · Maestro apagado -->
+        <figure class="phone" style="margin:0">
+          <div class="statusbar"><span>9:41</span><span class="icons">▮▮▮ ᯤ ▰</span></div>
+          <div class="appbar">
+            <button class="back" type="button" aria-label="Volver">‹</button>
+            <h4>Notificaciones</h4>
+          </div>
+          <div class="screen off">
+            <div class="card solo master">
+              <div class="row between">
+                <div class="text">
+                  <div class="name">Recibir notificaciones en este móvil</div>
+                  <div class="note">Apagado: este móvil no recibe ningún aviso. Tus elecciones de abajo se recuerdan.</div>
+                </div>
+                <button class="switch" data-on="false" role="switch" aria-checked="false" aria-label="Recibir notificaciones"></button>
+              </div>
+            </div>
+
+            <div class="section-title">Generales</div>
+            <div class="card">
+              <div class="line">
+                <div class="text"><div class="name">Solicitudes de plazas</div></div>
+                <button class="switch" data-on="true" role="switch" aria-checked="true" aria-label="Solicitudes de plazas" tabindex="-1"></button>
+              </div>
+              <div class="line">
+                <div class="text"><div class="name">Respuestas a mis solicitudes</div></div>
+                <button class="switch" data-on="false" role="switch" aria-checked="false" aria-label="Respuestas a mis solicitudes" tabindex="-1"></button>
+              </div>
+            </div>
+
+            <div class="section-title">Módulos</div>
+            <div class="card">
+              <div class="line module">
+                <div class="module-head">
+                  <span class="tile" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2.5" y="6" width="19" height="12" rx="2.5" />
+                      <circle cx="12" cy="12" r="2.6" />
+                      <path d="M6 9.5v5M18 9.5v5" />
+                    </svg>
+                  </span>
+                  <div class="text">
+                    <div class="name">OweNo</div>
+                    <div class="note">Gastos compartidos</div>
+                  </div>
+                </div>
+                <span class="count">1 de 2</span>
+                <button class="switch" data-on="true" role="switch" aria-checked="true" aria-label="Notificaciones de OweNo" tabindex="-1"></button>
+                <span class="chev" aria-hidden="true">▾</span>
+              </div>
+            </div>
+          </div>
+          <div class="caption">3 · Maestro apagado: todo en gris y sin efecto, pero las casillas guardadas no se pierden al volver a encenderlo.</div>
+        </figure>
+
+        <!-- 4 · Permiso de Android denegado -->
+        <figure class="phone" style="margin:0">
+          <div class="statusbar"><span>9:41</span><span class="icons">▮▮▮ ᯤ ▰</span></div>
+          <div class="appbar">
+            <button class="back" type="button" aria-label="Volver">‹</button>
+            <h4>Notificaciones</h4>
+          </div>
+          <div class="screen">
+            <div class="card solo master">
+              <div class="row between">
+                <div class="text">
+                  <div class="name">Recibir notificaciones en este móvil</div>
+                  <div class="note">Android tiene las notificaciones bloqueadas para esta app.</div>
+                </div>
+                <button class="switch" data-on="false" data-locked="true" role="switch" aria-checked="false" aria-label="Recibir notificaciones (bloqueado por Android)"></button>
+              </div>
+            </div>
+
+            <div class="warnbox">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="4.5" y="10.5" width="15" height="9.5" rx="2.5" />
+                <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
+              </svg>
+              <div class="grow">
+                <div class="warn-title">Notificaciones bloqueadas por Android</div>
+                <div class="warn-note">Esta app no puede avisarte hasta que las permitas en los ajustes del sistema. Al tocar el interruptor te lo pedimos otra vez.</div>
+                <div style="margin-top:10px"><button class="btn primary" type="button">Pedir permiso otra vez</button></div>
+              </div>
+            </div>
+
+            <div class="section-title">Generales</div>
+            <div class="card off">
+              <div class="line">
+                <div class="text"><div class="name">Solicitudes de plazas</div></div>
+                <button class="switch" data-on="true" role="switch" aria-checked="true" aria-label="Solicitudes de plazas" tabindex="-1"></button>
+              </div>
+              <div class="line">
+                <div class="text"><div class="name">Respuestas a mis solicitudes</div></div>
+                <button class="switch" data-on="true" role="switch" aria-checked="true" aria-label="Respuestas a mis solicitudes" tabindex="-1"></button>
+              </div>
+            </div>
+
+            <div class="section-title">Módulos</div>
+            <div class="card off">
+              <div class="line module">
+                <div class="module-head">
+                  <span class="tile" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2.5" y="6" width="19" height="12" rx="2.5" />
+                      <circle cx="12" cy="12" r="2.6" />
+                      <path d="M6 9.5v5M18 9.5v5" />
+                    </svg>
+                  </span>
+                  <div class="text">
+                    <div class="name">OweNo</div>
+                    <div class="note">Gastos compartidos</div>
+                  </div>
+                </div>
+                <button class="switch" data-on="true" role="switch" aria-checked="true" aria-label="Notificaciones de OweNo" tabindex="-1"></button>
+                <span class="chev" aria-hidden="true">▾</span>
+              </div>
+            </div>
+          </div>
+          <div class="caption">4 · Permiso denegado en Android: el maestro se ve apagado y bloqueado, con una salida clara. Nunca dice «Listo» si no lo está.</div>
+        </figure>
+
+        <!-- 5 · Registro de push fallando -->
+        <figure class="phone" style="margin:0">
+          <div class="statusbar"><span>9:41</span><span class="icons">▮▮▮ ᯤ ▰</span></div>
+          <div class="appbar">
+            <button class="back" type="button" aria-label="Volver">‹</button>
+            <h4>Notificaciones</h4>
+          </div>
+          <div class="screen">
+            <div class="card solo master">
+              <div class="row between">
+                <div class="text">
+                  <div class="name">Recibir notificaciones en este móvil</div>
+                  <div class="note">El interruptor está encendido, pero este móvil no se ha podido registrar.</div>
+                </div>
+                <button class="switch" data-on="true" role="switch" aria-checked="true" aria-label="Recibir notificaciones"></button>
+              </div>
+            </div>
+
+            <div class="warnbox">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v5M12 16.5v.01" />
+              </svg>
+              <div class="grow">
+                <div class="warn-title">No se pudo registrar este móvil</div>
+                <div class="warn-note">Comprueba la conexión y vuelve a intentarlo. Mientras tanto no llegarán avisos.</div>
+                <div style="margin-top:10px"><button class="btn" type="button">Reintentar</button></div>
+              </div>
+            </div>
+
+            <div class="section-title">Generales</div>
+            <div class="card">
+              <div class="line">
+                <div class="text"><div class="name">Solicitudes de plazas</div></div>
+                <button class="switch" data-on="true" role="switch" aria-checked="true" aria-label="Solicitudes de plazas"></button>
+              </div>
+              <div class="line">
+                <div class="text"><div class="name">Respuestas a mis solicitudes</div></div>
+                <button class="switch" data-on="true" role="switch" aria-checked="true" aria-label="Respuestas a mis solicitudes"></button>
+              </div>
+            </div>
+
+            <div class="section-title">Módulos</div>
+            <div class="card">
+              <div class="line module">
+                <div class="module-head">
+                  <span class="tile" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2.5" y="6" width="19" height="12" rx="2.5" />
+                      <circle cx="12" cy="12" r="2.6" />
+                      <path d="M6 9.5v5M18 9.5v5" />
+                    </svg>
+                  </span>
+                  <div class="text">
+                    <div class="name">OweNo</div>
+                    <div class="note">Gastos compartidos</div>
+                  </div>
+                </div>
+                <button class="switch" data-on="true" role="switch" aria-checked="true" aria-label="Notificaciones de OweNo"></button>
+                <span class="chev" aria-hidden="true">▾</span>
+              </div>
+            </div>
+          </div>
+          <div class="caption">5 · El registro falla: se conserva la fila de reintento que hoy vive en Ajustes, sin esconder tus casillas.</div>
+        </figure>
+      </div>
+    </section>
+
+    <section class="notes">
+      <h2>Qué fija este mockup</h2>
+      <div class="notes">
+        <div>
+          <h3>Jerarquía</h3>
+          <ul>
+            <li><strong>Maestro</strong>: «Recibir notificaciones en este móvil». Apagado, todo lo demás queda en gris y sin efecto, pero las casillas se recuerdan.</li>
+            <li><strong>Generales</strong>: las que no son de ningún módulo (hoy, las dos de invitaciones). Sin logo, porque no hay módulo al que ponerle cara.</li>
+            <li><strong>Módulos</strong>: desplegable con logo, nombre y switch propio. OweNo es el único que envía avisos hoy.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Reglas de interacción</h3>
+          <ul>
+            <li>Tocar la fila del módulo abre o cierra; tocar su switch marca o desmarca todas sus casillas sin desplegarlo.</li>
+            <li>Un módulo a medias dice «1 de 2»; el switch sigue encendido porque algo lo está.</li>
+            <li>Con el permiso de Android denegado, el maestro se ve apagado y bloqueado, y tocarlo vuelve a pedir el permiso.</li>
+            <li>Si el registro falla, la pantalla no finge: aviso y «Reintentar».</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Fuera de alcance</h3>
+          <ul>
+            <li>Preferencias por cuenta o por grupo de OweNo.</li>
+            <li>Avisos de módulos que hoy no envían nada.</li>
+            <li>Centro de notificaciones o historial.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Puerta P3</h3>
+          <ul>
+            <li>Esta pantalla se aprueba <strong>antes</strong> de escribir su UI. Si cambia un flujo, se actualiza el README del sprint.</li>
+            <li>Los datos son de ejemplo; el logo de OweNo es el real (`packages/owe-no/assets/icon.svg`).</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const root = document.documentElement;
+    const params = new URLSearchParams(location.search);
+    if (params.get("theme") === "dark") root.dataset.theme = "dark";
+    const button = document.getElementById("theme");
+    const paint = () => {
+      button.textContent = root.dataset.theme === "dark" ? "Tema: oscuro" : "Tema: claro";
+    };
+    button.addEventListener("click", () => {
+      root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+      paint();
+    });
+    paint();
+  </script>
+</body>
+</html>
