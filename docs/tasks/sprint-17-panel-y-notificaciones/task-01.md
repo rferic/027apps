@@ -35,6 +35,9 @@ transacción.
   app, `reset` conserva el miembro mapeado aunque su nombre no coincida con el CSV, y el estilo
   (imports, nombres, enlaces de docs). Un `new_members` con un nombre repetido se rechaza
   (`duplicate_new_member`).
+- Segunda ronda: el auditor de calidad y seguridad dio **APTO** (calidad y OWASP A01–A11, sin
+  hallazgos nuevos); el de estilo pidió dos correcciones de texto y consistencia, ya aplicadas, y
+  sus sugerencias quedaron cerradas salvo la deuda anotada abajo.
 - Deuda aceptada de la revisión: el helper de instalación se repite entre los tests del fichero, y
   el esquema de `new_members` vive duplicado en el módulo y en OpenAPI (la duplicación ya existía
   para el resto del commit).
