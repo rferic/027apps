@@ -729,7 +729,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (!revoked) {
             // Revoke the device while the session is still valid: otherwise the
             // server keeps pushing a signed-out account's groups to this phone.
-            FcmRegistrar(getApplication()).revoke(freshAccessToken(supabase))
+            // The API client refreshes a stale token and retries the 401.
+            val registrar = FcmRegistrar(getApplication())
+            registrar.deviceId()?.let { id -> runCatching { client?.revokeOwnDevice(id) } }
+            registrar.forgetLocalDevice()
             runCatching { supabase?.auth?.signOut(SignOutScope.LOCAL) }
         }
         // Either way this device forgets the session, in memory and on disk.
@@ -741,20 +744,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         prefs.remove(LOCATION_KEY)
         _login.value = LoginState()
         awaitLogin(if (revoked) LoginNotice.SESSION_REVOKED else null)
-    }
-
-    /**
-     * The newest access token, refreshing first. The stored one expires after
-     * 15 minutes, and sending a stale token made the sign-out device revoke
-     * answer 401: the server kept the device and pushed to an account that had
-     * already signed out. A failed refresh falls back to the stored token.
-     */
-    private suspend fun freshAccessToken(auth: SupabaseClient?): String? {
-        val client = auth ?: return null
-        // `refreshCurrentSession` refreshes in place; the new token is then read
-        // from the session. A failed refresh leaves the stored one to try.
-        runCatching { client.auth.refreshCurrentSession() }
-        return client.auth.currentSessionOrNull()?.accessToken
     }
 
     /**
@@ -915,7 +904,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun changeInstance(raw: String): Boolean {
         val normalized = ServerUrl.normalize(raw, requireHttps = !BuildConfig.DEBUG) ?: return false
         viewModelScope.launch {
-            FcmRegistrar(getApplication()).revoke(freshAccessToken(supabase))
+            val registrar = FcmRegistrar(getApplication())
+            registrar.deviceId()?.let { id -> runCatching { client?.revokeOwnDevice(id) } }
+            registrar.forgetLocalDevice()
             runCatching { supabase?.auth?.signOut(SignOutScope.LOCAL) }
             sessionStore.clear()
             clearWidget()
