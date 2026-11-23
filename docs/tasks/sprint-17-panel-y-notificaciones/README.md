@@ -133,8 +133,8 @@ puede cambiar el orden.
 ## Puertas de usuario
 
 - **Firma de este README** para arrancar: **firmado por el propietario el 2026-11-23**.
-- **P3**: mockup de una sola pantalla (claro y oscuro) de Ajustes → Notificaciones antes de escribir
-  su UI.
+- **P3**: mockup de una sola pantalla (claro y oscuro) de Ajustes → Notificaciones: **aprobado por
+  el propietario el 2026-11-23** ([`docs/mockups/sprint-17-notifications/`](../../mockups/sprint-17-notifications/README.md)).
 - **Push real**: dos Android con FCM para la verificación de la tarea 02 (la antigua entrada 6 del backlog,
   que se cierra aquí).
 - Orden explícita de merge a `staging` y, después, de `staging` a `main`.

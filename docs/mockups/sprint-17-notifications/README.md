@@ -3,6 +3,8 @@
 Pantalla de preferencias de notificación, **antes de escribir la UI**. Es la puerta **P3** del
 sprint: sin esta pantalla aprobada no empieza la tarea 02.
 
+**Aprobado por el propietario el 2026-11-23.** La UI puede empezar.
+
 - `index.html` — autocontenido (sin CDN), tokens de `apps/admin/tokens.json`, tema claro y oscuro
   con un botón. Cinco estados en marcos de móvil de 390 px.
 - Logo real de OweNo: `packages/owe-no/assets/icon.svg`, incrustado.
