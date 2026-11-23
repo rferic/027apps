@@ -228,6 +228,7 @@ class Strings(private val values: Map<String, String>) {
     val date: String get() = values.getValue("date")
     val menu: String get() = values.getValue("menu")
     val registerPayment: String get() = values.getValue("registerPayment")
+    val editPayment: String get() = values.getValue("editPayment")
     val whoReceives: String get() = values.getValue("whoReceives")
     val category: String get() = values.getValue("category")
     val noCategory: String get() = values.getValue("noCategory")
@@ -680,6 +681,7 @@ object AppStrings {
         "date" to "Date",
         "menu" to "Menu",
         "registerPayment" to "Record payment",
+        "editPayment" to "Edit payment",
         "whoReceives" to "Who receives",
         "category" to "Category",
         "noCategory" to "No category",
@@ -1051,6 +1053,7 @@ object AppStrings {
         "date" to "Fecha",
         "menu" to "Menú",
         "registerPayment" to "Registrar pago",
+        "editPayment" to "Editar pago",
         "whoReceives" to "Quién recibe",
         "category" to "Categoría",
         "noCategory" to "Sin categoría",
@@ -1422,6 +1425,7 @@ object AppStrings {
         "date" to "Data",
         "menu" to "Menú",
         "registerPayment" to "Registra el pagament",
+        "editPayment" to "Edita el pagament",
         "whoReceives" to "Qui rep",
         "category" to "Categoria",
         "noCategory" to "Sense categoria",
@@ -1793,6 +1797,7 @@ object AppStrings {
         "date" to "Data",
         "menu" to "Menu",
         "registerPayment" to "Registra pagamento",
+        "editPayment" to "Modifica pagamento",
         "whoReceives" to "Chi riceve",
         "category" to "Categoria",
         "noCategory" to "Nessuna categoria",
@@ -2164,6 +2169,7 @@ object AppStrings {
         "date" to "Date",
         "menu" to "Menu",
         "registerPayment" to "Enregistrer un paiement",
+        "editPayment" to "Modifier le paiement",
         "whoReceives" to "Qui reçoit",
         "category" to "Catégorie",
         "noCategory" to "Sans catégorie",
@@ -2535,6 +2541,7 @@ object AppStrings {
         "date" to "Datum",
         "menu" to "Menü",
         "registerPayment" to "Zahlung erfassen",
+        "editPayment" to "Zahlung bearbeiten",
         "whoReceives" to "Wer erhält",
         "category" to "Kategorie",
         "noCategory" to "Keine Kategorie",
@@ -2906,6 +2913,7 @@ object AppStrings {
         "date" to "Data",
         "menu" to "Menu",
         "registerPayment" to "Registar pagamento",
+        "editPayment" to "Editar pagamento",
         "whoReceives" to "Quem recebe",
         "category" to "Categoria",
         "noCategory" to "Sem categoria",
@@ -3277,6 +3285,7 @@ object AppStrings {
         "date" to "Data",
         "menu" to "Menú",
         "registerPayment" to "Rexistrar pagamento",
+        "editPayment" to "Editar o pagamento",
         "whoReceives" to "Quen recibe",
         "category" to "Categoría",
         "noCategory" to "Sen categoría",
@@ -3648,6 +3657,7 @@ object AppStrings {
         "date" to "Data",
         "menu" to "Menua",
         "registerPayment" to "Erregistratu ordainketa",
+        "editPayment" to "Editatu ordainketa",
         "whoReceives" to "Nork jasotzen du",
         "category" to "Kategoria",
         "noCategory" to "Kategoriarik gabe",
