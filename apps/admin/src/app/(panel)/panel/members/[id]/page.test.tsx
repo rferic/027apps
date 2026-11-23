@@ -296,7 +296,7 @@ describe("MemberPage", () => {
     const html = renderToStaticMarkup(await render());
 
     expect(html).toContain("People they have brought");
-    expect(html).toContain("Their inviter was removed, so their invitees no longer count against anyone.");
+    expect(html).toContain("This member has no inviter, so they do not take a seat from anyone.");
     expect(html).toContain("No one yet.");
   });
 
@@ -310,7 +310,7 @@ describe("MemberPage", () => {
     const html = renderToStaticMarkup(await render());
 
     expect(html).toContain("People they have brought");
-    expect(html).not.toContain("Their inviter was removed, so their invitees no longer count against anyone.");
+    expect(html).not.toContain("This member has no inviter, so they do not take a seat from anyone.");
     expect(html).toContain("No one yet.");
   });
 });
