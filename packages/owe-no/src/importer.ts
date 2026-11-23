@@ -187,23 +187,27 @@ export async function importsForGroup(
   return all.filter((batch) => batch.group_id === groupId);
 }
 
+export type ImportCommitOptions = {
+  mapping?: Record<string, string>;
+  /**
+   * CSV names with no member yet (a fictitious person or a real account):
+   * created inside this same transaction, so a failed or cancelled import
+   * never leaves half a group behind.
+   */
+  newMembers?: Array<{ name: string; displayName?: string; userId?: string }>;
+  confirmDuplicates?: boolean;
+  /** Wipe the group's movements, imports and categories before importing. */
+  reset?: boolean;
+  /** A retry with the same key and body returns the stored result, no re-run. */
+  idempotencyKey?: string;
+};
+
 export async function commitImport(
   deps: OweDeps,
   userId: string,
   groupId: string,
   csv: string,
-  options: {
-    mapping?: Record<string, string>;
-    /**
-     * CSV names with no member yet (a fictitious person or a real account):
-     * created inside this same transaction, so a failed or cancelled import
-     * never leaves half a group behind.
-     */
-    newMembers?: Array<{ name: string; displayName?: string; userId?: string }>;
-    confirmDuplicates?: boolean;
-    /** Wipe the group's movements, imports and categories before importing. */
-    reset?: boolean;
-  } = {},
+  options: ImportCommitOptions = {},
 ): Promise<ImportCommitResult> {
   const { currency } = await groupContext(deps, userId, groupId);
   const parsed = parseSplitwiseCsv(csv);
@@ -245,12 +249,29 @@ export async function commitImport(
   // only the new ones come in. `confirmDuplicates` is kept for compatibility.
   void options.confirmDuplicates;
 
+  const requestHash = options.idempotencyKey ? importRequestHash(csv, options) : null;
   const run = deps.withTransaction ?? (<T>(fn: (db: OweDb) => Promise<T>) => fn(deps.db));
   return run(async (db) => {
     // Two imports of the same group must not race the hash check: one commits,
     // the other waits and then sees the rows. The hashes are read after taking
     // the lock, or both would see an empty set and import every row twice.
     await db.query("select pg_advisory_xact_lock(hashtext($1))", [groupId]);
+    if (options.idempotencyKey && requestHash) {
+      const { rows: seen } = await db.query(
+        "select request_hash, result from module_owe_no.owe_no_idempotency where group_id = $1 and key = $2",
+        [groupId, options.idempotencyKey],
+      );
+      if (seen[0]) {
+        if (String(seen[0].request_hash) !== requestHash) {
+          throw new OweDomainError("conflict", "that idempotency key was used with another body", {
+            code: "idempotency_key_reused",
+          });
+        }
+        // A retry after a lost reply gets the original answer; a `reset` is not
+        // repeated either.
+        return seen[0].result as ImportCommitResult;
+      }
+    }
     if (options.reset === true) {
       // "Start from scratch": the group keeps its members and settings, and loses
       // what the import can rebuild. Balances follow the movements, so they go too.
@@ -409,8 +430,37 @@ export async function commitImport(
       );
     }
 
-    return { created, skipped_duplicates: duplicates, errors: 0, categories: categories.size };
+    const view: ImportCommitResult = {
+      created,
+      skipped_duplicates: duplicates,
+      errors: 0,
+      categories: categories.size,
+    };
+    if (options.idempotencyKey && requestHash) {
+      await db.query(
+        `insert into module_owe_no.owe_no_idempotency (group_id, key, request_hash, result)
+         values ($1, $2, $3, $4::jsonb)
+         on conflict (group_id, key) do nothing`,
+        [groupId, options.idempotencyKey, requestHash, JSON.stringify(view)],
+      );
+    }
+    return view;
   });
+}
+
+/** Stable fingerprint of an import request: same file and mapping, same hash. */
+function importRequestHash(csv: string, options: ImportCommitOptions): string {
+  const mapping = Object.entries(options.mapping ?? {}).sort(([a], [b]) => a.localeCompare(b));
+  const newMembers = [...(options.newMembers ?? [])]
+    .map((member) => [member.name, member.displayName ?? "", member.userId ?? ""])
+    .sort(([a], [b]) => a.localeCompare(b));
+  const material = JSON.stringify({
+    csv,
+    mapping,
+    newMembers,
+    reset: options.reset === true,
+  });
+  return createHash("sha256").update(material).digest("hex");
 }
 
 export interface ImportBatchView {

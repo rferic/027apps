@@ -14691,7 +14691,7 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Commit a Splitwise CSV in one transaction (creator; duplicates need confirmation).",
+        "summary": "Commit a Splitwise CSV in one transaction (creator); duplicates need confirmation; an optional Idempotency-Key replays the stored result.",
         "x-027-scopes": [
           "expenses:read_write"
         ]

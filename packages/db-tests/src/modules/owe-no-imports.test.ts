@@ -80,6 +80,27 @@ async function session(
   return { kind: "session", userId: id, role };
 }
 
+/** Installs OweNo inside the test's rollback, whether it was already there. */
+async function installOweNo(c: ClientBase): Promise<void> {
+  const admin = await session(c, "admin", "Admin");
+  const manifest = JSON.parse(await readFile(resolve(ROOT, "manifest.json"), "utf8"));
+  const { rows: installed } = await query(
+    c,
+    "select 1 from public.module_registry where key = 'owe-no'",
+  );
+  if (installed[0]) {
+    await uninstallModule(
+      modulesDeps(c),
+      await session(c, "super_admin", "Root"),
+      "owe-no",
+      manifest,
+      true,
+    );
+  }
+  await installModule(modulesDeps(c), admin, manifest);
+  await activateModule(modulesDeps(c), admin, "owe-no");
+}
+
 const CSV = [
   "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Luis",
   "2026-01-05,Compra,Alimentos,10.00,EUR,-5.00,5.00",
@@ -602,6 +623,77 @@ describe("owe-no importer members", () => {
 
       const members = await listMembers(deps, ana.userId, group.id);
       expect(members.some((member) => member.display_name === "Bolli")).toBe(false);
+    });
+  });
+});
+
+
+describe("owe-no importer idempotency", () => {
+  const CSV = [
+    "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Luis",
+    "2026-04-01,Cena,Comida,10.00,EUR,-5.00,5.00",
+  ].join("\n");
+
+  async function group(c: ClientBase) {
+    await installOweNo(c);
+    const ana = await session(c, "user", "Ana");
+    const deps = oweDeps(c);
+    const created = await createGroup(deps, ana.userId, { name: "Casa", currency: "EUR" });
+    await addMember(deps, ana.userId, created.id, { displayName: "Luis" });
+    return { ana, deps, groupId: created.id };
+  }
+
+  it("replays the same key and body without a second batch", async () => {
+    await inRollback(async (c) => {
+      const { ana, deps, groupId } = await group(c);
+
+      const first = await commitImport(deps, ana.userId, groupId, CSV, {
+        idempotencyKey: "import-retry-1",
+      });
+      const again = await commitImport(deps, ana.userId, groupId, CSV, {
+        idempotencyKey: "import-retry-1",
+      });
+
+      expect(again).toEqual(first);
+      await expect(
+        count(c, "select count(*) from module_owe_no.owe_no_imports where group_id = $1", [groupId]),
+      ).resolves.toBe(1);
+      await expect(
+        count(c, "select count(*) from module_owe_no.owe_no_movements where group_id = $1", [groupId]),
+      ).resolves.toBe(1);
+    });
+  });
+
+  it("rejects the same key with another body", async () => {
+    await inRollback(async (c) => {
+      const { ana, deps, groupId } = await group(c);
+      await commitImport(deps, ana.userId, groupId, CSV, { idempotencyKey: "import-conflict" });
+
+      await expect(
+        commitImport(deps, ana.userId, groupId, CSV.replace("Cena", "Comida"), {
+          idempotencyKey: "import-conflict",
+        }),
+      ).rejects.toMatchObject({ details: { code: "idempotency_key_reused" } });
+    });
+  });
+
+  it("does not repeat a reset when the key is replayed", async () => {
+    await inRollback(async (c) => {
+      const { ana, deps, groupId } = await group(c);
+
+      await commitImport(deps, ana.userId, groupId, CSV, {
+        reset: true,
+        idempotencyKey: "import-reset",
+      });
+      const replay = await commitImport(deps, ana.userId, groupId, CSV, {
+        reset: true,
+        idempotencyKey: "import-reset",
+      });
+
+      expect(replay.created).toBe(1);
+      await expect(
+        count(c, "select count(*) from module_owe_no.owe_no_movements where group_id = $1", [groupId]),
+      ).resolves.toBe(1);
     });
   });
 });

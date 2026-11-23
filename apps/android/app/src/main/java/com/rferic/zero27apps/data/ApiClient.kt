@@ -257,6 +257,7 @@ class ApiClient(
         mapping: Map<String, String>?,
         newMembers: List<OweImportNewMember>?,
         confirmDuplicates: Boolean,
+        idempotencyKey: String? = null,
     ): OweImportResultDto =
         read(
             request(
@@ -268,6 +269,7 @@ class ApiClient(
                     newMembers,
                     if (confirmDuplicates) true else null,
                 ),
+                headers = idempotencyKey?.let { mapOf("Idempotency-Key" to it) } ?: emptyMap(),
             ),
         )
 
@@ -406,12 +408,15 @@ class ApiClient(
         path: String,
         body: Any? = null,
         authenticated: Boolean = true,
+        headers: Map<String, String> = emptyMap(),
     ): HttpResponse {
-        val first = send(method, path, body, authenticated)
+        val first = send(method, path, body, authenticated, headers)
         if (first.status != HttpStatusCode.Unauthorized || !authenticated) return first
         return when (refresh()) {
             RefreshResult.Refreshed -> {
-                val second = send(method, path, body, authenticated)
+                // A refresh and retry keep the same headers, including the
+                // Idempotency-Key: the server must see the same request.
+                val second = send(method, path, body, authenticated, headers)
                 if (second.status == HttpStatusCode.Unauthorized) sessionRevoked()
                 second
             }
@@ -439,12 +444,19 @@ class ApiClient(
         throw ApiException("unauthorized", 401, "Session revoked")
     }
 
-    private suspend fun send(method: HttpMethod, path: String, body: Any?, authenticated: Boolean): HttpResponse =
+    private suspend fun send(
+        method: HttpMethod,
+        path: String,
+        body: Any?,
+        authenticated: Boolean,
+        headers: Map<String, String> = emptyMap(),
+    ): HttpResponse =
         try {
             http.request("${baseUrl.trimEnd('/')}$path") {
                 this.method = method
                 if (authenticated) token()?.let { header(HttpHeaders.Authorization, "Bearer $it") }
                 bypassToken()?.let { header("x-vercel-protection-bypass", it) }
+                headers.forEach { (name, value) -> header(name, value) }
                 if (body != null) {
                     contentType(ContentType.Application.Json)
                     setBody(body)

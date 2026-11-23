@@ -49,7 +49,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           confirm_duplicates?: boolean;
           reset?: boolean;
         };
+        // A retry after a lost reply carries the same key: the domain answers it
+        // with the stored result instead of running the file again.
+        const idempotencyKey = req.headers.get("idempotency-key")?.slice(0, 200) || undefined;
         const result = await commitImport(owe, callerId(ctx.caller), id, body.csv, {
+          ...(idempotencyKey ? { idempotencyKey } : {}),
           ...(body.mapping ? { mapping: body.mapping } : {}),
           ...(body.new_members
             ? {

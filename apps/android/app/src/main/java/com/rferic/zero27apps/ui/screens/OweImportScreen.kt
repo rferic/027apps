@@ -95,6 +95,8 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
     var result by remember { mutableStateOf<OweImportResultDto?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
+    // One key per body: a retry reuses it; a new file or mapping starts another.
+    var commitKey by remember { mutableStateOf<String?>(null) }
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -112,6 +114,7 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
                 return@launch
             }
             csv = text
+            commitKey = null
             runCatching { api.oweImportPreview(groupId, text) }
                 .onSuccess { value ->
                     preview = value
@@ -129,6 +132,7 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
         val (nextMapping, nextPending) = chooseImportMapping(name, option, mapping, pending)
         mapping = nextMapping
         pending = nextPending
+        commitKey = null
         mappingName = null
     }
 
@@ -235,6 +239,8 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
             onClick = {
                 val text = csv ?: return@Button
                 busy = true
+                val key = commitKey ?: java.util.UUID.randomUUID().toString()
+                commitKey = key
                 scope.launch {
                     runCatching {
                         api.oweImportCommit(
@@ -243,8 +249,12 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
                             mapping.ifEmpty { null },
                             pending.values.toList().ifEmpty { null },
                             duplicates,
+                            key,
                         )
-                    }.onSuccess { result = it }.onFailure { error = oweErrorText(it, strings) }
+                    }.onSuccess {
+                        commitKey = null
+                        result = it
+                    }.onFailure { error = oweErrorText(it, strings) }
                     busy = false
                 }
             },

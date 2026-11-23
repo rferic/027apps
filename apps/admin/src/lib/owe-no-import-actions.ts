@@ -90,7 +90,7 @@ export async function importCommitAction(
   groupId: string,
   csv: string,
   choices: Record<string, ImportChoice>,
-  options: { confirmDuplicates?: boolean; reset?: boolean } = {},
+  options: { confirmDuplicates?: boolean; reset?: boolean; idempotencyKey?: string } = {},
 ) {
   try {
     const userId = await callerId();
@@ -102,6 +102,7 @@ export async function importCommitAction(
       ...importPayload(choices),
       confirmDuplicates: options.confirmDuplicates === true,
       ...(options.reset === true ? { reset: true } : {}),
+      ...(options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : {}),
     });
     return { ok: true as const, result };
   } catch (error) {

@@ -402,7 +402,7 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
   {
     method: "post",
     path: "/owe-no/groups/{id}/imports",
-    summary: "Commit a Splitwise CSV in one transaction (creator; duplicates need confirmation).",
+    summary: "Commit a Splitwise CSV in one transaction (creator); duplicates need confirmation; an optional Idempotency-Key replays the stored result.",
     scopes: ["expenses:read_write"],
     request: oweImportCommit,
     response: oweImportResultSchema,
