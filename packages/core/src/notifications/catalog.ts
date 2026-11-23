@@ -2,8 +2,8 @@
  * The notification kinds a device can silence (sprint 17, task 02).
  *
  * An event name is not a user-facing kind: `owe_no.movement_updated` and
- * `owe_no.movement_deleted` share the "corregido o borrado" switch. The Core
- * owns the catalog so the sender, the API and the app agree on the same keys.
+ * `owe_no.movement_deleted` share the "edited or deleted" switch. The Core owns
+ * the catalog so the sender, the API and the app agree on the same keys.
  */
 export type NotificationKind =
   | "invitation.requested"
@@ -43,9 +43,4 @@ export function notificationKind(eventType: string): NotificationKind | null {
 
 export function isNotificationKind(value: string): value is NotificationKind {
   return NOTIFICATION_TYPES.some((type) => type.key === value);
-}
-
-/** The kinds that belong to a module, in catalog order. */
-export function notificationKindsOf(module: string): NotificationKind[] {
-  return NOTIFICATION_TYPES.filter((type) => type.module === module).map((type) => type.key);
 }

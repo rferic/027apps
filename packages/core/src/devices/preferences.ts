@@ -60,6 +60,17 @@ async function mutedKinds(db: QueryClient, deviceId: string): Promise<Set<string
   return new Set(rows.map((row) => String(row.kind)));
 }
 
+/** The module keys in the catalog, once each. */
+function moduleKeys(): string[] {
+  return [
+    ...new Set(
+      NOTIFICATION_TYPES.map((type) => type.module).filter(
+        (module): module is string => module !== null,
+      ),
+    ),
+  ];
+}
+
 async function activeModuleNames(
   db: QueryClient,
   keys: string[],
@@ -87,12 +98,11 @@ function buildView(
     list.push({ key: type.key, enabled: !muted.has(type.key) });
     byModule.set(type.module, list);
   }
-  const modules = [...byModule.entries()]
-    .filter(([module]) => module !== null)
-    .map(([module, types]) => ({
-      module: { key: module as string, name: names.get(module as string) ?? (module as string) },
-      types,
-    }));
+  const modules = [...byModule.entries()].flatMap(([module, types]) =>
+    module === null
+      ? []
+      : [{ module: { key: module, name: names.get(module) ?? module }, types }],
+  );
   return {
     device: { id: deviceId, push_enabled: pushEnabled },
     // The Core's own notifications always come first as the general group.
@@ -107,8 +117,7 @@ export async function readNotificationPreferences(
 ): Promise<NotificationPreferencesView> {
   const device = await ownedDevice(deps, caller, deviceId);
   const muted = await mutedKinds(deps.db, deviceId);
-  const modules = [...new Set(NOTIFICATION_TYPES.map((type) => type.module).filter(Boolean))] as string[];
-  const names = await activeModuleNames(deps.db, modules);
+  const names = await activeModuleNames(deps.db, moduleKeys());
   return buildView(deviceId, device.push_enabled, muted, names);
 }
 
@@ -118,6 +127,8 @@ export async function writeNotificationPreferences(
   deviceId: string,
   input: NotificationPreferencesInput,
 ): Promise<NotificationPreferencesView> {
+  // The API validates the same list; the service re-checks because it is the
+  // one the sender and any future caller rely on.
   const unique = new Set(input.muted);
   if (unique.size !== input.muted.length || input.muted.some((kind) => !isNotificationKind(kind))) {
     throw new DomainError("validation_failed", "unknown or repeated notification kind");
@@ -143,7 +154,6 @@ export async function writeNotificationPreferences(
     }
   });
 
-  const modules = [...new Set(NOTIFICATION_TYPES.map((type) => type.module).filter(Boolean))] as string[];
-  const names = await activeModuleNames(deps.db, modules);
+  const names = await activeModuleNames(deps.db, moduleKeys());
   return buildView(deviceId, input.push_enabled, new Set(input.muted), names);
 }

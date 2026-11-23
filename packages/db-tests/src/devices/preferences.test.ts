@@ -25,9 +25,9 @@ function deps(c: ClientBase): DevicesDeps {
   return { db: { query: (sql: string, params: unknown[] = []) => query(c, sql, params) } };
 }
 
-async function session(c: ClientBase, role: "user" | "admin" = "user"): Promise<Caller> {
-  const { id } = await createTestUser(c, { email: email(role), role, displayName: "Ana" });
-  return { kind: "session", userId: id, role };
+async function session(c: ClientBase): Promise<Caller> {
+  const { id } = await createTestUser(c, { email: email("user"), role: "user", displayName: "Ana" });
+  return { kind: "session", userId: id, role: "user" };
 }
 
 function idOf(caller: Caller): string {
@@ -63,16 +63,19 @@ describe("notification preferences", () => {
 
   it("omits a module that is not active", async () => {
     await inRollback(async (c) => {
+      // Works on a clean CI database and on the owner's instance alike.
+      const { rows: updated } = await query(
+        c,
+        "update public.module_registry set state = 'disabled' where key = 'owe-no' returning key",
+      );
+      if (updated.length === 0) await createTestModule(c, "owe-no", "disabled");
       const who = await session(c);
       const device = await android(c, who, "pref-token-2");
-      const { rows } = await query(
-        c,
-        "select 1 from public.module_registry where key = 'owe-no' and state = 'active'",
-      );
+
       const prefs = await readNotificationPreferences(deps(c), who, device.id);
-      const modules = prefs.groups.filter((group) => group.module !== null);
-      // The local owner's instance usually has OweNo active; a clean CI database does not.
-      expect(modules.length).toBe(rows[0] ? 1 : 0);
+
+      expect(prefs.groups.filter((group) => group.module !== null)).toHaveLength(0);
+      expect(prefs.groups[0]!.module).toBeNull();
     });
   });
 
@@ -159,29 +162,24 @@ describe("notification preferences", () => {
   });
 
   it("keeps a device's mutes private under RLS", async () => {
-    await withClient(async (c) => {
-      await c.query("BEGIN");
-      try {
-        const owner = await session(c);
-        const stranger = await session(c);
-        const device = await android(c, owner, "pref-token-7");
-        await c.query(
-          "insert into public.device_notification_mutes (device_id, kind) values ($1, $2)",
-          [device.id, "invitation.requested"],
-        );
+    await inRollback(async (c) => {
+      const owner = await session(c);
+      const stranger = await session(c);
+      const device = await android(c, owner, "pref-token-7");
+      await c.query(
+        "insert into public.device_notification_mutes (device_id, kind) values ($1, $2)",
+        [device.id, "invitation.requested"],
+      );
 
-        await impersonate(c, idOf(stranger));
-        const { rows } = await query(c, "select kind from public.device_notification_mutes");
-        expect(rows).toHaveLength(0);
-        await expect(
-          c.query(
-            "insert into public.device_notification_mutes (device_id, kind) values ($1, $2)",
-            [device.id, "invitation.request_resolved"],
-          ),
-        ).rejects.toThrow();
-      } finally {
-        await c.query("ROLLBACK");
-      }
+      await impersonate(c, idOf(stranger));
+      const { rows } = await query(c, "select kind from public.device_notification_mutes");
+      expect(rows).toHaveLength(0);
+      await expect(
+        c.query(
+          "insert into public.device_notification_mutes (device_id, kind) values ($1, $2)",
+          [device.id, "invitation.request_resolved"],
+        ),
+      ).rejects.toThrow();
     });
   });
 });

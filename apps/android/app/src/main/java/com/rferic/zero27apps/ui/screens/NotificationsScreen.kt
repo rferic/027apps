@@ -3,7 +3,6 @@ package com.rferic.zero27apps.ui.screens
 import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -17,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,14 +41,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -61,6 +62,7 @@ import com.rferic.zero27apps.data.NotificationPreferencesDto
 import com.rferic.zero27apps.data.NotificationTypeDto
 import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.i18n.Strings
+import com.rferic.zero27apps.ui.theme.Palette
 import com.rferic.zero27apps.ui.theme.LocalPalette
 import kotlinx.coroutines.launch
 
@@ -154,7 +156,8 @@ fun NotificationsScreen(
 
     fun toggleModule(group: NotificationGroupDto) {
         val current = prefs ?: return
-        // Any switch on means "turn the module off": the mockup's caption.
+        // A module reads as on while any of its kinds is on, so toggling flips
+        // the whole group: off if anything was on, on if nothing was.
         val target = group.types.none { it.enabled }
         val keys = group.types.map { it.key }.toSet()
         save(current.copy(groups = applyNotificationToggle(current.groups, keys, target)))
@@ -192,7 +195,7 @@ fun NotificationsScreen(
         if (deviceId == null) {
             warningCard(
                 title = strings.notificationsNoDevice,
-                note = registrationNote(pushStatus, strings),
+                note = pushStatusNote(pushStatus, strings, strings.pushReady),
                 palette = palette,
                 action = strings.recheck,
                 onAction = onRetryPush,
@@ -238,7 +241,7 @@ fun NotificationsScreen(
                 if (pushStatus != "ok") {
                     warningCard(
                         title = strings.notificationsRegisterFailed,
-                        note = registrationNote(pushStatus, strings),
+                        note = pushStatusNote(pushStatus, strings, strings.pushReady),
                         palette = palette,
                         action = strings.recheck,
                         onAction = onRetryPush,
@@ -249,6 +252,10 @@ fun NotificationsScreen(
                     Text(it, color = palette.destructive, fontSize = 12.sp)
                 }
 
+                // With the master off (or Android blocking it) the choices are
+                // remembered but nothing can be changed: the mockup dims them.
+                val sectionEnabled = !saving && allowed && current.device.pushEnabled
+                val sectionAlpha = if (sectionEnabled) 1f else 0.45f
                 val general = current.groups.filter { it.module == null }
                 if (general.isNotEmpty()) {
                     Text(
@@ -256,16 +263,20 @@ fun NotificationsScreen(
                         fontSize = 11.sp,
                         letterSpacing = 1.sp,
                         color = palette.mutedForeground,
+                        modifier = Modifier.alpha(sectionAlpha),
                     )
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .alpha(sectionAlpha)
                             .background(palette.surface, RoundedCornerShape(16.dp))
                             .border(1.dp, palette.border, RoundedCornerShape(16.dp))
                             .padding(horizontal = 14.dp),
                     ) {
                         general.flatMap { it.types }.forEach { type ->
-                            typeRow(type, saving, palette, strings) { value, enabled -> toggleType(value, enabled) }
+                            typeRow(type, sectionEnabled, palette, strings) { value, enabled ->
+                                toggleType(value, enabled)
+                            }
                         }
                     }
                 }
@@ -277,6 +288,7 @@ fun NotificationsScreen(
                         fontSize = 11.sp,
                         letterSpacing = 1.sp,
                         color = palette.mutedForeground,
+                        modifier = Modifier.alpha(sectionAlpha),
                     )
                     modules.forEach { group ->
                         val module = group.module ?: return@forEach
@@ -285,6 +297,7 @@ fun NotificationsScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .alpha(sectionAlpha)
                                 .background(palette.surface, RoundedCornerShape(16.dp))
                                 .border(1.dp, palette.border, RoundedCornerShape(16.dp))
                                 .padding(horizontal = 14.dp),
@@ -326,12 +339,13 @@ fun NotificationsScreen(
                                 Switch(
                                     checked = active > 0,
                                     onCheckedChange = { toggleModule(group) },
-                                    enabled = !saving,
+                                    enabled = sectionEnabled,
                                 )
-                                Text(
-                                    if (open) "▴" else "▾",
-                                    fontSize = 14.sp,
-                                    color = palette.mutedForeground,
+                                Icon(
+                                    Icons.Filled.KeyboardArrowDown,
+                                    contentDescription = null,
+                                    tint = palette.mutedForeground,
+                                    modifier = Modifier.rotate(if (open) 180f else 0f),
                                 )
                             }
                             if (open) {
@@ -339,7 +353,9 @@ fun NotificationsScreen(
                                     Row(
                                         modifier = Modifier.padding(start = 44.dp),
                                     ) {
-                                        typeRow(type, saving, palette, strings) { value, enabled -> toggleType(value, enabled) }
+                                        typeRow(type, sectionEnabled, palette, strings) { value, enabled ->
+                                            toggleType(value, enabled)
+                                        }
                                     }
                                 }
                             }
@@ -359,7 +375,7 @@ private fun masterCard(
     checked: Boolean,
     enabled: Boolean,
     onChange: (Boolean) -> Unit,
-    palette: com.rferic.zero27apps.ui.theme.Palette,
+    palette: Palette,
 ) {
     Row(
         modifier = Modifier
@@ -381,8 +397,8 @@ private fun masterCard(
 @Composable
 private fun typeRow(
     type: NotificationTypeDto,
-    saving: Boolean,
-    palette: com.rferic.zero27apps.ui.theme.Palette,
+    enabled: Boolean,
+    palette: Palette,
     strings: Strings,
     onToggle: (NotificationTypeDto, Boolean) -> Unit,
 ) {
@@ -399,7 +415,7 @@ private fun typeRow(
         Switch(
             checked = type.enabled,
             onCheckedChange = { onToggle(type, it) },
-            enabled = !saving,
+            enabled = enabled,
         )
     }
 }
@@ -409,7 +425,7 @@ private fun moduleIcon(
     url: String?,
     token: String?,
     fallback: String,
-    palette: com.rferic.zero27apps.ui.theme.Palette,
+    palette: Palette,
 ) {
     val context = LocalContext.current
     Box(
@@ -440,7 +456,7 @@ private fun moduleIcon(
 @Composable
 private fun permissionCard(
     strings: Strings,
-    palette: com.rferic.zero27apps.ui.theme.Palette,
+    palette: Palette,
     onOpenSettings: () -> Unit,
 ) {
     Column(
@@ -452,7 +468,7 @@ private fun permissionCard(
     ) {
         Text(strings.notificationsPermissionTitle, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = palette.warning)
         Text(strings.notificationsPermissionNote, fontSize = 11.sp, color = palette.mutedForeground)
-        TextButton(onClick = onOpenSettings, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+        TextButton(onClick = onOpenSettings, contentPadding = PaddingValues(0.dp)) {
             Text(strings.notificationsOpenSettings, fontSize = 12.sp, color = palette.accent, fontWeight = FontWeight.SemiBold)
         }
     }
@@ -462,7 +478,7 @@ private fun permissionCard(
 private fun warningCard(
     title: String,
     note: String,
-    palette: com.rferic.zero27apps.ui.theme.Palette,
+    palette: Palette,
     action: String,
     onAction: () -> Unit,
 ) {
@@ -475,26 +491,11 @@ private fun warningCard(
     ) {
         Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = palette.warning)
         Text(note, fontSize = 11.sp, color = palette.mutedForeground)
-        TextButton(onClick = onAction, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+        TextButton(onClick = onAction, contentPadding = PaddingValues(0.dp)) {
             Text(action, fontSize = 12.sp, color = palette.accent, fontWeight = FontWeight.SemiBold)
         }
     }
 }
-
-private fun registrationNote(status: String?, strings: Strings): String = when (status) {
-    "ok" -> strings.pushReady
-    "registering" -> strings.checking
-    "no_session" -> strings.pushNoSession
-    null -> strings.pushUnknown
-    else -> status
-}
-
-private fun notificationsAllowed(context: Context): Boolean =
-    Build.VERSION.SDK_INT < 33 ||
-        ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.POST_NOTIFICATIONS,
-        ) == PackageManager.PERMISSION_GRANTED
 
 private fun openNotificationSettings(context: Context) {
     val intent = if (Build.VERSION.SDK_INT >= 26) {
@@ -507,28 +508,3 @@ private fun openNotificationSettings(context: Context) {
     runCatching { context.startActivity(intent) }
 }
 
-/** The label of a notification kind; unknown keys are shown as they arrive. */
-internal fun notificationTypeLabel(key: String, strings: Strings): String = when (key) {
-    "invitation.requested" -> strings.notificationInvitationRequested
-    "invitation.request_resolved" -> strings.notificationInvitationResolved
-    "owe_no.movement_created" -> strings.notificationMovementCreated
-    "owe_no.movement_changed" -> strings.notificationMovementChanged
-    else -> key
-}
-
-/** Marks the given keys in every group, leaving the others untouched. */
-internal fun applyNotificationToggle(
-    groups: List<NotificationGroupDto>,
-    keys: Set<String>,
-    enabled: Boolean,
-): List<NotificationGroupDto> = groups.map { group ->
-    group.copy(
-        types = group.types.map { type ->
-            if (type.key in keys) type.copy(enabled = enabled) else type
-        },
-    )
-}
-
-/** The kinds the server has to stop sending for this device. */
-internal fun mutedNotificationKeys(groups: List<NotificationGroupDto>): List<String> =
-    groups.flatMap { it.types }.filter { !it.enabled }.map { it.key }

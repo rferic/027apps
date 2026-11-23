@@ -160,6 +160,20 @@ function invitationSeats(resource: Record<string, unknown>): string | undefined 
   return String(value);
 }
 
+/**
+ * The recipient filter every push query shares: the device master switch is on
+ * and the notification kind is not muted. `param` is the placeholder number
+ * that carries the kind; a null kind (an event the catalog does not know) never
+ * matches a mute, so a new module's push is never silenced by accident.
+ */
+function reachable(param: number): string {
+  return `and d.push_enabled
+          and d.push_token is not null and d.revoked_at is null
+          and ($${param}::text is null or not exists (
+            select 1 from public.device_notification_mutes m
+             where m.device_id = d.id and m.kind = $${param}))`;
+}
+
 async function recipients(deps: RealtimeDeps, event: OutboxEvent): Promise<string[]> {
   const db = deps.db;  let rows: Record<string, unknown>[];
   // A device only receives what its master switch and mutes allow. The kind is
@@ -172,11 +186,7 @@ async function recipients(deps: RealtimeDeps, event: OutboxEvent): Promise<strin
          join public.profiles p on p.id = d.user_id
         where p.role in ('admin', 'super_admin')
           and p.deactivated_at is null
-          and d.push_enabled
-          and d.push_token is not null and d.revoked_at is null
-          and ($1::text is null or not exists (
-            select 1 from public.device_notification_mutes m
-             where m.device_id = d.id and m.kind = $1))`,
+          ${reachable(1)}`,
       [kind],
     ));
   } else if (event.target === "all") {
@@ -184,11 +194,7 @@ async function recipients(deps: RealtimeDeps, event: OutboxEvent): Promise<strin
       `select distinct d.push_token from public.devices d
          join public.profiles p on p.id = d.user_id
         where p.deactivated_at is null
-          and d.push_enabled
-          and d.push_token is not null and d.revoked_at is null
-          and ($1::text is null or not exists (
-            select 1 from public.device_notification_mutes m
-             where m.device_id = d.id and m.kind = $1))`,
+          ${reachable(1)}`,
       [kind],
     ));
   } else if (event.target === "user") {
@@ -196,11 +202,7 @@ async function recipients(deps: RealtimeDeps, event: OutboxEvent): Promise<strin
       `select distinct d.push_token from public.devices d
          join public.profiles p on p.id = d.user_id
         where d.user_id = $1 and p.deactivated_at is null
-          and d.push_enabled
-          and d.push_token is not null and d.revoked_at is null
-          and ($2::text is null or not exists (
-            select 1 from public.device_notification_mutes m
-             where m.device_id = d.id and m.kind = $2))`,
+          ${reachable(2)}`,
       [event.subject_id, kind],
     ));
   } else {
@@ -234,11 +236,7 @@ async function recipients(deps: RealtimeDeps, event: OutboxEvent): Promise<strin
            from public.devices d
            join public.profiles p on p.id = d.user_id
           where p.deactivated_at is null
-            and d.push_enabled
-            and d.push_token is not null and d.revoked_at is null
-            and ($3::text is null or not exists (
-              select 1 from public.device_notification_mutes m
-               where m.device_id = d.id and m.kind = $3))
+            ${reachable(3)}
             and d.user_id in (select member from ${schema}.${String(fn)}($1) as t(member))
             and ($2::uuid is null or d.user_id <> $2::uuid)`,
         [topic, actor, kind],

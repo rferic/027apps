@@ -5,7 +5,6 @@ import com.rferic.zero27apps.data.NotificationModuleDto
 import com.rferic.zero27apps.data.NotificationTypeDto
 import com.rferic.zero27apps.ui.i18n.AppStrings
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -67,7 +66,7 @@ class NotificationToggleTest {
 
         assertEquals("Solicitudes de plazas", notificationTypeLabel("invitation.requested", es))
         assertEquals("Gasto corregido o borrado", notificationTypeLabel("owe_no.movement_changed", es))
+        assertEquals("Gasto nuevo", notificationTypeLabel("owe_no.movement_created", es))
         assertEquals("fixture.created", notificationTypeLabel("fixture.created", es))
-        assertFalse(notificationTypeLabel("owe_no.movement_created", es).isBlank())
     }
 }
