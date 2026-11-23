@@ -2,11 +2,23 @@
 id: sprint-17-task-04
 titulo: Idempotencia del commit del importador
 area: core + web + app
-estado: pendiente
-plan: pendiente (se escribe al arrancar)
+estado: test
+plan: docs/superpowers/plans/2026-11-23-sprint17-import-idempotency.md
 fuente: docs/tasks/sprint-17-panel-y-notificaciones/README.md
 adrs: [0004, 0007]
 ---
+
+**Estado (2026-11-23)**: implementada y verificada; pendiente la revisión y la auditoría.
+
+- `commitImport` acepta `idempotencyKey`; la comprobación va tras el candado y **antes** del
+  `reset`, y el resultado se guarda en la misma transacción. La huella cubre `csv`, `mapping`,
+  `newMembers` y `reset` (mapeo y miembros ordenados).
+- La ruta lee `Idempotency-Key` (máx. 200) y el resumen de OpenAPI lo menciona.
+- Panel y app guardan una clave por cuerpo: se reutiliza al reintentar y se renueva si cambia el
+  fichero, el mapeo o el reset; el reintento interno tras un 401 conserva la cabecera.
+- Evidencia: `owe-no-imports.test.ts` 15/15 (12 + 3 de idempotencia); `core` 638; `admin` 1364;
+  Android BUILD SUCCESSFUL; `pnpm lint` 0 errores; `pnpm tsc` 7 áreas; `pnpm check:openapi`
+  124/124.
 
 **Tarea**: que el commit de una importación acepte `Idempotency-Key` y cumpla lo que la spec ya
 promete: el mismo envío repetido devuelve el mismo resultado y no añade una segunda importación al
@@ -47,4 +59,4 @@ historial.
 - Un `reset` repetido con la misma clave no borra dos veces.
 - `db-tests` de importaciones e idempotencia en verde; `pnpm check:openapi` en verde.
 
-**Plan**: pendiente.
+**Plan**: [2026-11-23-sprint17-import-idempotency](../../superpowers/plans/2026-11-23-sprint17-import-idempotency.md).

@@ -60,7 +60,8 @@ en el historial.
 
 Orden propuesto: **01 → 03 → 04 → 05 → 02**. La 01 primero porque es la única donde hoy se puede
 duplicar dinero; la 02 al final porque es la más grande y la única con puerta visual. El propietario
-puede cambiar el orden. **Hecho hasta ahora: 01 (finalizada), 02 y 03 (en `test`)**; quedan 04 y 05.
+puede cambiar el orden. **Implementación completa: 01 finalizada y 02–05 en `test`** a la espera de
+revisión, auditoría y de la puerta de los dos móviles.
 
 ### 01 · Import atómico y candado
 
@@ -188,6 +189,20 @@ desarrollo.
 
 La edición no toca servidor ni base de datos: el `PATCH` con `kind: settlement` y un único
 receptor ya existía. Pendiente la revisión y la auditoría.
+
+## Evidencia (tareas 04 y 05, 2026-11-23)
+
+| Comprobación | Resultado |
+|---|---|
+| `owe-no-imports.test.ts` | 15/15 (12 + 3 de idempotencia) |
+| `members/[id]/page.test.tsx` | 15/15 (incluye los cuatro estados de notificaciones) |
+| `core` · `admin` | 638 · 1364 |
+| Android | BUILD SUCCESSFUL |
+| `pnpm lint` · `pnpm tsc` · `openapi` · `i18n` | 0 errores · 7 áreas · 124/124 · OK |
+| `pnpm --filter admin build` | OK |
+
+Las tareas 04 y 05 quedan en `test`: la revisión y la auditoría son el siguiente paso; la prueba con
+dos móviles sigue siendo la puerta del propietario para la 02, y con ella se cierra el sprint.
 
 ## Relación con el sprint 18
 
