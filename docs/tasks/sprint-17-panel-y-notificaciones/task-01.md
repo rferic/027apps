@@ -38,6 +38,12 @@ transacción.
 - Segunda ronda: el auditor de calidad y seguridad dio **APTO** (calidad y OWASP A01–A11, sin
   hallazgos nuevos); el de estilo pidió dos correcciones de texto y consistencia, ya aplicadas, y
   sus sugerencias quedaron cerradas salvo la deuda anotada abajo.
+- Hallazgo colateral (revisión): `pnpm db:restore` no restauraba los esquemas de módulos, así que
+  tras un reset el módulo quedaba «instalado» sin sus tablas y sus datos se perdían aunque el dump
+  los tuviera. Corregido en `scripts/db-local-restore.sh`: recrea `module_*` con su DDL, sus datos,
+  su dueño (`postgres`) y el permiso de `module_installer`. Verificado con un reset simulado (drop
+  del esquema y de su fila de registro) y una segunda ejecución: 1 grupo / 1 movimiento intactos y
+  la suite de importaciones 12/12 después. El flujo queda anotado en `docs/flows/local-development.md`.
 - Deuda aceptada de la revisión: el helper de instalación se repite entre los tests del fichero, y
   el esquema de `new_members` vive duplicado en el módulo y en OpenAPI (la duplicación ya existía
   para el resto del commit).
