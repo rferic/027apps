@@ -73,7 +73,7 @@ fun SettingsScreen(
     onForgetInstance: (String) -> Unit,
     update: UpdateState,
     pushStatus: String? = null,
-    onRetryPush: () -> Unit = {},
+    onOpenNotifications: () -> Unit = {},
     lastCheckAt: Long? = null,
     onCheckUpdates: () -> Unit,
     onInstallUpdate: () -> Unit,
@@ -247,30 +247,37 @@ fun SettingsScreen(
             }
         }
 
-        // Push registration: the one thing that cannot be checked from the server
+        // Notifications: the master switch and every kind live in their own
+        // screen; this row says whether push works and opens it.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(palette.surface, RoundedCornerShape(16.dp))
                 .border(1.dp, palette.border, RoundedCornerShape(16.dp))
+                .clickable { onOpenNotifications() }
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Column(Modifier.weight(1f)) {
                 Text(strings.notifications, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                 Text(
                     when (pushStatus) {
-                        "ok" -> strings.pushReady
+                        "ok" -> strings.notificationsHint
                         "registering" -> strings.checking
                         "no_session" -> strings.pushNoSession
                         null -> strings.pushUnknown
                         else -> pushStatus
                     },
-                    color = if (pushStatus == "ok") palette.accent else palette.mutedForeground,
+                    color = if (pushStatus == "ok") palette.mutedForeground else palette.warning,
                     fontSize = 12.sp,
                 )
             }
-            TextButton(onClick = onRetryPush) { Text(strings.recheck, fontSize = 12.sp) }
+            Icon(
+                Icons.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = palette.mutedForeground,
+            )
         }
 
         // What changed in this and previous versions

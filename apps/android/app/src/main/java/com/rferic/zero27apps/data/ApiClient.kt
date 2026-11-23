@@ -67,6 +67,22 @@ class ApiClient(
     /** Absolute URL of a module icon; the request still carries the session. */
     fun moduleIconUrl(key: String): String = "$baseUrl/api/v1/modules/$key/icon"
 
+    // --- Notification preferences (sprint 17) --------------------------------
+    suspend fun notificationPreferences(deviceId: String): NotificationPreferencesDto =
+        read(request(HttpMethod.Get, "/api/v1/devices/$deviceId/notification-preferences"))
+
+    suspend fun updateNotificationPreferences(
+        deviceId: String,
+        body: NotificationPreferencesBody,
+    ): NotificationPreferencesDto =
+        read(
+            request(
+                HttpMethod.Put,
+                "/api/v1/devices/$deviceId/notification-preferences",
+                body,
+            ),
+        )
+
     /**
      * Re-arms the revoked-session signal. The client outlives a logout, so a
      * new sign-in must be able to report a second revocation.
