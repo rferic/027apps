@@ -2,7 +2,7 @@
 id: sprint-17-task-05
 titulo: Panel — estado de notificaciones en la ficha del usuario
 area: web
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-23-sprint17-panel-notification-line.md
 fuente: docs/tasks/sprint-17-panel-y-notificaciones/README.md
 adrs: [0004]
@@ -42,5 +42,7 @@ adivinarlo por teléfono.
 - Los tres estados se ven correctamente con datos de prueba.
 - Un usuario sin dispositivos no rompe la ficha.
 - `pnpm --filter admin test` y `pnpm --filter admin build` en verde.
+
+- Revisión y auditoría (2026-11-23, agente distinto): **APTO** en calidad, OWASP y estilo, sin hallazgos. CI del PR en verde.
 
 **Plan**: [2026-11-23-sprint17-panel-notification-line](../../superpowers/plans/2026-11-23-sprint17-panel-notification-line.md).

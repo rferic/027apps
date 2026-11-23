@@ -2,7 +2,7 @@
 id: sprint-17-task-04
 titulo: Idempotencia del commit del importador
 area: core + web + app
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-23-sprint17-import-idempotency.md
 fuente: docs/tasks/sprint-17-panel-y-notificaciones/README.md
 adrs: [0004, 0007]
@@ -58,5 +58,7 @@ historial.
 - Sin clave: comportamiento actual (deducción por filas).
 - Un `reset` repetido con la misma clave no borra dos veces.
 - `db-tests` de importaciones e idempotencia en verde; `pnpm check:openapi` en verde.
+
+- Revisión y auditoría (2026-11-23, agente distinto): **APTO** en calidad, OWASP y estilo, sin hallazgos. CI del PR en verde.
 
 **Plan**: [2026-11-23-sprint17-import-idempotency](../../superpowers/plans/2026-11-23-sprint17-import-idempotency.md).

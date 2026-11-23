@@ -2,7 +2,7 @@
 id: sprint-17-task-03
 titulo: Editar liquidaciones desde su propio formulario
 area: app
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-23-sprint17-settlement-edit.md
 fuente: docs/tasks/sprint-17-panel-y-notificaciones/README.md
 adrs: [0007]
@@ -53,5 +53,7 @@ gasto, que el servidor rechaza.
 - Un gasto sigue editándose en su formulario de siempre.
 - Una liquidación ajena y de un grupo del que no eres creador no se puede abrir para editar.
 - `pnpm lint`, `pnpm tsc`, `./gradlew :app:testDebugUnitTest` en verde.
+
+- Revisión y auditoría (2026-11-23, agente distinto): **APTO** en calidad, OWASP y estilo, sin hallazgos. CI del PR en verde.
 
 **Plan**: [2026-11-23-sprint17-settlement-edit](../../superpowers/plans/2026-11-23-sprint17-settlement-edit.md).

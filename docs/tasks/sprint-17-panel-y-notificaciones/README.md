@@ -60,8 +60,8 @@ en el historial.
 
 Orden propuesto: **01 → 03 → 04 → 05 → 02**. La 01 primero porque es la única donde hoy se puede
 duplicar dinero; la 02 al final porque es la más grande y la única con puerta visual. El propietario
-puede cambiar el orden. **Implementación completa: 01 finalizada y 02–05 en `test`** a la espera de
-revisión, auditoría y de la puerta de los dos móviles.
+puede cambiar el orden. **01 y 03–05 finalizadas; 02 en `test`** esperando solo la puerta de los dos
+móviles del propietario.
 
 ### 01 · Import atómico y candado
 
@@ -201,8 +201,8 @@ receptor ya existía. Pendiente la revisión y la auditoría.
 | `pnpm lint` · `pnpm tsc` · `openapi` · `i18n` | 0 errores · 7 áreas · 124/124 · OK |
 | `pnpm --filter admin build` | OK |
 
-Las tareas 04 y 05 quedan en `test`: la revisión y la auditoría son el siguiente paso; la prueba con
-dos móviles sigue siendo la puerta del propietario para la 02, y con ella se cierra el sprint.
+Revisión y auditoría de las tres tareas: **APTO**, sin hallazgos. Solo la 02 queda en `test`: la
+prueba con dos móviles es la puerta del propietario, y con ella se cierra el sprint.
 
 ## Relación con el sprint 18
 
