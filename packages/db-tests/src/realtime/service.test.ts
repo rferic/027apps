@@ -99,6 +99,55 @@ describe("event outbox", () => {
     });
   });
 
+  it("skips a device with the master off or the kind muted, and sends to the rest", async () => {
+    await inRollback(async (c) => {
+      const who = await user(c);
+      await query(
+        c,
+        "insert into public.devices (user_id, platform, push_token, push_enabled) values ($1, 'android', 'fcm-on-device', true)",
+        [who.id],
+      );
+      await query(
+        c,
+        "insert into public.devices (user_id, platform, push_token, push_enabled) values ($1, 'android', 'fcm-off-device', false)",
+        [who.id],
+      );
+      const { rows: muted } = await query(
+        c,
+        "insert into public.devices (user_id, platform, push_token) values ($1, 'android', 'fcm-muted-device') returning id",
+        [who.id],
+      );
+      await query(
+        c,
+        "insert into public.device_notification_mutes (device_id, kind) values ($1, 'invitation.requested')",
+        [muted[0]!.id],
+      );
+
+      const sent: string[] = [];
+      const deps: RealtimeDeps = {
+        db: { query: (sql: string, params: unknown[] = []) => query(c, sql, params) },
+        realtime: { publish: async () => {} },
+        push: {
+          send: async (tokens) => {
+            sent.push(...tokens);
+            return tokens.map((token) => ({ token }));
+          },
+        },
+      };
+
+      await enqueueEvent(deps.db, {
+        type: "invitation.requested",
+        target: "user",
+        subject_id: who.id,
+        resource: { places: 2 },
+        notify: ["push"],
+      });
+      await publishPending(deps);
+
+      expect(sent).toEqual(["fcm-on-device"]);
+    });
+  });
+
   // Regression: the channel members function lives in the module's own schema
   // (the installer grants a module nothing else), and the relay looked for it in
   // `public`, so every channel push went out to zero recipients.

@@ -644,11 +644,30 @@ export const deviceSchema = component(
       user_id: z.uuid(),
       platform: z.enum(["android", "ios"]),
       push_token: z.string().nullable(),
+      push_enabled: z.boolean(),
       last_seen_at: isoDate,
       revoked_at: nullableDate,
       created_at: isoDate,
     })
     .strict() satisfies z.ZodType<DeviceView>,
+);
+
+/** One device's notification preferences, grouped for the app's screen. */
+export const notificationPreferencesResponseSchema = component(
+  "NotificationPreferences",
+  z
+    .object({
+      device: z.object({ id: z.uuid(), push_enabled: z.boolean() }).strict(),
+      groups: z.array(
+        z
+          .object({
+            module: z.object({ key: z.string(), name: z.string() }).strict().nullable(),
+            types: z.array(z.object({ key: z.string(), enabled: z.boolean() }).strict()),
+          })
+          .strict(),
+      ),
+    })
+    .strict(),
 );
 
 export const deviceListSchema = component(

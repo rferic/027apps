@@ -1454,6 +1454,9 @@
             ],
             "type": "string"
           },
+          "push_enabled": {
+            "type": "boolean"
+          },
           "push_token": {
             "type": [
               "string",
@@ -1483,6 +1486,7 @@
           "user_id",
           "platform",
           "push_token",
+          "push_enabled",
           "last_seen_at",
           "revoked_at",
           "created_at"
@@ -1518,6 +1522,9 @@
                   ],
                   "type": "string"
                 },
+                "push_enabled": {
+                  "type": "boolean"
+                },
                 "push_token": {
                   "type": [
                     "string",
@@ -1547,6 +1554,7 @@
                 "user_id",
                 "platform",
                 "push_token",
+                "push_enabled",
                 "last_seen_at",
                 "revoked_at",
                 "created_at"
@@ -1617,6 +1625,9 @@
                 ],
                 "type": "string"
               },
+              "push_enabled": {
+                "type": "boolean"
+              },
               "push_token": {
                 "type": [
                   "string",
@@ -1646,6 +1657,7 @@
               "user_id",
               "platform",
               "push_token",
+              "push_enabled",
               "last_seen_at",
               "revoked_at",
               "created_at"
@@ -8026,6 +8038,111 @@
         },
         "type": "object"
       },
+      "NotificationPreferences": {
+        "additionalProperties": false,
+        "properties": {
+          "device": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "type": "string"
+              },
+              "push_enabled": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "push_enabled"
+            ],
+            "type": "object"
+          },
+          "groups": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "module": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "key": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "name"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "types": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "key": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "enabled"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "module",
+                "types"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "device",
+          "groups"
+        ],
+        "type": "object"
+      },
+      "NotificationPreferencesBody": {
+        "additionalProperties": false,
+        "properties": {
+          "muted": {
+            "items": {
+              "maxLength": 80,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
+          "push_enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "push_enabled",
+          "muted"
+        ],
+        "type": "object"
+      },
       "OpenApiDocument": {
         "additionalProperties": {},
         "description": "The generated OpenAPI 3.1 document served by this instance.",
@@ -11550,6 +11667,110 @@
         "summary": "Revoke a device (soft); `sessions=all` (default) also drops its sessions.",
         "x-027-scopes": [
           "devices:revoke"
+        ]
+      }
+    },
+    "/devices/{id}/notification-preferences": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferences"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Master switch and muted notification kinds of the caller's device.",
+        "x-027-scopes": [
+          "devices:read"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationPreferencesBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferences"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Set the device master switch and the kinds it silences.",
+        "x-027-scopes": [
+          "devices:write"
         ]
       }
     },

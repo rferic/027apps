@@ -33,6 +33,7 @@
     "./email/*.js": "./src/email/*.ts",
     "./api-keys/*.js": "./src/api-keys/*.ts",
     "./devices/*.js": "./src/devices/*.ts",
+    "./notifications/*.js": "./src/notifications/*.ts",
     "./modules/*.js": "./src/modules/*.ts",
     "./demo/*.js": "./src/demo/*.ts",
     "./realtime/*.js": "./src/realtime/*.ts",

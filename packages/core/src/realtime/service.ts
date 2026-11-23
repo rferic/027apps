@@ -1,6 +1,7 @@
 import { DomainError } from "../errors";
 import type { JsonValue } from "../api/types";
 import type { QueryClient } from "../api/rate-limit-storage";
+import { notificationKind } from "../notifications/catalog";
 
 /**
  * Transactional outbox + realtime dispatch (realtime spec §5). Use cases insert
@@ -161,28 +162,46 @@ function invitationSeats(resource: Record<string, unknown>): string | undefined 
 
 async function recipients(deps: RealtimeDeps, event: OutboxEvent): Promise<string[]> {
   const db = deps.db;  let rows: Record<string, unknown>[];
+  // A device only receives what its master switch and mutes allow. The kind is
+  // resolved here, not in the client: the server must never spend FCM quota on
+  // a notification somebody turned off.
+  const kind = notificationKind(event.type);
   if (event.target === "admins") {
     ({ rows } = await db.query(
       `select distinct d.push_token from public.devices d
          join public.profiles p on p.id = d.user_id
         where p.role in ('admin', 'super_admin')
           and p.deactivated_at is null
-          and d.push_token is not null and d.revoked_at is null`,
+          and d.push_enabled
+          and d.push_token is not null and d.revoked_at is null
+          and ($1::text is null or not exists (
+            select 1 from public.device_notification_mutes m
+             where m.device_id = d.id and m.kind = $1))`,
+      [kind],
     ));
   } else if (event.target === "all") {
     ({ rows } = await db.query(
       `select distinct d.push_token from public.devices d
          join public.profiles p on p.id = d.user_id
         where p.deactivated_at is null
-          and d.push_token is not null and d.revoked_at is null`,
+          and d.push_enabled
+          and d.push_token is not null and d.revoked_at is null
+          and ($1::text is null or not exists (
+            select 1 from public.device_notification_mutes m
+             where m.device_id = d.id and m.kind = $1))`,
+      [kind],
     ));
   } else if (event.target === "user") {
     ({ rows } = await db.query(
       `select distinct d.push_token from public.devices d
          join public.profiles p on p.id = d.user_id
         where d.user_id = $1 and p.deactivated_at is null
-          and d.push_token is not null and d.revoked_at is null`,
-      [event.subject_id],
+          and d.push_enabled
+          and d.push_token is not null and d.revoked_at is null
+          and ($2::text is null or not exists (
+            select 1 from public.device_notification_mutes m
+             where m.device_id = d.id and m.kind = $2))`,
+      [event.subject_id, kind],
     ));
   } else {
     const topic = event.target.slice("channel:".length);
@@ -215,10 +234,14 @@ async function recipients(deps: RealtimeDeps, event: OutboxEvent): Promise<strin
            from public.devices d
            join public.profiles p on p.id = d.user_id
           where p.deactivated_at is null
+            and d.push_enabled
             and d.push_token is not null and d.revoked_at is null
+            and ($3::text is null or not exists (
+              select 1 from public.device_notification_mutes m
+               where m.device_id = d.id and m.kind = $3))
             and d.user_id in (select member from ${schema}.${String(fn)}($1) as t(member))
             and ($2::uuid is null or d.user_id <> $2::uuid)`,
-        [topic, actor],
+        [topic, actor, kind],
       ));
     } catch (err) {
       // A broken members_fn degrades push delivery instead of failing the event,
