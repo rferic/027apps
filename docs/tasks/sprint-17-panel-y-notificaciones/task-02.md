@@ -9,8 +9,8 @@ mockup: docs/mockups/sprint-17-notifications/index.html
 adrs: [0004, 0007]
 ---
 
-**Estado (2026-11-23)**: implementada y verificada en local; pendiente la revisión, la auditoría y
-la prueba con dos móviles reales (puerta del propietario).
+**Estado (2026-11-23)**: implementada, revisada y auditada (ver abajo); para `finalizada` solo falta
+la prueba con dos móviles reales, que es la puerta del propietario.
 
 - Migración `0040`: `devices.push_enabled` y `device_notification_mutes` con RLS del dueño.
 - Catálogo de avisos en `packages/core/src/notifications/catalog.ts` (cuatro tipos; corregido y
