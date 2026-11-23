@@ -269,15 +269,19 @@ export async function commitImport(
           ]).map((name) => name.trim().toLowerCase()),
         ),
       ];
+      // A member the client mapped explicitly survives even when its display
+      // name differs from the CSV's (an invited account, or a renamed person).
+      const mappedIds = Object.values(options.mapping ?? {});
       await db.query(
         `delete from module_owe_no.owe_no_members m
           where m.group_id = $1 and m.user_id is null and m.state in ('active', 'invited')
             and not (lower(btrim(m.display_name)) = any($2::text[]))
+            and not (m.id::text = any($3::text[]))
             and not exists (select 1 from module_owe_no.owe_no_movements mv
                              where mv.group_id = $1 and mv.paid_by_member_id = m.id)
             and not exists (select 1 from module_owe_no.owe_no_movement_shares s
                              where s.member_id = m.id)`,
-        [groupId, usedNames],
+        [groupId, usedNames, mappedIds],
       );
     }
     // Read after the lock and inside the transaction: a commit that already

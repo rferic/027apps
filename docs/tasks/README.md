@@ -21,7 +21,7 @@ estable: no se reutiliza ni se reordena. Este índice es la fuente del orden rea
 | 14 | `sprint-14-mejoras` | 2026-11-10 | finalizada |
 | 15 | `sprint-15-app-y-finanzas` | 2026-11-12 | finalizada 2026-11-15 (12 tareas) · PR #97 |
 | 16 | `sprint-16-invitation-session-and-migration` | 2026-11-16 | cerrada 2026-11-18 · release 0.19.0 publicada · excepción: push a dos dispositivos (backlog) |
-| 17 | `sprint-17-panel-y-notificaciones` | 2026-11-23 (reescrito) | aprobada · pendiente de arranque (5 tareas) · va después del sprint 18 |
+| 17 | `sprint-17-panel-y-notificaciones` | 2026-11-23 (reescrito) | en curso · tarea 01 en `test` (5 tareas) · va después del sprint 18 |
 | 18 | `sprint-18-invitation-club` | 2026-11-18 | cerrada 2026-11-23 · release 0.20.0 publicada |
 
 > **Renumeración del 16:** el plan de «panel y notificaciones» vivía en `origin/docs/sprint-16` sin

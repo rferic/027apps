@@ -1,5 +1,6 @@
 package com.rferic.zero27apps.ui.screens
 
+import com.rferic.zero27apps.data.OweImportNewMember
 import com.rferic.zero27apps.data.OweMappingOptionDto
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -13,19 +14,24 @@ import org.junit.Test
  */
 class OweImportMappingTest {
     private val ana = OweMappingOptionDto(id = "member-ana", displayName = "Ana", kind = "member")
-    private val luis = OweMappingOptionDto(id = "user-luis", displayName = "Luis Pérez", kind = "account")
+    private val luisMember =
+        OweMappingOptionDto(id = "member-luis", displayName = "Luis", kind = "member")
+    private val luisAccount =
+        OweMappingOptionDto(id = "user-luis", displayName = "Luis Pérez", kind = "account")
 
     @Test
     fun choosingAnExistingMemberOnlyMapsIt() {
-        val (mapping, pending) = chooseImportMapping("Luis", luis.copy(kind = "member", displayName = "Luis"), emptyMap(), emptyMap())
+        val (mapping, pending) =
+            chooseImportMapping("Luis", luisMember, emptyMap(), emptyMap())
 
-        assertEquals(mapOf("Luis" to luis.id), mapping)
+        assertEquals(mapOf("Luis" to luisMember.id), mapping)
         assertTrue("no member is created while mapping", pending.isEmpty())
     }
 
     @Test
     fun choosingARealAccountIsDeferredToTheCommit() {
-        val (mapping, pending) = chooseImportMapping("Luis", luis, emptyMap(), emptyMap())
+        val (mapping, pending) =
+            chooseImportMapping("Luis", luisAccount, emptyMap(), emptyMap())
 
         assertTrue(mapping.isEmpty())
         assertEquals(1, pending.size)
@@ -44,12 +50,15 @@ class OweImportMappingTest {
 
     @Test
     fun changingTheChoiceDropsTheOneItReplaces() {
-        val (mapping, pending) = chooseImportMapping("Luis", ana, mapOf("Luis" to "old"), mapOf("Luis" to pending("Luis")))
+        val (mapping, pending) =
+            chooseImportMapping(
+                "Luis",
+                ana,
+                mapOf("Luis" to "old"),
+                mapOf("Luis" to OweImportNewMember(name = "Luis", displayName = "Luis")),
+            )
 
         assertEquals(mapOf("Luis" to ana.id), mapping)
         assertTrue("the pending creation is dropped", pending.isEmpty())
     }
-
-    private fun pending(name: String) =
-        com.rferic.zero27apps.data.OweImportNewMember(name = name, displayName = name)
 }

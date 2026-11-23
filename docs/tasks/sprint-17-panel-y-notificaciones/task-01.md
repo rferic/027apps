@@ -22,12 +22,18 @@ transacción.
 - Un miembro invitado (cuenta real) resuelve nombres como uno ficticio, que es lo que la spec ya
   decía (D15) y el filtro `active` impedía.
 - Mensaje del límite corregido a 2 MB.
-- Verificación: `owe-no-imports.test.ts` 10/10; `@027apps/core` 46/634; `admin` 172/1363;
+- Verificación: `owe-no-imports.test.ts` 11/11; `@027apps/core` 46/634; `admin` 172/1363;
   `@027apps/owe-no` 26/26; `:app:testDebugUnitTest` BUILD SUCCESSFUL; `pnpm lint` 0 errores;
   `pnpm tsc` 7 áreas; `pnpm check:openapi` 122/122; `pnpm i18n:check` 1116 cadenas/9 locales;
   `pnpm --filter admin build` OK. `db-tests` completo no se lanza contra la instancia del
   propietario (ver `docs/flows/pre-delivery-verification.md`); la suite de importaciones se cubre
   entera.
+- Revisión (2026-11-23, dos agentes): los hallazgos se corrigieron en el mismo commit. El más
+  grave: el test de concurrencia desinstalaba el módulo comprometido y podía borrar los datos
+  locales de OweNo; ahora reutiliza una instalación existente y solo limpia el grupo que creó
+  (probado con el módulo instalado: sigue instalado después). También: versión y changelog de la
+  app, `reset` conserva el miembro mapeado aunque su nombre no coincida con el CSV, y el estilo
+  (imports, nombres, enlaces de docs).
 
 **Punto de partida**
 
@@ -45,7 +51,7 @@ transacción.
 
 - Mover la lectura de `knownHashes` (y el cálculo de `rows`/`duplicates`) dentro de `run`, después
   del candado; el `reset` sigue borrando antes de leer, como ya hace.
-- `commitImport` acepta `newMembers: Array<{ name: string; userId?: string }>` y los crea dentro de
+- `commitImport` acepta `newMembers: Array<{ name: string; displayName?: string; userId?: string }>` y los crea dentro de
   la transacción con el `scoped` (`importer.ts:305`), reutilizando la lógica de `addMember`
   (`service.ts:257`) sin copiarla.
 - Esquema zod del commit con `new_members`, OpenAPI al día.
@@ -65,4 +71,4 @@ transacción.
 - `pnpm lint`, `pnpm tsc`, `pnpm test`, `pnpm --filter admin build` y
   `./gradlew :app:testDebugUnitTest` en verde.
 
-**Plan**: pendiente.
+**Plan**: [2026-11-23-sprint17-import-atomic](../../superpowers/plans/2026-11-23-sprint17-import-atomic.md), tareas 1–5.

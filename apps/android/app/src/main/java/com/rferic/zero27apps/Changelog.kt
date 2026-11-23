@@ -21,6 +21,48 @@ object Changelog {
 
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.21.0",
+            date = "2026-11-23",
+            notes = mapOf(
+                "es" to listOf(
+                    "Importar un CSV ya no crea miembros hasta que confirmas, así que cancelar deja el grupo como estaba.",
+                    "Dos importaciones a la vez ya no pueden duplicar gastos.",
+                ),
+                "en" to listOf(
+                    "Importing a CSV no longer creates members until you confirm, so cancelling leaves the group as it was.",
+                    "Two imports at once can no longer duplicate expenses.",
+                ),
+                "ca" to listOf(
+                    "Importar un CSV ja no crea membres fins que confirmes, així que cancel·lar deixa el grup com estava.",
+                    "Dues importacions alhora ja no poden duplicar despeses.",
+                ),
+                "gl" to listOf(
+                    "Importar un CSV xa non crea membros ata que confirmas, así que cancelar deixa o grupo como estaba.",
+                    "Dúas importacións á vez xa non poden duplicar gastos.",
+                ),
+                "eu" to listOf(
+                    "CSV bat inportatzean ez du kiderik sortzen berresten duzun arte, beraz, bertan behera uzteak taldea bezala uzten du.",
+                    "Aldi berean egindako bi inportaziok ezin dituzte gastuak bikoiztu.",
+                ),
+                "pt" to listOf(
+                    "Importar um CSV já não cria membros até confirmares, por isso cancelar deixa o grupo como estava.",
+                    "Duas importações ao mesmo tempo já não podem duplicar despesas.",
+                ),
+                "fr" to listOf(
+                    "Importer un CSV ne crée plus de membres avant ta confirmation : annuler laisse le groupe tel quel.",
+                    "Deux imports simultanés ne peuvent plus dupliquer de dépenses.",
+                ),
+                "it" to listOf(
+                    "Importare un CSV non crea più membri prima della conferma, quindi annullare lascia il gruppo com'era.",
+                    "Due importazioni contemporanee non possono più duplicare le spese.",
+                ),
+                "de" to listOf(
+                    "Beim Importieren einer CSV werden Mitglieder erst nach dem Bestätigen angelegt; Abbrechen lässt die Gruppe unverändert.",
+                    "Zwei gleichzeitige Importe können Ausgaben nicht mehr doppeln.",
+                ),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.20.0",
             date = "2026-11-19",
             notes = mapOf(

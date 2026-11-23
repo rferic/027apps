@@ -135,7 +135,7 @@ puede cambiar el orden.
 - **Firma de este README** para arrancar: **firmado por el propietario el 2026-11-23**.
 - **P3**: mockup de una sola pantalla (claro y oscuro) de Ajustes → Notificaciones antes de escribir
   su UI.
-- **Push real**: dos Android con FCM para la verificación de la tarea 02 (la entrada 6 del backlog,
+- **Push real**: dos Android con FCM para la verificación de la tarea 02 (la antigua entrada 6 del backlog,
   que se cierra aquí).
 - Orden explícita de merge a `staging` y, después, de `staging` a `main`.
 
@@ -143,7 +143,7 @@ puede cambiar el orden.
 
 | Comprobación | Resultado |
 |---|---|
-| `owe-no-imports.test.ts` | 10/10; el test nuevo fallaba antes del arreglo con `expected 2, received 4` |
+| `owe-no-imports.test.ts` | 11/11; el test nuevo fallaba antes del arreglo con `expected 2, received 4` |
 | `@027apps/core` | 46 ficheros / 634 tests |
 | `admin` | 172 ficheros / 1363 tests |
 | `@027apps/owe-no` | 2 ficheros / 26 tests |

@@ -528,6 +528,32 @@ describe("owe-no importer members", () => {
     });
   });
 
+  it("keeps a mapped member whose name differs from the CSV when resetting", async () => {
+    await inRollback(async (c) => {
+      await setup(c);
+      const ana = await session(c, "user", "Ana");
+      const deps = oweDeps(c);
+      const group = await createGroup(deps, ana.userId, { name: "Casa", currency: "EUR" });
+      // A person the group knows under a longer name than the CSV column.
+      const bolli = await addMember(deps, ana.userId, group.id, { displayName: "Bolli García" });
+      const csv = [
+        "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Bolli",
+        "2026-03-01,Cena,Comida,10.00,EUR,-5.00,5.00",
+      ].join("\n");
+
+      const result = await commitImport(deps, ana.userId, group.id, csv, {
+        reset: true,
+        mapping: { Bolli: bolli.id },
+      });
+
+      // A reset deletes fictitious members the file no longer names; this one is
+      // named by the client's mapping, so deleting it made the import fail.
+      expect(result).toMatchObject({ created: 1, errors: 0 });
+      const members = await listMembers(deps, ana.userId, group.id);
+      expect(members.some((member) => member.id === bolli.id)).toBe(true);
+    });
+  });
+
   it("leaves no member behind when the commit fails after creating them", async () => {
     await inRollback(async (c) => {
       await setup(c);
@@ -607,6 +633,29 @@ async function liveDeps(): Promise<{ deps: OweDeps; close: () => Promise<void> }
   };
 }
 
+/**
+ * Removes a test group and everything hanging from it, in dependency order:
+ * a single DELETE on the group can trip `owe_no_movements.paid_by_member_id`,
+ * which has no cascade.
+ */
+async function deleteTestGroup(c: ClientBase, groupId: string): Promise<void> {
+  await c.query(
+    "delete from module_owe_no.owe_no_movement_shares where movement_id in (select id from module_owe_no.owe_no_movements where group_id = $1)",
+    [groupId],
+  );
+  await c.query("delete from module_owe_no.owe_no_movements where group_id = $1", [groupId]);
+  await c.query(
+    "delete from module_owe_no.owe_no_import_rows where import_id in (select id from module_owe_no.owe_no_imports where group_id = $1)",
+    [groupId],
+  );
+  await c.query("delete from module_owe_no.owe_no_imports where group_id = $1", [groupId]);
+  await c.query("delete from module_owe_no.owe_no_idempotency where group_id = $1", [groupId]);
+  await c.query("delete from module_owe_no.owe_no_categories where group_id = $1", [groupId]);
+  await c.query("delete from module_owe_no.owe_no_blocks where group_id = $1", [groupId]);
+  await c.query("delete from module_owe_no.owe_no_members where group_id = $1", [groupId]);
+  await c.query("delete from module_owe_no.owe_no_groups where id = $1", [groupId]);
+}
+
 describe("owe-no importer concurrency", () => {
   it("two overlapping commits of the same file do not duplicate movements", async () => {
     const manifest = JSON.parse(await readFile(resolve(ROOT, "manifest.json"), "utf8"));
@@ -617,6 +666,7 @@ describe("owe-no importer concurrency", () => {
     let anaId = "";
     let groupId = "";
     let root: Caller | null = null;
+    let installedByTest = false;
 
     try {
       await withClient(async (c) => {
@@ -637,22 +687,26 @@ describe("owe-no importer concurrency", () => {
       });
       root = { kind: "session", userId: adminId, role: "super_admin" };
 
-      await withClient(async (c) => {
-        await c.query("BEGIN");
-        try {
-          const { rows } = await query(
-            c,
-            "select 1 from public.module_registry where key = 'owe-no'",
-          );
-          if (rows[0]) await uninstallModule(modulesDeps(c), root!, "owe-no", manifest, true);
-          await installModule(modulesDeps(c), root!, manifest);
-          await activateModule(modulesDeps(c), root!, "owe-no");
-          await c.query("COMMIT");
-        } catch (error) {
-          await c.query("ROLLBACK");
-          throw error;
-        }
-      });
+      // Never uninstall a module that was already there: it holds somebody's
+      // data. CI starts from a clean database, so there the test installs it and
+      // removes it again; on a configured instance it reuses the install.
+      const { rows: registry } = await withClient((c) =>
+        query(c, "select 1 from public.module_registry where key = 'owe-no'"),
+      );
+      installedByTest = registry.length === 0;
+      if (installedByTest) {
+        await withClient(async (c) => {
+          await c.query("BEGIN");
+          try {
+            await installModule(modulesDeps(c), root!, manifest);
+            await activateModule(modulesDeps(c), root!, "owe-no");
+            await c.query("COMMIT");
+          } catch (error) {
+            await c.query("ROLLBACK");
+            throw error;
+          }
+        });
+      }
 
       // Committed: the two overlapping transactions must see it from their own
       // connections, which a rollback transaction cannot provide.
@@ -704,7 +758,7 @@ describe("owe-no importer concurrency", () => {
               and query ilike '%pg_advisory_xact_lock%'`,
         );
         if (waiting >= 2) break;
-        await new Promise((resolve) => setTimeout(resolve, 25));
+        await new Promise((wake) => setTimeout(wake, 25));
       }
       expect(waiting).toBeGreaterThanOrEqual(2);
 
@@ -738,14 +792,8 @@ describe("owe-no importer concurrency", () => {
       await withClient(async (c) => {
         await c.query("BEGIN");
         try {
-          const { rows } = await query(
-            c,
-            "select 1 from public.module_registry where key = 'owe-no'",
-          );
-          if (rows[0] && root) {
-            await uninstallModule(modulesDeps(c), root, "owe-no", manifest, true);
-          }
           if (groupId) {
+            await deleteTestGroup(c, groupId);
             await c.query("delete from public.event_outbox where resource->>'group_id' = $1", [
               groupId,
             ]);
@@ -757,6 +805,10 @@ describe("owe-no importer concurrency", () => {
             await c.query("delete from auth.users where id = any($1::uuid[])", [
               [adminId, anaId],
             ]);
+          }
+          // Only the install this test created, never somebody's real module.
+          if (installedByTest && root) {
+            await uninstallModule(modulesDeps(c), root, "owe-no", manifest, true);
           }
           await c.query("COMMIT");
         } catch (error) {
