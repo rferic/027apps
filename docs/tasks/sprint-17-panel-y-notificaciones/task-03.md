@@ -2,11 +2,25 @@
 id: sprint-17-task-03
 titulo: Editar liquidaciones desde su propio formulario
 area: app
-estado: pendiente
-plan: pendiente (se escribe al arrancar)
+estado: test
+plan: docs/superpowers/plans/2026-11-23-sprint17-settlement-edit.md
 fuente: docs/tasks/sprint-17-panel-y-notificaciones/README.md
 adrs: [0007]
 ---
+
+**Estado (2026-11-23)**: implementada y verificada; pendiente la revisión y la auditoría.
+
+- `ManualPaymentDialog` gana modo edición (pagador, receptor, importe y fecha precargados, título
+  «Editar pago» y borrado dentro del formulario cuando corresponde) y muestra el error del store.
+- La fila de una liquidación abre ese diálogo; un gasto sigue abriendo el de gasto. La regla de
+  quién puede editar no cambia (autor o creador del grupo): si no, la fila no se abre.
+- Guardar llama a `store.updateMovement(..., kind = "settlement")` con **un** participante y el
+  importe completo; crear sigue llamando a `settleUp`. `settlementParticipants` comparte la forma
+  entre crear, editar y liquidar el plan.
+- `editPayment` en los 9 idiomas y cuarta nota del changelog 0.21.0.
+- Evidencia: `:app:testDebugUnitTest` y `:app:assembleDebug` BUILD SUCCESSFUL (incluye
+  `OweSettlementEditTest` y `AppStringsTest` con las 9 locales); `pnpm lint` 0 errores; `pnpm tsc`
+  7 áreas.
 
 **Tarea**: que tocar un pago en Actividad abra el formulario de pago con sus datos, y no el de
 gasto, que el servidor rechaza.
@@ -40,4 +54,4 @@ gasto, que el servidor rechaza.
 - Una liquidación ajena y de un grupo del que no eres creador no se puede abrir para editar.
 - `pnpm lint`, `pnpm tsc`, `./gradlew :app:testDebugUnitTest` en verde.
 
-**Plan**: pendiente.
+**Plan**: [2026-11-23-sprint17-settlement-edit](../../superpowers/plans/2026-11-23-sprint17-settlement-edit.md).

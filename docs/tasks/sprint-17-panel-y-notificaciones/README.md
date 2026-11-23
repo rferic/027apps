@@ -60,7 +60,7 @@ en el historial.
 
 Orden propuesto: **01 → 03 → 04 → 05 → 02**. La 01 primero porque es la única donde hoy se puede
 duplicar dinero; la 02 al final porque es la más grande y la única con puerta visual. El propietario
-puede cambiar el orden. **Hecho hasta ahora: 01 (finalizada) y 02 (en `test`)**; quedan 03, 04 y 05.
+puede cambiar el orden. **Hecho hasta ahora: 01 (finalizada), 02 y 03 (en `test`)**; quedan 04 y 05.
 
 ### 01 · Import atómico y candado
 
@@ -178,6 +178,16 @@ entera.
 Pendiente de la puerta del propietario: dos Android reales con FCM, silenciar un tipo en uno y
 comprobar que el otro sigue recibiéndolo. El envío real no se ha podido probar desde el entorno de
 desarrollo.
+
+## Evidencia (tarea 03, 2026-11-23)
+
+| Comprobación | Resultado |
+|---|---|
+| `:app:testDebugUnitTest` + `:app:assembleDebug` | BUILD SUCCESSFUL (`OweSettlementEditTest`, `AppStringsTest`) |
+| `pnpm lint` · `pnpm tsc` | 0 errores · 7 áreas |
+
+La edición no toca servidor ni base de datos: el `PATCH` con `kind: settlement` y un único
+receptor ya existía. Pendiente la revisión y la auditoría.
 
 ## Relación con el sprint 18
 
