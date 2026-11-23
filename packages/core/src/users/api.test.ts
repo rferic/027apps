@@ -5,7 +5,9 @@ import {
   mePatchRoute,
   meRoute,
   purgeUserRoute,
+  userListFiltersSchema,
   userModulesRoute,
+  userPatchSchema,
   usersRoute,
   type UsersRouteDeps,
 } from "./api.js";
@@ -461,5 +463,24 @@ describe("PATCH /api/v1/me", () => {
   it("answers 401 without a session", async () => {
     const { res } = patch({ display_name: "Ana" }, { kind: "anon" });
     expect((await res).status).toBe(401);
+  });
+});
+
+describe("users schemas — club fields", () => {
+  it("accepts an invitation level from 1 to 20 and null on PATCH", () => {
+    expect(userPatchSchema.safeParse({ invitation_level: 1 }).success).toBe(true);
+    expect(userPatchSchema.safeParse({ invitation_level: 20 }).success).toBe(true);
+    expect(userPatchSchema.safeParse({ invitation_level: null }).success).toBe(true);
+
+    for (const invitation_level of [0, 21, 2.5, "2"]) {
+      expect(userPatchSchema.safeParse({ invitation_level }).success).toBe(false);
+    }
+  });
+
+  it("accepts the inviter uuid as a list filter and refuses anything else", () => {
+    const inviter = "00000000-0000-4000-8000-000000000001";
+    expect(userListFiltersSchema.safeParse({ invited_by: inviter }).success).toBe(true);
+    expect(userListFiltersSchema.safeParse({}).success).toBe(true);
+    expect(userListFiltersSchema.safeParse({ invited_by: "ana" }).success).toBe(false);
   });
 });

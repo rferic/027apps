@@ -23,6 +23,11 @@
                     android:scheme="https"
                     android:host="027apps.ericrf.com"
                     android:pathPrefix="/migrate/" />
+                <!-- A member's join QR opens the app straight on /join/<code>. -->
+                <data
+                    android:scheme="https"
+                    android:host="027apps.ericrf.com"
+                    android:pathPrefix="/join/" />
             </intent-filter>
         </activity>
     </application>

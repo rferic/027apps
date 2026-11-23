@@ -73,12 +73,21 @@ El manifest (task-03 §3) declara:
 | `module.uninstalled` | `admins` | `{ key }` | — | — |
 | `invitation.created` | `admins` | `Invitation` (sin `token`) | — | — |
 | `invitation.redeemed` | `admins` | `Invitation` | `{ user_id }` | — |
+| `invitation.requested` | `admins` | `InvitationRequest` | `{ request_id, actor_name, amount, places, level, remaining }` | `["push"]` |
+| `invitation.request_resolved` | `user` (sujeto = solicitante) | `InvitationRequest` | `{ request_id, state, amount, places }` | `["push"]` |
 | `settings.updated` | `admins` | — | `{ category_key, key }` (**nunca el valor**) | — |
 
 **Reglas**:
 - `user.deactivated` se dirige a `admins` (no a `user`): la desactivación **revoca las sesiones del afectado al instante**, así que su canal sería inalcanzable; los **hooks** de los módulos son server-side y no necesitan realtime.
 - Los eventos de **negocio** los declara cada módulo en su manifest (tipo, target, subject, notify) — el Core no los conoce.
 - Un evento cuyo consumidor no exista en v1 no entra en el catálogo.
+- `invitation.requested` y `invitation.request_resolved` llevan push **data-only** con `key`
+  (`push.invitation_requested` / `push.invitation_request_resolved`), `seats` (las plazas
+  solicitadas o concedidas) y, para el segundo, `state` (`approved` | `rejected`). **Nunca** llevan
+  `amount` (la app formatea esa clave como dinero) ni el nombre del solicitante; la app compone una
+  frase localizada con el número de plazas y pide el detalle a la API al abrir (delta al sprint 18,
+  decisión R5 de la spec de invitaciones, revisada en la ronda de QA del 2026-11-22: sin la cifra la
+  notificación no decía de qué solicitud se trataba).
 
 ## 5. Publicación: outbox transaccional (at-least-once)
 

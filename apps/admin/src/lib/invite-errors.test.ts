@@ -21,11 +21,21 @@ describe("inviteErrorHeading", () => {
     ["not_found", "This invitation link is not valid."],
     ["invitation_expired", "This invitation has expired. Ask an administrator for a new one."],
     ["invitation_used", "This invitation has already been used."],
+    [
+      "existing_account",
+      "That email already has an account. Enter its current password to accept the invitation.",
+    ],
     ["conflict", "This account is deactivated. Contact an administrator."],
     ["validation_failed", "Use the email address this invitation was sent to."],
     ["rate_limited", "Too many attempts. Wait a minute and try again."],
   ])("maps %s to its own heading", (code, expected) => {
     expect(inviteErrorHeading({ ok: false, code }, {})).toBe(expected);
+  });
+
+  it("tells an anonymous invitation that another email is allowed", () => {
+    expect(inviteErrorHeading({ ok: false, code: "existing_account" }, {}, true)).toBe(
+      "That email already has an account. Enter its current password, or change the email to accept with another account.",
+    );
   });
 
   it("translates the heading with the supplied dictionary", () => {

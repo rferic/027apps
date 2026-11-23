@@ -7,7 +7,8 @@ export type SettingsSectionSlug =
   | "localization"
   | "security"
   | "notifications"
-  | "rate-limits";
+  | "rate-limits"
+  | "invitations";
 
 export interface SettingsSection {
   slug: SettingsSectionSlug;
@@ -28,6 +29,7 @@ export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
   { slug: "security", categoryKey: "security", label: "Security", minRole: "super_admin" },
   { slug: "notifications", categoryKey: "notifications", label: "Notifications", minRole: "admin" },
   { slug: "rate-limits", categoryKey: "rate_limit", label: "Rate limits", minRole: "admin" },
+  { slug: "invitations", categoryKey: "invitations", label: "Invitations", minRole: "admin" },
 ];
 
 export function settingsSectionBySlug(slug: string): SettingsSection | undefined {
@@ -69,5 +71,7 @@ export function settingsSectionLabel(
       return t("Notifications", messages);
     case "rate-limits":
       return t("Rate limits", messages);
+    case "invitations":
+      return t("Invitations", messages);
   }
 }

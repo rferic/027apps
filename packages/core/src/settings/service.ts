@@ -31,6 +31,12 @@ export interface SettingsDeps {
   currencies: { isEnabled(code: string, client?: QueryClient): Promise<boolean> };
   /** For the degraded log line; receives messages without secret values. */
   logger?: (message: string) => void;
+  /**
+   * Extra reasons a deployment knows about and the catalog cannot see (a
+   * configured integration that cannot be built). Optional so tests and other
+   * hosts keep working unchanged.
+   */
+  extraDegradedReasons?: () => Promise<string[]>;
 }
 
 export type SettingView = {
@@ -329,6 +335,13 @@ export async function computeHealth(deps: SettingsDeps): Promise<HealthStatus> {
     const secretConfigured = await isSecretConfigured(deps, 'notifications.push.fcm_service_account');
     if (secretConfigured && !deps.encryption) {
       reasons.push('encryption_key_missing');
+    }
+  }
+  if (deps.extraDegradedReasons) {
+    try {
+      reasons.push(...(await deps.extraDegradedReasons()));
+    } catch {
+      reasons.push('extra_health_check_failed');
     }
   }
   return { status: reasons.length === 0 ? 'ok' : 'degraded', degradedReasons: reasons };

@@ -41,18 +41,12 @@ class OweWidgetWorker(
             api = ApiClient(
                 baseUrl = instanceStore.current(),
                 engine = OkHttp.create(),
+                protectionBypass = BuildConfig.VERCEL_PROTECTION_BYPASS,
                 token = { supabase?.auth?.currentSessionOrNull()?.accessToken },
-                refresh = {
-                    val auth = supabase
-                    if (auth == null) {
-                        com.rferic.zero27apps.data.RefreshResult.NoSession
-                    } else {
-                        runCatching { auth.auth.refreshCurrentSession() }.fold(
-                            onSuccess = { com.rferic.zero27apps.data.RefreshResult.Refreshed },
-                            onFailure = { com.rferic.zero27apps.auth.refreshOutcome(it) },
-                        )
-                    }
-                },
+                // The widget is a spectator: it never refreshes (that rotates
+                // the token the app is using) and never deletes the session. A
+                // 401 only blanks the snapshot until the next run.
+                refresh = { com.rferic.zero27apps.data.RefreshResult.NoSession },
             )
             val instance = api.instance()
             val auth = instance.auth ?: return finish(context, store, WidgetSnapshot())
@@ -121,7 +115,8 @@ class OweWidgetWorker(
             // A revoked session is not a network blip: the widget must stop
             // showing the balances of an account that was expelled.
             if (error.status == 401 || error.code == "unauthorized") {
-                sessionStore.clear()
+                // Blank the widget, keep the session: signing out is the app's
+                // decision, never the widget's.
                 return finish(context, store, WidgetSnapshot())
             }
             // Anything else keeps the previous snapshot: a network blip must

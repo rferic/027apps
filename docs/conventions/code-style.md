@@ -153,6 +153,13 @@ Los formularios y diálogos del admin siguen **un único patrón**; no se improv
   y `aria-invalid`, y acciones a la derecha con `min-h-11`.
 - **Controles**: los campos usan las primitivas del DS (`ui/select.tsx`, `ui/button.tsx`, etc.); nada de
   `<select>` con clases sueltas ni de repetir el estilo del control en cada pantalla.
+- **Campos numéricos**: el estado es el **texto** que escribe la persona, nunca un número convertido en
+  cada tecla. Borrar el contenido debe dejarlo vacío: si se coerciona a `0`, el siguiente dígito se
+  concatena y el campo muestra `01` (y se enviaría 0). El número se calcula al enviar, el campo usa
+  `type="text" inputMode="numeric" pattern="[0-9]*"` y la acción se deshabilita mientras no sea válido.
+  Implementaciones de referencia: `invitation-request-actions.tsx`, `invitation-levels-editor.tsx`,
+  `api-key-expiry-field.tsx` y `member-invitation-panel.tsx`. El e2e `apps/admin/e2e/requests.spec.ts`
+  vacía el campo de la aprobación y comprueba que sigue vacío.
 - **Multiselección**: usa `ui/multi-select.tsx` (combobox con chips, buscador y navegación por teclado)
   en vez de reimplementar una lista de checkboxes. `<fieldset>`/`<legend>` queda para grupos pequeños
   sin búsqueda.

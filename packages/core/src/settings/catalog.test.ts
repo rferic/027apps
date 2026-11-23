@@ -1,5 +1,94 @@
 import { describe, expect, it } from 'vitest';
-import { SETTINGS_CATALOG } from './catalog';
+import { CATALOG_DEFAULTS, SETTINGS_CATALOG, SETTINGS_CATEGORIES } from './catalog';
+
+describe('catalog shape', () => {
+  it('registers the 6 categories', () => {
+    expect(SETTINGS_CATEGORIES).toHaveLength(6);
+    expect(SETTINGS_CATEGORIES.map((category) => category.categoryKey)).toContain('invitations');
+  });
+
+  it('registers the 21 canonical keys', () => {
+    expect(SETTINGS_CATALOG).toHaveLength(21);
+  });
+
+  it('defaults the member link to 48 hours', () => {
+    expect(CATALOG_DEFAULTS['invitations.member_ttl_hours']).toBe(48);
+  });
+
+  it('seeds the club levels as an admin invitee starts at level 1', () => {
+    expect(CATALOG_DEFAULTS['invitations.levels']).toEqual([
+      { level: 1, quota: 5 },
+      { level: 2, quota: 2 },
+      { level: 3, quota: 1 },
+    ]);
+  });
+});
+
+describe('invitations.levels schema validation', () => {
+  const levelsSetting = SETTINGS_CATALOG.find((s) => s.key === 'invitations.levels');
+  if (!levelsSetting) {
+    throw new Error('invitations.levels setting not found in catalog');
+  }
+
+  const schema = levelsSetting.schema;
+
+  describe('accepts', () => {
+    it('the seeded three levels', () => {
+      expect(
+        schema.safeParse([
+          { level: 1, quota: 5 },
+          { level: 2, quota: 2 },
+          { level: 3, quota: 1 },
+        ]).success,
+      ).toBe(true);
+    });
+
+    it('an empty array (only administrators invite)', () => {
+      expect(schema.safeParse([]).success).toBe(true);
+    });
+
+    it('a level with quota 0', () => {
+      expect(schema.safeParse([{ level: 1, quota: 0 }]).success).toBe(true);
+    });
+  });
+
+  describe('rejects', () => {
+    it('a gap in the sequence', () => {
+      expect(
+        schema.safeParse([
+          { level: 1, quota: 5 },
+          { level: 3, quota: 1 },
+        ]).success,
+      ).toBe(false);
+    });
+
+    it('a repeated level', () => {
+      expect(
+        schema.safeParse([
+          { level: 1, quota: 5 },
+          { level: 1, quota: 2 },
+        ]).success,
+      ).toBe(false);
+    });
+
+    it('an unknown key', () => {
+      expect(schema.safeParse([{ level: 1, quota: 5, name: 'x' }]).success).toBe(false);
+    });
+
+    it('a quota above 100 or below 0', () => {
+      expect(schema.safeParse([{ level: 1, quota: 101 }]).success).toBe(false);
+      expect(schema.safeParse([{ level: 1, quota: -1 }]).success).toBe(false);
+    });
+
+    it('more than 20 levels', () => {
+      const rows = Array.from({ length: 21 }, (_, index) => ({
+        level: index + 1,
+        quota: 1,
+      }));
+      expect(schema.safeParse(rows).success).toBe(false);
+    });
+  });
+});
 
 describe('public_url schema validation', () => {
   const publicUrlSetting = SETTINGS_CATALOG.find((s) => s.key === 'instance.public_url');

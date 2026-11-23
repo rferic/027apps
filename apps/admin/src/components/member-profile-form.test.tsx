@@ -16,6 +16,7 @@ const MEMBER = {
   locale: "es",
   timezone: "Europe/Madrid",
   role: "user" as const,
+  invitation_level: 1,
   created_at: "2026-11-01T10:00:00.000Z",
   deactivated_at: null,
   categories: [],

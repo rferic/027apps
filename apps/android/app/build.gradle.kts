@@ -28,8 +28,8 @@ android {
         targetSdk = 37
         // major*10000 + minor*100 + patch; the Core derives the same number from
         // the release tag, so the updater compares plain integers.
-        versionCode = 1900
-        versionName = "0.19.0"
+        versionCode = 2000
+        versionName = "0.20.0"
         resValue("string", "app_name", "027Apps")
 
         // The shell opens against one instance without asking for a URL; a
@@ -39,6 +39,17 @@ android {
             .orElse("https://027apps.ericrf.com")
             .get()
         buildConfigField("String", "DEFAULT_INSTANCE_URL", "\"$defaultInstance\"")
+
+        // Debug-only convenience: the Vercel "Protection Bypass for Automation"
+        // token that lets the develop build reach the protected staging
+        // deployment. Never committed; pass it per build:
+        //   ./gradlew :app:assembleDebug -PvercelProtectionBypass=<token>
+        // or as VERCEL_PROTECTION_BYPASS in the environment.
+        val vercelBypass = providers.gradleProperty("vercelProtectionBypass")
+            .orElse(providers.environmentVariable("VERCEL_PROTECTION_BYPASS"))
+            .orElse("")
+            .get()
+        buildConfigField("String", "VERCEL_PROTECTION_BYPASS", "\"$vercelBypass\"")
     }
 
     if (releaseSigningEnabled) {

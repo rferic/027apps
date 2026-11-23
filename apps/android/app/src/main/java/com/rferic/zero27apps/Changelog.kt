@@ -21,6 +21,57 @@ object Changelog {
 
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.20.0",
+            date = "2026-11-19",
+            notes = mapOf(
+                "es" to listOf(
+                    "Invita desde la app: ve tu cuota, enseña un QR que se renueva solo o copia un enlace, y pide plazas al administrador si se te acaban.",
+                    "Los administradores ven las solicitudes pendientes en la app y las gestionan en el panel.",
+                    "Una notificación avisa al administrador de cada solicitud de plazas y a ti de la decisión; al escanear el QR de un socio, la invitación se abre en la app.",
+                ),
+                "en" to listOf(
+                    "Invite from the app: see your quota, show a self-renewing QR or copy a link, and ask the administrator for seats when you run out.",
+                    "Administrators see the pending requests in the app and manage them in the panel.",
+                    "A push tells an administrator about a new seat request and the member about the decision; scanning a join QR opens the invitation in the app.",
+                ),
+                "ca" to listOf(
+                    "Convida des de l'app: mira la teva quota, ensenya un QR que es renova sol o copia un enllaç i demana places a l'administrador si se t'acaben.",
+                    "Els administradors veuen les sol·licituds pendents a l'app i les gestionen al panell.",
+                    "Una notificació avisa l'administrador de cada sol·licitud de places i a tu de la decisió; en escanejar el QR d'un soci, la invitació s'obre a l'app.",
+                ),
+                "gl" to listOf(
+                    "Convida desde a app: mira a túa cota, ensina un QR que se renova só ou copia unha ligazón e pide prazas ao administrador se se che acaban.",
+                    "Os administradores ven as solicitudes pendentes na app e xestiónanas no panel.",
+                    "Unha notificación avisa ao administrador de cada solicitude de prazas e a ti da decisión; ao escanear o QR dun socio, a invitación ábrese na app.",
+                ),
+                "eu" to listOf(
+                    "Gonbidatu appetik: ikusi zure kuota, erakutsi bere kabuz berritzen den QR-a edo kopiatu esteka bat, eta eskatu tokiak administratzaileari agortzen zaizkizunean.",
+                    "Administratzaileek eskaera zainak ikusten dituzte appean eta panelean kudeatzen dituzte.",
+                    "Jakinarazpen batek administratzaileari abisatzen dio plaza-eskaera bakoitzaz eta zuri erabakiaz; bazkide baten QR-a eskaneatuta, gonbidapena appean irekitzen da.",
+                ),
+                "pt" to listOf(
+                    "Convida a partir da app: vê a tua quota, mostra um QR que se renova sozinho ou copia uma ligação e pede lugares ao administrador quando se esgotarem.",
+                    "Os administradores veem os pedidos pendentes na app e gerem-nos no painel.",
+                    "Uma notificação avisa o administrador de cada pedido de lugares e a ti da decisão; ao digitalizar o QR de um sócio, o convite abre-se na app.",
+                ),
+                "fr" to listOf(
+                    "Invitez depuis l'app : voyez votre quota, montrez un QR qui se renouvelle seul ou copiez un lien, et demandez des places à l'administrateur quand vous n'en avez plus.",
+                    "Les administrateurs voient les demandes en attente dans l'app et les gèrent dans le panneau.",
+                    "Une notification prévient l'administrateur de chaque demande de places et vous de la décision ; en scannant le QR d'un membre, l'invitation s'ouvre dans l'app.",
+                ),
+                "it" to listOf(
+                    "Invita dall'app: guarda la tua quota, mostra un QR che si rinnova da solo o copia un link e chiedi posti all'amministratore quando finiscono.",
+                    "Gli amministratori vedono le richieste in sospeso nell'app e le gestiscono nel pannello.",
+                    "Una notifica avvisa l'amministratore di ogni richiesta di posti e te della decisione; scansionando il QR di un socio, l'invito si apre nell'app.",
+                ),
+                "de" to listOf(
+                    "Lade direkt aus der App ein: sieh dein Kontingent, zeige einen QR, der sich selbst erneuert, oder kopiere einen Link und bitte den Administrator um Plätze, wenn sie ausgehen.",
+                    "Administratoren sehen die ausstehenden Anfragen in der App und verwalten sie im Panel.",
+                    "Eine Benachrichtigung meldet dem Administrator jede Platzanfrage und dir die Entscheidung; scannt man den QR eines Mitglieds, öffnet sich die Einladung in der App.",
+                ),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.19.0",
             date = "2026-11-17",
             notes = mapOf(

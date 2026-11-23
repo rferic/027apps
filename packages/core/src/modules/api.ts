@@ -48,6 +48,8 @@ export const moduleUpdateSchema = z
   .object({
     is_public: z.boolean().optional(),
     mcp_exposed: z.enum(["none", "read", "read_write"]).optional(),
+    /** A private module is inherited by member invitees only when this is set. */
+    delegable: z.boolean().optional(),
   })
   .strict();
 export const moduleSettingSchema = z.object({ key: z.string().trim().min(1).max(200), value: z.unknown() }).strict();
@@ -140,7 +142,11 @@ export function updateModuleRoute(deps: ModulesRouteDeps) {
           deps.modules,
           ctx.caller,
           moduleKey(rawKey),
-          ctx.body as { is_public?: boolean; mcp_exposed?: "none" | "read" | "read_write" },
+          ctx.body as {
+            is_public?: boolean;
+            mcp_exposed?: "none" | "read" | "read_write";
+            delegable?: boolean;
+          },
         ),
       }),
     );

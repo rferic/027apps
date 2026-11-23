@@ -351,4 +351,33 @@ describe("SettingsForm", () => {
     expect(html).toContain("Request ID");
     expect(html).toContain("req-coherence");
   });
+
+  it("renders the levels editor instead of a textarea for invitations.levels", () => {
+    const html = renderToStaticMarkup(
+      <SettingField
+        setting={{
+          ...NAME,
+          key: "invitations.levels",
+          category: "invitations",
+          label: "Invitation levels",
+          help: "JSON array of {level, quota}; level 1 is an admin invitee.",
+          type: "json",
+          value: [
+            { level: 1, quota: 5 },
+            { level: 2, quota: 2 },
+          ],
+        }}
+        draft={{ "invitations.levels": '[{"level":1,"quota":5},{"level":2,"quota":2}]' }}
+        onChange={() => {}}
+        error={null}
+        messages={{}}
+      />,
+    );
+
+    // The quota input is a numeric text field so a cleared draft never reads
+    // back as 0; `type="number"` would fight the local draft.
+    expect(html).toContain('pattern="[0-9]*"');
+    expect(html).toContain("Add level");
+    expect(html).not.toContain("<textarea");
+  });
 });

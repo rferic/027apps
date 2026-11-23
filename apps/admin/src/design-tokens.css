@@ -17,6 +17,7 @@
   --destructive-foreground: #ffffff;
   --success: #15803d;
   --success-subtle: rgba(34, 197, 94, 0.12);
+  --warning: #b93815;
   /* Android's own green, for the app download action. */
   --android: #3ddc84;
   --android-foreground: #073042;
@@ -45,6 +46,7 @@
     --destructive-foreground: #2a0a10;
     --success: #4ade80;
     --success-subtle: rgba(74, 222, 128, 0.12);
+    --warning: #ff8a5c;
     --android: #3ddc84;
     --android-foreground: #073042;
   }
@@ -69,6 +71,7 @@
   --destructive-foreground: #2a0a10;
   --success: #4ade80;
   --success-subtle: rgba(74, 222, 128, 0.12);
+  --warning: #ff8a5c;
   --android: #3ddc84;
   --android-foreground: #073042;
 }

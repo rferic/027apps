@@ -26,6 +26,8 @@ export interface ModuleDetail {
   version: string;
   state: ModuleState;
   is_public: boolean;
+  /** A private module is inherited by member invitees only when this is set. */
+  delegable: boolean;
   mcp_exposed: ModuleMcpExposure;
   manifest_digest: string;
   installed_at: string;
@@ -179,11 +181,12 @@ function readModuleDetail(value: unknown): ModuleDetail | null {
   const version = readString(value.version);
   const state = readState(value.state);
   const mcpExposed = readExposure(value.mcp_exposed);
+  const delegable = readBoolean(value.delegable);
   if (!present(key) || !present(name) || !present(version)) return null;
-  if (!present(state) || !present(mcpExposed)) return null;
+  if (!present(state) || !present(mcpExposed) || !present(delegable)) return null;
   const audit = readModuleAudit(value);
   if (!audit) return null;
-  return { key, name, version, state, mcp_exposed: mcpExposed, ...audit };
+  return { key, name, version, state, delegable, mcp_exposed: mcpExposed, ...audit };
 }
 
 type ModuleSettingRest = Pick<

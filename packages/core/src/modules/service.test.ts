@@ -5,6 +5,7 @@ import {
   getModule,
   listModuleGrants,
   uninstallModule,
+  updateModule,
   type ModuleGrantCategory,
   type ModuleGrantUser,
   type ModulesDeps,
@@ -170,6 +171,67 @@ describe("manifest_digest", () => {
 
     expect(module.manifest_digest).toBe("sha256:abc");
     expect(queries[0]!.sql).toContain("manifest_digest");
+  });
+});
+
+describe("updateModule", () => {
+  function updateDeps(input: {
+    returning?: Record<string, unknown> | null;
+  }): { deps: ModulesDeps; queries: RecordedQuery[] } {
+    const queries: RecordedQuery[] = [];
+    const db: QueryClient = {
+      async query(sql: string, params: unknown[] = []) {
+        queries.push({ sql, params });
+        return {
+          rows: input.returning === undefined ? [] : input.returning === null ? [] : [input.returning],
+        };
+      },
+    };
+    return { deps: { db }, queries };
+  }
+
+  const UPDATED = {
+    key: "expenses",
+    name: "Expenses",
+    version: "1.0.0",
+    state: "active",
+    is_public: false,
+    delegable: true,
+    mcp_exposed: "read",
+    manifest_digest: "sha256:abc",
+    installed_at: "2026-01-01T00:00:00.000Z",
+    updated_at: "2026-01-01T00:00:00.000Z",
+  };
+
+  it("marks a private module delegable in the same update as visibility", async () => {
+    const { deps, queries } = updateDeps({ returning: UPDATED });
+
+    const module = await updateModule(deps, admin, "expenses", { delegable: true });
+
+    expect(module.delegable).toBe(true);
+    const update = queries.find((query) => query.sql.includes("update public.module_registry"));
+    expect(update?.sql).toContain("delegable = $1");
+    expect(update?.params).toEqual([true, "expenses"]);
+  });
+
+  it("only writes the fields the caller sends", async () => {
+    const { deps, queries } = updateDeps({ returning: UPDATED });
+
+    await updateModule(deps, admin, "expenses", { is_public: true });
+
+    const update = queries.find((query) => query.sql.includes("update public.module_registry"));
+    expect(update?.sql).toContain("is_public = $1");
+    expect(update?.sql).not.toContain("delegable =");
+    expect(update?.params).toEqual([true, "expenses"]);
+  });
+
+  it("refuses a non-administrator", async () => {
+    const { deps, queries } = updateDeps({ returning: UPDATED });
+
+    await expect(updateModule(deps, plainUser, "expenses", { delegable: true })).rejects.toMatchObject({
+      code: "insufficient_scope",
+    });
+    expect(queries).toHaveLength(0);
   });
 });
 

@@ -7,5 +7,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    // Playwright specs live in e2e/ and run with `pnpm qa:web`, not here.
+    exclude: ["**/node_modules/**", "**/e2e/**"],
   },
 });

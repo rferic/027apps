@@ -62,6 +62,8 @@ export type ModuleView = {
   version: string;
   state: ModuleState;
   is_public: boolean;
+  /** A private module is inherited by member invitees only when this is set. */
+  delegable: boolean;
   mcp_exposed: "none" | "read" | "read_write";
   manifest_digest: string;
   installed_at: string;
@@ -163,6 +165,7 @@ function toModuleView(
     version: String(row.version),
     state: String(row.state) as ModuleState,
     is_public: row.is_public === true,
+    delegable: row.delegable === true,
     mcp_exposed: String(row.mcp_exposed) as ModuleView["mcp_exposed"],
     manifest_digest: String(row.manifest_digest ?? ""),
     installed_at: toIso(row.installed_at),
@@ -191,7 +194,7 @@ function toSettingView(row: Record<string, unknown>): ModuleSettingView {
 }
 
 const MODULE_COLUMNS =
-  "key, name, version, state, is_public, mcp_exposed, manifest_digest, installed_at, updated_at, app_actions, demo";
+  "key, name, version, state, is_public, delegable, mcp_exposed, manifest_digest, installed_at, updated_at, app_actions, demo";
 
 const BRANDING_COLOR = /^[a-z]{3,20}$/;
 
@@ -951,7 +954,11 @@ export async function updateModule(
   deps: ModulesDeps,
   caller: Caller,
   key: string,
-  input: { is_public?: boolean; mcp_exposed?: "none" | "read" | "read_write" },
+  input: {
+    is_public?: boolean;
+    mcp_exposed?: "none" | "read" | "read_write";
+    delegable?: boolean;
+  },
 ): Promise<ModuleView> {
   if (!isAdmin(caller)) throw new DomainError("insufficient_scope");
   if (input.mcp_exposed === "read_write" && !isSuperAdmin(caller)) {
@@ -966,6 +973,10 @@ export async function updateModule(
   if (input.mcp_exposed !== undefined) {
     params.push(input.mcp_exposed);
     sets.push(`mcp_exposed = $${params.length}`);
+  }
+  if (input.delegable !== undefined) {
+    params.push(input.delegable);
+    sets.push(`delegable = $${params.length}`);
   }
   if (sets.length === 0) return toModuleView(await getModuleRow(deps.db, key));
   params.push(key);

@@ -23,6 +23,51 @@ verdad), no contra mocks. Un test unitario en verde no demuestra que la página 
 
 Los puntos 1, 5 y 6 los automatiza el script; el resto es manual y se pega igual.
 
+## 1.b Flujos de invitaciones (club)
+
+Dos scripts cubren lo que más se rompe y lo que el propietario no debe descubrir:
+
+```bash
+pnpm qa:invitations          # API real: enlace, canje nuevo, email existente, rotar, revocar, QR
+pnpm qa:web                  # navegador real: página de invitación y pantallas del panel
+pnpm qa:android              # la app real en el emulador/móvil conectado
+pnpm qa:push                 # push: evento encolado y despachado (local o staging)
+```
+
+- **`scripts/qa-invitations.sh`** levanta una sesión de verdad contra el panel local y recorre el
+  ciclo completo por HTTP: acuñar y listar, preview anónimo, canje con cuenta nueva (perfil, nivel,
+  plaza), canje con email ya registrado (debe ser **409** y la invitación sigue pendiente), aceptación
+  confirmada con esa cuenta (sin duplicado y sin gastar plaza), reacuñar el enlace (el viejo muere),
+  revocar (la plaza vuelve), QR (preview, canje único), el **ciclo de solicitudes** (pedir sin
+  plazas, una segunda pendiente rechazada, quien tiene plazas no puede pedir, el administrador la
+  ve, aprueba con importe, la cuota sube y ya puede invitar, rechazo con motivo y volver a pedir) y
+  el presupuesto de creación tras 15 lecturas. Comprueba además los eventos
+  `invitation.requested` (push a administradores) y `invitation.request_resolved` (push al
+  miembro). Limpia sus `qa-invite-*@test.local` al terminar.
+- **`pnpm qa:web`** (Playwright, `apps/admin/e2e`) abre la página de invitación en un navegador de
+  verdad: canje con cuenta nueva hasta `/welcome`, email ya registrado que se para y pide la
+  contraseña de esa cuenta, y enlace inexistente con su mensaje. En el panel inicia sesión, lista
+  miembros, guarda un nivel, **aprueba una solicitud de plazas** con su importe (el miembro sin
+  plazas la crea en el setup y se comprueba la concesión en su ficha) y comprueba que **el contador
+  de solicitudes del panel aparece sin recargar** cuando llega una nueva (el badge encuestado). Crea sus cuentas
+  `qa-e2e-*@test.local`, las borra al terminar y restaura los niveles que ajusta.
+- **`pnpm qa:push`** levanta el pipeline de notificaciones hasta el outbox: crea la solicitud y la
+  aprobación, comprueba que los eventos `invitation.requested` (a administradores) y
+  `invitation.request_resolved` (al miembro) existen, que salen **solo por push**, que el
+  despachador los toma y publica o con qué error, y cuántos dispositivos activos hay. **No** prueba
+  la entrega a un móvil: eso necesita el APK release con `google-services.json` en un dispositivo
+  real. En local no hay tokens (el build debug no registra), así que el aviso de 0 dispositivos es
+  esperado; en staging se ejecuta con `BASE_URL`, `SUPABASE_*`, `SUPABASE_DB_URL` y las credenciales
+  `QA_PUSH_*` de cuentas existentes.
+- **`scripts/e2e-android-invite.sh`** instala el APK debug y conduce la app con `adb`: comprueba que
+  el enlace pinta el formulario, que un email registrado **no** entra y deja la invitación pendiente,
+  que un email nuevo canjea desde la app con su nombre, nivel e invitador, y que **sin plazas el
+  miembro pide y la solicitud queda en revisión** (el panel la recibe como pendiente). Usa
+  `adb reverse` para el panel, así no depende de cómo escuche el dev server; necesita un
+  emulador/móvil conectado.
+
+Los dos deben estar en verde **antes** de decirle al propietario que pruebe algo del club.
+
 ## 2. `scripts/verify-local.sh`
 
 ```bash

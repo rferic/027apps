@@ -62,6 +62,36 @@ describe('checkRateLimit', () => {
     expect(next.count).toBe(1);
   });
 
+  it('spans a full hour so a request minutes later shares the same window', async () => {
+    const { storage, calls } = createFakeStorage();
+    const hourly = { limit: 3, windowSeconds: 3600 } as const;
+
+    const first = await checkRateLimit(storage, 'user:a', hourly, new Date('2026-11-01T12:00:10.000Z'));
+    const later = await checkRateLimit(storage, 'user:a', hourly, new Date('2026-11-01T12:59:50.000Z'));
+
+    expect(calls[0].windowStart.toISOString()).toBe('2026-11-01T12:00:00.000Z');
+    expect(calls[1].windowStart.toISOString()).toBe('2026-11-01T12:00:00.000Z');
+    expect(calls[1].expiresAt.toISOString()).toBe('2026-11-01T13:00:00.000Z');
+    expect(first.count).toBe(1);
+    expect(later.count).toBe(2);
+  });
+
+  it('blocks a request above the limit within the same hour, not a new minute', async () => {
+    const { storage } = createFakeStorage();
+    const hourly = { limit: 3, windowSeconds: 3600 } as const;
+
+    const a = await checkRateLimit(storage, 'user:a', hourly, new Date('2026-11-01T12:00:10.000Z'));
+    const b = await checkRateLimit(storage, 'user:a', hourly, new Date('2026-11-01T12:20:10.000Z'));
+    const c = await checkRateLimit(storage, 'user:a', hourly, new Date('2026-11-01T12:40:10.000Z'));
+    const d = await checkRateLimit(storage, 'user:a', hourly, new Date('2026-11-01T12:50:10.000Z'));
+
+    expect(a.allowed).toBe(true);
+    expect(b.allowed).toBe(true);
+    expect(c.allowed).toBe(true);
+    // A minute window would have reset by now; the hourly window still holds.
+    expect(d.allowed).toBe(false);
+  });
+
   it('allows up to the limit and blocks the request above it', async () => {
     const { storage } = createFakeStorage();
     const now = new Date('2026-11-01T12:00:10.000Z');

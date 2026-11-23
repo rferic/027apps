@@ -6,5 +6,7 @@ export type SubmitInvitationResult =
       role: "super_admin" | "admin" | "user";
       /** The account was redeemed but the automatic sign-in failed. */
       signInFailed?: boolean;
+      /** The invitation was applied to an account that already existed. */
+      existingAccount?: true;
     }
   | { ok: false; code: string };

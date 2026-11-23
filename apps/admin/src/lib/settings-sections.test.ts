@@ -16,9 +16,11 @@ describe("settings sections", () => {
     expect(settingsSectionByCategory("security")?.slug).toBe("security");
     expect(settingsSectionByCategory("notifications")?.slug).toBe("notifications");
     expect(settingsSectionByCategory("rate_limit")?.slug).toBe("rate-limits");
+    expect(settingsSectionByCategory("invitations")?.slug).toBe("invitations");
     expect(settingsSectionBySlug("rate-limits")?.categoryKey).toBe("rate_limit");
+    expect(settingsSectionBySlug("invitations")?.categoryKey).toBe("invitations");
     expect(settingsSectionBySlug("rate_limit")).toBeUndefined();
-    expect(SETTINGS_SECTIONS).toHaveLength(5);
+    expect(SETTINGS_SECTIONS).toHaveLength(6);
   });
 
   it("hides security from an admin in the menu and the route guard", () => {
@@ -30,6 +32,7 @@ describe("settings sections", () => {
       "localization",
       "notifications",
       "rate-limits",
+      "invitations",
     ]);
     expect(visibleSettingsSections(root).map((section) => section.slug)).toEqual([
       "instance",
@@ -37,6 +40,7 @@ describe("settings sections", () => {
       "security",
       "notifications",
       "rate-limits",
+      "invitations",
     ]);
     expect(canSeeSettingsSection(admin, settingsSectionBySlug("security")!)).toBe(false);
     expect(canSeeSettingsSection(root, settingsSectionBySlug("security")!)).toBe(true);

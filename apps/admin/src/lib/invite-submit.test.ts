@@ -61,6 +61,67 @@ describe("submitInvite", () => {
     );
 
     expect(outcome).toEqual({ kind: "redeemed", role: "user" });
-    expect(submit).toHaveBeenCalledWith({ token: VALID.token, password: "old-pass" });
+    // The existing account is confirmed on the retry, never assumed.
+    expect(submit).toHaveBeenCalledWith({
+      token: VALID.token,
+      password: "old-pass",
+      accountExists: true,
+    });
+  });
+
+  it("collects the name and email on an anonymous invitation", async () => {
+    const submit = vi.fn(async () => ({ ok: true as const, role: "user" as const }));
+
+    const outcome = await submitInvite(
+      {
+        token: VALID.token,
+        password: VALID.password,
+        confirmation: VALID.confirmation,
+        name: "Invitada",
+        email: "invitee@example.com",
+        requiresIdentity: true,
+      },
+      { submit },
+    );
+
+    expect(outcome).toEqual({ kind: "redeemed", role: "user" });
+    expect(submit).toHaveBeenCalledWith({
+      token: VALID.token,
+      password: VALID.password,
+      name: "Invitada",
+      email: "invitee@example.com",
+    });
+  });
+
+  it("carries the existing-account notice to the welcome page", async () => {
+    const submit = vi.fn(async () => ({
+      ok: true as const,
+      role: "user" as const,
+      existingAccount: true as const,
+    }));
+
+    const outcome = await submitInvite(VALID, { submit });
+
+    expect(outcome).toEqual({ kind: "redeemed", role: "user", existingAccount: true });
+  });
+
+  it("requires the name and email on an anonymous invitation", async () => {
+    const submit = vi.fn();
+
+    const outcome = await submitInvite(
+      {
+        token: VALID.token,
+        password: VALID.password,
+        confirmation: VALID.confirmation,
+        requiresIdentity: true,
+      },
+      { submit },
+    );
+
+    expect(outcome).toEqual({
+      kind: "invalid",
+      fieldErrors: { name: "name_required", email: "email_required" },
+    });
+    expect(submit).not.toHaveBeenCalled();
   });
 });

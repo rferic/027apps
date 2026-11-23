@@ -29,3 +29,11 @@ private/
 
 # Dumps de la base local (scripts/db-local-backup.sh): recuperables, no se comparten.
 .local/
+
+# Playwright (qa:web): fixtures and reports are per-run.
+apps/admin/e2e/.fixtures.json
+apps/admin/playwright-report/
+apps/admin/test-results/
+
+# APK de pruebas servido por LAN para instalar el build de staging en un móvil.
+/app-debug.apk

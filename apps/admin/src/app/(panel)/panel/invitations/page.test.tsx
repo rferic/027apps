@@ -49,12 +49,15 @@ const PENDING = {
   id: "i1",
   email: "ana@example.com",
   name: "Ana",
+  source: "admin" as const,
   user_category_id: "c1",
   modules: ["expenses"],
   status: "pending" as const,
   expires_at: "2026-12-01T00:00:00.000Z",
   used_at: null,
   revoked_at: null,
+  created_by: { id: "u1", display_name: "Sara" },
+  redeemed_by: null,
   created_at: "2026-11-01T00:00:00.000Z",
 };
 
@@ -63,10 +66,12 @@ const USED = {
   id: "i2",
   email: "luis@example.com",
   name: "Luis",
+  source: "member" as const,
   user_category_id: null,
   modules: [],
   status: "used" as const,
   used_at: "2026-11-02T00:00:00.000Z",
+  created_by: { id: "u2", display_name: "Ana" },
 };
 
 beforeEach(() => {
@@ -130,6 +135,33 @@ describe("InvitationsPage", () => {
     const html = renderToStaticMarkup(await InvitationsPage());
 
     expect(html).toContain(">Pending<");
+  });
+
+  it("shows the source and the inviter for every invitation", async () => {
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING, USED], total: 2 });
+
+    const html = renderToStaticMarkup(await InvitationsPage());
+
+    expect(html).toContain("Source");
+    expect(html).toContain("Invited by");
+    expect(html).toContain(">Admin</span>");
+    expect(html).toContain(">Member</span>");
+    expect(html).toContain("Sara");
+  });
+
+  it("labels an anonymous invitation with no email or name", async () => {
+    loadInvitationsMock.mockResolvedValue({
+      ok: true,
+      invitations: [
+        { ...PENDING, email: null, name: null, anonymous: true, source: "qr" as const },
+      ],
+      total: 1,
+    });
+
+    const html = renderToStaticMarkup(await InvitationsPage());
+
+    expect(html).toContain("Anonymous · not filled");
+    expect(html).toContain(">QR</span>");
   });
 
   it("links every row and every card to the invitation detail", async () => {

@@ -58,6 +58,7 @@ fun HomeScreen(
     onInstallUpdate: () -> Unit,
     onOpenModule: (String) -> Unit = {},
     onAddExpense: () -> Unit = {},
+    clubCard: @Composable () -> Unit = {},
 ) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
@@ -95,6 +96,8 @@ fun HomeScreen(
         )
 
         UpdateBanner(update, onInstallUpdate)
+
+        clubCard()
 
         when {
             // A module that contributes a widget takes the home; the modules

@@ -9,6 +9,7 @@ import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.FirebaseMessaging
 import com.rferic.zero27apps.auth.EncryptedStringStore
 import com.rferic.zero27apps.auth.KeystoreSecretCipher
+import com.rferic.zero27apps.data.vercelProtectionBypass
 import com.rferic.zero27apps.prefs.PrefsStringStore
 import java.net.HttpURLConnection
 import java.net.URL
@@ -75,6 +76,22 @@ class FcmRegistrar(private val context: Context) {
      */
     /** The server device id of this install, when push registration succeeded. */
     fun deviceId(): String? = prefs.getString("device_id", null)
+
+    /**
+     * Deletes the FCM token and forgets this install's device, without a server
+     * call. Sign-out revokes the server side through the API client, which
+     * refreshes a stale session token; the raw call here answered 401 and the
+     * device stayed active.
+     */
+    fun forgetLocalDevice() {
+        runCatching {
+            if (FirebaseApp.getApps(context).isNotEmpty()) {
+                FirebaseMessaging.getInstance().deleteToken()
+            }
+        }.onFailure { Log.w(TAG, "Could not delete the FCM token", it) }
+        prefs.edit().remove("push_token").remove("device_id").remove("instance_url").apply()
+        clear()
+    }
 
     /**
      * `accessToken` is the live Supabase token: the one kept from `configure`
@@ -174,6 +191,11 @@ class FcmRegistrar(private val context: Context) {
             connection.connectTimeout = 10_000
             connection.readTimeout = 10_000
             connection.setRequestProperty("Authorization", "Bearer $jwt")
+            // A protected preview blocks every request without this header,
+            // including the instance read that starts push registration.
+            vercelProtectionBypass(url)?.let {
+                connection.setRequestProperty("x-vercel-protection-bypass", it)
+            }
             if (body != null) {
                 connection.doOutput = true
                 connection.setRequestProperty("Content-Type", "application/json")

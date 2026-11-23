@@ -41,7 +41,12 @@ export interface DoorOptions {
    * separates budgets of routes that share an identity: the shell's background
    * polling must never spend the budget a user action needs.
    */
-  rateLimit?: { identity: 'user' | 'key' | 'ip'; limit: number; bucket?: string };
+  /**
+   * Fixed window rate limit. `windowSeconds` defaults to the door's 60 s minute
+   * window; routes with a slower budget (e.g. an invitation request that must
+   * fan out a push to every admin) declare a larger window explicitly.
+   */
+  rateLimit?: { identity: 'user' | 'key' | 'ip'; limit: number; windowSeconds?: number; bucket?: string };
   /** Omit to skip CORS handling entirely. */
   cors?: CorsOptions;
   /** Validates bodies of POST/PATCH/PUT with `.safeParse()` (strictness lives in the schema). */

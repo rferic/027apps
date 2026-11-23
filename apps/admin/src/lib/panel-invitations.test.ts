@@ -33,6 +33,9 @@ const INVITATION = {
   email: "ana@example.com",
   name: "Ana",
   role: "user",
+  source: "admin",
+  depth: 1,
+  anonymous: false,
   expires_in_days: 7,
   user_category_id: "c1",
   modules: ["expenses"],
@@ -45,6 +48,8 @@ const INVITATION = {
   email_sent_at: "2026-11-01T00:00:00.000Z",
   email_failed_at: null,
   email_error: null,
+  created_by: null,
+  redeemed_by: null,
   created_at: "2026-11-01T00:00:00.000Z",
 };
 
@@ -226,7 +231,10 @@ describe("loadInvitation", () => {
   });
 
   it("requires the creator field instead of guessing it is null", async () => {
-    invitationHandlerMock.mockResolvedValue(json({ invitation: INVITATION }));
+    const withoutCreator = Object.fromEntries(
+      Object.entries(INVITATION).filter(([key]) => key !== "created_by"),
+    );
+    invitationHandlerMock.mockResolvedValue(json({ invitation: withoutCreator }));
 
     await expect(loadInvitation("i1")).resolves.toEqual({ ok: false });
   });

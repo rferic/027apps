@@ -3,6 +3,7 @@ import { panelLocale } from "@/lib/panel-locale";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { PanelForbidden } from "@/components/panel-forbidden";
+import { PendingRequestsBadge } from "@/components/pending-requests-badge";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { loadModuleWidgets, type ModuleWidget } from "@/lib/panel-modules";
 import {
@@ -418,7 +419,10 @@ export default async function DashboardPage() {
   return (
     <section className="flex flex-col gap-4">
       <header className="flex flex-col gap-1">
-        <h1 className="text-base font-bold">{headline(dashboard, messages)}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-base font-bold">{headline(dashboard, messages)}</h1>
+          <PendingRequestsBadge messages={messages} />
+        </div>
         {dashboard.setupIncomplete && (
           <Link href="/setup" className="text-xs font-semibold text-accent hover:underline">
             {t("Finish setup", messages)}

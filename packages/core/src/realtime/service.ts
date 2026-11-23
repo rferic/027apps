@@ -146,6 +146,19 @@ async function membersSchema(
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * The seat count an invitation push may name: `places` when the event has it
+ * (the request's seats, the granted amount when resolved) and a sane 1..100
+ * integer only. Never `amount`: on the client that key is money.
+ */
+function invitationSeats(resource: Record<string, unknown>): string | undefined {
+  const value = resource.places ?? resource.amount;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 100) {
+    return undefined;
+  }
+  return String(value);
+}
+
 async function recipients(deps: RealtimeDeps, event: OutboxEvent): Promise<string[]> {
   const db = deps.db;  let rows: Record<string, unknown>[];
   if (event.target === "admins") {
@@ -311,18 +324,40 @@ export async function publishPending(
           const resource = (event.resource ?? {}) as Record<string, unknown>;
           const text = (value: unknown) =>
             typeof value === "string" && value.trim() !== "" ? value.slice(0, 80) : undefined;
-          const amount = typeof resource.amount_minor === "number" ? resource.amount_minor : undefined;
-          const results = await deps.push.send(tokens, {
-            key: `push.${event.type.replace(/\./g, "_")}`,
-            module: event.module_key ?? "027apps",
-            ...(text(resource.description) ? { description: text(resource.description)! } : {}),
-            ...(text(resource.group_name) ? { group: text(resource.group_name)! } : {}),
-            ...(text(resource.actor_name) ? { actor: text(resource.actor_name)! } : {}),
-            ...(amount !== undefined ? { amount: String(amount) } : {}),
-            ...(text(resource.currency) ? { currency: text(resource.currency)! } : {}),
-            ...(text(resource.movement_id) ? { resource_id: text(resource.movement_id)! } : {}),
-            ...(text(resource.group_id) ? { target: text(resource.group_id)! } : {}),
-          });
+          const key = `push.${event.type.replace(/\./g, "_")}`;
+          const module = event.module_key ?? "027apps";
+
+          // Invitation pushes carry no name and no money amount (spec §10/R5),
+          // but they do name the seat count as `seats`: the app renders it in a
+          // localized sentence, and `amount` is reserved for money because the
+          // client formats it as currency. The outbox resource keeps the full
+          // context for the panel and the app's history.
+          let data: Record<string, string>;
+          if (event.type.startsWith("invitation.")) {
+            const state = text(resource.state);
+            const seats = invitationSeats(resource);
+            data = {
+              key,
+              module,
+              ...(state ? { state } : {}),
+              ...(seats ? { seats } : {}),
+            };
+          } else {
+            const amount = typeof resource.amount_minor === "number" ? resource.amount_minor : undefined;
+            data = {
+              key,
+              module,
+              ...(text(resource.description) ? { description: text(resource.description)! } : {}),
+              ...(text(resource.group_name) ? { group: text(resource.group_name)! } : {}),
+              ...(text(resource.actor_name) ? { actor: text(resource.actor_name)! } : {}),
+              ...(amount !== undefined ? { amount: String(amount) } : {}),
+              ...(text(resource.currency) ? { currency: text(resource.currency)! } : {}),
+              ...(text(resource.movement_id) ? { resource_id: text(resource.movement_id)! } : {}),
+              ...(text(resource.group_id) ? { target: text(resource.group_id)! } : {}),
+            };
+          }
+
+          const results = await deps.push.send(tokens, data);
           const invalid = results
             .filter((result) => result.error === "UNREGISTERED" || result.error === "INVALID_ARGUMENT")
             .map((result) => result.token);

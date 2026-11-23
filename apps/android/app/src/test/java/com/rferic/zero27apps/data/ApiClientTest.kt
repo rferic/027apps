@@ -5,11 +5,13 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.respondError
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.IOException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -27,7 +29,9 @@ class ApiClientTest {
         token: () -> String? = { "token" },
         refresh: suspend () -> RefreshResult = { RefreshResult.NoSession },
         onSessionEnded: suspend () -> Unit = {},
-    ) = ApiClient("https://example.test", engine, token, refresh, onSessionEnded)
+        baseUrl: String = "https://example.test",
+        protectionBypass: String = "",
+    ) = ApiClient(baseUrl, engine, token, refresh, onSessionEnded, protectionBypass)
 
     @Test
     fun `parses instance with the auth block and ignores unknown keys`() = runTest {
@@ -98,7 +102,7 @@ class ApiClientTest {
         var seenBody = ""
         val engine = MockEngine { request ->
             seenPath = request.url.encodedPath
-            seenBody = (request.body as io.ktor.http.content.TextContent).text
+            seenBody = (request.body as TextContent).text
             respond(
                 content = """{"user":{"id":"u1","email":"a@example.test"},"invitation_id":"i1"}""",
                 status = HttpStatusCode.Created,
@@ -146,10 +150,93 @@ class ApiClientTest {
     }
 
     @Test
+    fun `an anonymous invitation decodes with a null name and email`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """
+                    {"invitation":{"state":"pending","email":null,"name":null,
+                     "requires_identity":true,"role":"user","role_applies":true,
+                     "account_exists":false,"locale":"es",
+                     "expires_at":"2026-11-24T12:00:00.000Z","inviter_name":"Eric",
+                     "instance_name":"Familia Pérez","timezone":"Europe/Madrid"}}
+                """,
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+
+        val preview = client(engine, token = { null }).invitationPreview("027_inv_abcdefghijklmnop")
+
+        // A non-nullable field used to throw here, so the app showed a generic
+        // error instead of the form that collects the identity.
+        assertEquals(null, preview.email)
+        assertEquals(null, preview.name)
+        assertTrue(preview.requiresIdentity)
+    }
+
+    @Test
+    fun `the public invitation preview never sends the session bearer`() = runTest {
+        var seenAuth: String? = "unset"
+        val engine = MockEngine { request ->
+            seenAuth = request.headers[HttpHeaders.Authorization]
+            respond(
+                content = """{"invitation":{"state":"pending","email":"a@example.test","name":"Ana"}}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        // Pointed at a foreign host while a session token exists.
+        val api = ApiClient("https://evil.example", engine, { "session-jwt" }, { RefreshResult.NoSession }, {})
+
+        val preview = api.invitationPreview("027_inv_abcdefghijklmnop")
+
+        assertEquals(null, seenAuth)
+        assertEquals("a@example.test", preview.email)
+    }
+
+    @Test
+    fun `the public join exchange never sends the session bearer`() = runTest {
+        var seenAuth: String? = "unset"
+        val engine = MockEngine { request ->
+            seenAuth = request.headers[HttpHeaders.Authorization]
+            respond(
+                content = """{"token":"027_inv_abcdefghijklmnop","path":"/invite/027_inv_abcdefghijklmnop"}""",
+                status = HttpStatusCode.Created,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        // Pointed at a different host than the signed-in instance, with a live token.
+        val api = ApiClient("https://evil.example", engine, { "session-jwt" }, { RefreshResult.NoSession }, {})
+
+        val exchanged = api.exchangeJoinCode("027_join_abcdefghijklmnop")
+
+        assertEquals(null, seenAuth)
+        assertEquals("027_inv_abcdefghijklmnop", exchanged.token)
+    }
+
+    @Test
+    fun `the join exchange parses the returned invitation token`() = runTest {
+        var seenPath = ""
+        val engine = MockEngine { request ->
+            seenPath = request.url.encodedPath
+            respond(
+                content = """{"token":"027_inv_abcdefghijklmnop","path":"/invite/027_inv_abcdefghijklmnop"}""",
+                status = HttpStatusCode.Created,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+
+        val exchanged = client(engine).exchangeJoinCode("027_join_abcdefghijklmnop")
+
+        assertEquals("/api/v1/join-codes/027_join_abcdefghijklmnop/exchange", seenPath)
+        assertEquals("027_inv_abcdefghijklmnop", exchanged.token)
+    }
+
+    @Test
     fun `an existing account redeems without a password`() = runTest {
         var seenBody = ""
         val engine = MockEngine { request ->
-            seenBody = (request.body as io.ktor.http.content.TextContent).text
+            seenBody = (request.body as TextContent).text
             respond(
                 content = """{"user":{"id":"u1","email":"a@example.test","role":"user"},"invitation_id":"i1"}""",
                 status = HttpStatusCode.Created,
@@ -164,6 +251,27 @@ class ApiClientTest {
 
         assertTrue(seenBody.contains("a@example.test"))
         assertEquals(false, seenBody.contains("password"))
+    }
+
+    @Test
+    fun `an anonymous redemption sends the name the invitee typed`() = runTest {
+        var seenBody = ""
+        val engine = MockEngine { request ->
+            seenBody = (request.body as TextContent).text
+            respond(
+                content = """{"user":{"id":"u1","email":"nueva@example.test","role":"user"},"invitation_id":"i1"}""",
+                status = HttpStatusCode.Created,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+
+        client(engine).redeemInvitation(
+            "027_inv_abcdefghijklmnop",
+            RedeemRequest(email = "nueva@example.test", name = "Invitada", password = "long-password-123"),
+        )
+
+        assertTrue(seenBody.contains("\"name\":\"Invitada\""))
+        assertTrue(seenBody.contains("nueva@example.test"))
     }
 
     @Test
@@ -312,6 +420,10 @@ class ApiPathRedactionTest {
             "/api/v1/device-transfers/:token/exchange",
             client.redactPath("/api/v1/device-transfers/027_mig_abcdEFGH123456789012345/exchange"),
         )
+        assertEquals(
+            "/api/v1/join-codes/:token/exchange",
+            client.redactPath("/api/v1/join-codes/027_join_abcdEFGH123456789012345/exchange"),
+        )
     }
 
     @Test
@@ -321,5 +433,53 @@ class ApiPathRedactionTest {
             client.redactPath("/api/v1/me/device-transfers/0fc652bc-e7fd-401e-af76-a0332f71d27b"),
         )
         assertEquals("/api/v1/me", client.redactPath("/api/v1/me"))
+    }
+
+    @Test
+    fun `a vercel preview gets the protection bypass header and production does not`() = runTest {
+        var seen: String? = "unset"
+        val engine = MockEngine { request ->
+            seen = request.headers["x-vercel-protection-bypass"]
+            respond(
+                """{"invitation":{"state":"pending","email":null,"name":null,"requires_identity":true}}""",
+                HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+
+        ApiClient(
+            "https://027apps-git-staging-eric-rf.vercel.app",
+            engine,
+            { null },
+            { RefreshResult.NoSession },
+            {},
+            "bypass-secret",
+        ).invitationPreview("027_inv_abcdefghijklmnop")
+        assertEquals("bypass-secret", seen)
+
+        // The token is for staging only: a real instance must never receive it.
+        ApiClient(
+            "https://027apps.ericrf.com",
+            engine,
+            { null },
+            { RefreshResult.NoSession },
+            {},
+            "bypass-secret",
+        ).invitationPreview("027_inv_abcdefghijklmnop")
+        assertEquals(null, seen)
+    }
+
+    // Regression: the push registrar made its own HTTP call without the
+    // bypass, so on a protected preview it never reached the instance and no
+    // FCM token was ever registered.
+    @Test
+    fun `the shared bypass helper answers only for a protected preview`() {
+        assertEquals(
+            "bypass-secret",
+            vercelProtectionBypass("https://027apps-git-staging-eric-rf.vercel.app", "bypass-secret"),
+        )
+        assertNull(vercelProtectionBypass("https://027apps.ericrf.com", "bypass-secret"))
+        assertNull(vercelProtectionBypass("https://027apps-git-staging-eric-rf.vercel.app", ""))
+        assertNull(vercelProtectionBypass("not a url", "bypass-secret"))
     }
 }
