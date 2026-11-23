@@ -16,7 +16,17 @@ create table public.device_notification_mutes (
 );
 
 alter table public.device_notification_mutes enable row level security;
+
+-- Default privileges grant anon and authenticated more than SELECT/INSERT/
+-- DELETE on a new table (REFERENCES, TRIGGER, TRUNCATE). The RLS test pins the
+-- matrix, so the ACL is explicit here, as in device_transfers and invitations.
+revoke all on public.device_notification_mutes from anon, authenticated;
+
 grant select, insert, delete on public.device_notification_mutes to authenticated;
+-- The server connects as service_role: the grant has to be explicit, because
+-- default privileges are not guaranteed in every environment (CI runs
+-- `supabase db reset`).
+grant select, insert, delete on public.device_notification_mutes to service_role;
 
 -- The owner of the device is the only one who reads or changes its mutes; the
 -- table is personal, unlike `devices`, where an admin may list and revoke.
