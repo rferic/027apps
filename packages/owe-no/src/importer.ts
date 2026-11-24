@@ -1,11 +1,9 @@
 import { createHash } from "node:crypto";
-import { addMovement, listMembers, type OweDb, type OweDeps } from "./service";
+import { addMember, addMovement, listMembers, type OweDb, type OweDeps } from "./service";
 import { OweDomainError } from "./service";
 import { parseSplitwiseCsv, type ParsedMovement } from "./splitwise";
 
-/** 2 MB and 5.000 rows, as the spec caps a user file. */
-// The API door caps a request body at 1 MB; leave room for JSON escaping.
-/** The same limit the API declares (2 MB): a bigger export is split, not truncated. */
+/** The same cap the API declares: 2 MB and 5.000 rows. A bigger export is split, not truncated. */
 const MAX_BYTES = 2 * 1024 * 1024;
 const MAX_ROWS = 5_000;
 
@@ -52,7 +50,7 @@ export function rowHash(movement: ParsedMovement): string {
 
 function assertSize(csv: string): ParsedMovement[] {
   if (Buffer.byteLength(csv, "utf8") > MAX_BYTES) {
-    throw new OweDomainError("validation_failed", "the file is larger than 400 KB", {
+    throw new OweDomainError("validation_failed", "the file is larger than 2 MB", {
       code: "file_too_large",
     });
   }
@@ -77,8 +75,8 @@ async function groupContext(deps: OweDeps, userId: string, groupId: string) {
   return { currency: String(rows[0].currency) };
 }
 
-async function knownHashes(deps: OweDeps, groupId: string): Promise<Set<string>> {
-  const { rows } = await deps.db.query(
+async function knownHashes(db: Pick<OweDb, "query">, groupId: string): Promise<Set<string>> {
+  const { rows } = await db.query(
     `select distinct r.row_hash
        from module_owe_no.owe_no_import_rows r
        join module_owe_no.owe_no_imports i on i.id = r.import_id
@@ -138,7 +136,7 @@ export async function previewImport(
 
 
 
-  const hashes = await knownHashes(deps, groupId);
+  const hashes = await knownHashes(deps.db, groupId);
   const withHash = parsed.movements.map((movement) => ({
     movement,
     hash: rowHash(movement),
@@ -189,17 +187,27 @@ export async function importsForGroup(
   return all.filter((batch) => batch.group_id === groupId);
 }
 
+export type ImportCommitOptions = {
+  mapping?: Record<string, string>;
+  /**
+   * CSV names with no member yet (a fictitious person or a real account):
+   * created inside this same transaction, so a failed or cancelled import
+   * never leaves half a group behind.
+   */
+  newMembers?: Array<{ name: string; displayName?: string; userId?: string }>;
+  confirmDuplicates?: boolean;
+  /** Wipe the group's movements, imports and categories before importing. */
+  reset?: boolean;
+  /** A retry with the same key and body returns the stored result, no re-run. */
+  idempotencyKey?: string;
+};
+
 export async function commitImport(
   deps: OweDeps,
   userId: string,
   groupId: string,
   csv: string,
-  options: {
-    mapping?: Record<string, string>;
-    confirmDuplicates?: boolean;
-    /** Wipe the group's movements, imports and categories before importing. */
-    reset?: boolean;
-  } = {},
+  options: ImportCommitOptions = {},
 ): Promise<ImportCommitResult> {
   const { currency } = await groupContext(deps, userId, groupId);
   const parsed = parseSplitwiseCsv(csv);
@@ -212,55 +220,58 @@ export async function commitImport(
     });
   }
 
-  const members = (await listMembers(deps, userId, groupId)).filter(
-    (member) => member.state === "active",
+  // Only names the file actually uses may become members: a client is not a
+  // place to invent people, and listing one twice would create two of them.
+  const csvNames = new Set(
+    parsed.movements.flatMap((movement) => [
+      movement.payer,
+      ...movement.shares.map((share) => share.name),
+    ]),
   );
-  const byName = new Map<string, string>();
-  for (const member of members) {
-    if (!byName.has(member.display_name)) byName.set(member.display_name, member.id);
-  }
-  for (const [name, memberId] of Object.entries(options.mapping ?? {})) {
-    // A mapping is client input: it may only point at an active member of this
-    // group, never at an id from another group.
-    if (!byName.has(name) && !members.some((member) => member.id === memberId)) {
-      throw new OweDomainError("validation_failed", "that member is not in this group", {
-        code: "unmapped_identity",
+  const listed = new Set<string>();
+  for (const input of options.newMembers ?? []) {
+    if (listed.has(input.name)) {
+      throw new OweDomainError("validation_failed", "a name is listed twice", {
+        code: "duplicate_new_member",
+        names: [input.name],
       });
     }
-    byName.set(name, memberId);
-  }
-
-  const unresolved = new Set<string>();
-  for (const movement of parsed.movements) {
-    for (const name of [movement.payer, ...movement.shares.map((share) => share.name)]) {
-      if (!byName.has(name)) unresolved.add(name);
+    listed.add(input.name);
+    if (!csvNames.has(input.name)) {
+      throw new OweDomainError("validation_failed", "that name is not in the file", {
+        code: "unmapped_identity",
+        names: [input.name],
+      });
     }
   }
-  if (unresolved.size > 0) {
-    throw new OweDomainError("validation_failed", "some names are not linked to a member", {
-      code: "unmapped_identity",
-      names: [...unresolved],
-    });
-  }
 
-  // A reset deletes the previous rows inside the transaction, so the dedup set
-  // read here would still count them as duplicates and import nothing.
-  const hashes = options.reset === true ? new Set<string>() : await knownHashes(deps, groupId);
-  const rows = parsed.movements.map((movement) => ({
-    movement,
-    hash: rowHash(movement),
-    duplicate: hashes.has(rowHash(movement)),
-  }));
-  const duplicates = rows.filter((row) => row.duplicate).length;
   // Repeating a file is not an error: the already imported rows are skipped and
   // only the new ones come in. `confirmDuplicates` is kept for compatibility.
   void options.confirmDuplicates;
 
+  const requestHash = options.idempotencyKey ? importRequestHash(csv, options) : null;
   const run = deps.withTransaction ?? (<T>(fn: (db: OweDb) => Promise<T>) => fn(deps.db));
   return run(async (db) => {
     // Two imports of the same group must not race the hash check: one commits,
-    // the other waits and then sees the rows.
+    // the other waits and then sees the rows. The hashes are read after taking
+    // the lock, or both would see an empty set and import every row twice.
     await db.query("select pg_advisory_xact_lock(hashtext($1))", [groupId]);
+    if (options.idempotencyKey && requestHash) {
+      const { rows: seen } = await db.query(
+        "select request_hash, result from module_owe_no.owe_no_idempotency where group_id = $1 and key = $2",
+        [groupId, options.idempotencyKey],
+      );
+      if (seen[0]) {
+        if (String(seen[0].request_hash) !== requestHash) {
+          throw new OweDomainError("conflict", "that idempotency key was used with another body", {
+            code: "idempotency_key_reused",
+          });
+        }
+        // A retry after a lost reply gets the original answer; a `reset` is not
+        // repeated either.
+        return seen[0].result as ImportCommitResult;
+      }
+    }
     if (options.reset === true) {
       // "Start from scratch": the group keeps its members and settings, and loses
       // what the import can rebuild. Balances follow the movements, so they go too.
@@ -274,9 +285,9 @@ export async function commitImport(
       await db.query("delete from module_owe_no.owe_no_categories where group_id = $1", [groupId]);
       await db.query("delete from module_owe_no.owe_no_idempotency where group_id = $1", [groupId]);
       // Fictitious members exist only for the expenses they were created for: once
-      // those are gone, keeping them only accumulates "Bolli" four times. Names
-      // this very file uses are kept: the panel created them a moment ago for the
-      // mapping, and deleting them here made the import fail with unknown_member.
+      // those are gone, keeping them only accumulates "Bolli" four times. The names
+      // this file uses survive, so importing it again maps to the same people
+      // instead of recreating them with a fresh id.
       const usedNames = [
         ...new Set(
           parsed.movements.flatMap((movement) => [
@@ -285,25 +296,82 @@ export async function commitImport(
           ]).map((name) => name.trim().toLowerCase()),
         ),
       ];
+      // A member the client mapped explicitly survives even when its display
+      // name differs from the CSV's (an invited account, or a renamed person).
+      const mappedIds = Object.values(options.mapping ?? {});
       await db.query(
         `delete from module_owe_no.owe_no_members m
           where m.group_id = $1 and m.user_id is null and m.state in ('active', 'invited')
             and not (lower(btrim(m.display_name)) = any($2::text[]))
+            and not (m.id::text = any($3::text[]))
             and not exists (select 1 from module_owe_no.owe_no_movements mv
                              where mv.group_id = $1 and mv.paid_by_member_id = m.id)
             and not exists (select 1 from module_owe_no.owe_no_movement_shares s
                              where s.member_id = m.id)`,
-        [groupId, usedNames],
+        [groupId, usedNames, mappedIds],
       );
     }
+    // Read after the lock and inside the transaction: a commit that already
+    // inserted its rows must be visible here, or both batches would import the
+    // same file and duplicate every movement.
+    const hashes = options.reset === true ? new Set<string>() : await knownHashes(db, groupId);
+    const rows = parsed.movements.map((movement) => ({
+      movement,
+      hash: rowHash(movement),
+      duplicate: hashes.has(rowHash(movement)),
+    }));
+    const duplicates = rows.filter((row) => row.duplicate).length;
     // Every write of the import runs on THIS transaction: the categories and
-    // members created above are not committed yet, and opening a second one (the
+    // members created here are not committed yet, and opening a second one (the
     // app's runner does) cannot see them — the movement would fail its FK.
     const scoped: OweDeps = {
       ...deps,
       db,
       withTransaction: async <T,>(fn: (tx: OweDb) => Promise<T>): Promise<T> => fn(db as OweDb),
     };
+    // The mapping's new members are created here, inside the same transaction:
+    // cancelling or failing never leaves them behind.
+    const createdByName: Record<string, string> = {};
+    for (const input of options.newMembers ?? []) {
+      const member = await addMember(scoped, userId, groupId, {
+        displayName: input.displayName ?? input.name,
+        ...(input.userId ? { inviteeId: input.userId } : {}),
+      });
+      createdByName[input.name] = member.id;
+    }
+    // An invited account is charged like a fictitious member until it accepts
+    // (spec §6.9.4), so both states resolve names.
+    const members = (await listMembers(scoped, userId, groupId)).filter(
+      (member) => member.state === "active" || member.state === "invited",
+    );
+    const byName = new Map<string, string>();
+    for (const member of members) {
+      if (!byName.has(member.display_name)) byName.set(member.display_name, member.id);
+    }
+    for (const [name, memberId] of Object.entries(options.mapping ?? {})) {
+      // A mapping is client input: it may only point at a member of this group,
+      // never at an id from another group.
+      if (!byName.has(name) && !members.some((member) => member.id === memberId)) {
+        throw new OweDomainError("validation_failed", "that member is not in this group", {
+          code: "unmapped_identity",
+        });
+      }
+      byName.set(name, memberId);
+    }
+    for (const [name, memberId] of Object.entries(createdByName)) byName.set(name, memberId);
+
+    const unresolved = new Set<string>();
+    for (const movement of parsed.movements) {
+      for (const name of [movement.payer, ...movement.shares.map((share) => share.name)]) {
+        if (!byName.has(name)) unresolved.add(name);
+      }
+    }
+    if (unresolved.size > 0) {
+      throw new OweDomainError("validation_failed", "some names are not linked to a member", {
+        code: "unmapped_identity",
+        names: [...unresolved],
+      });
+    }
     const categories = new Map<string, string>();
     for (const movement of parsed.movements) {
       const name = movement.category.trim();
@@ -362,8 +430,37 @@ export async function commitImport(
       );
     }
 
-    return { created, skipped_duplicates: duplicates, errors: 0, categories: categories.size };
+    const view: ImportCommitResult = {
+      created,
+      skipped_duplicates: duplicates,
+      errors: 0,
+      categories: categories.size,
+    };
+    if (options.idempotencyKey && requestHash) {
+      await db.query(
+        `insert into module_owe_no.owe_no_idempotency (group_id, key, request_hash, result)
+         values ($1, $2, $3, $4::jsonb)
+         on conflict (group_id, key) do nothing`,
+        [groupId, options.idempotencyKey, requestHash, JSON.stringify(view)],
+      );
+    }
+    return view;
   });
+}
+
+/** Stable fingerprint of an import request: same file and mapping, same hash. */
+function importRequestHash(csv: string, options: ImportCommitOptions): string {
+  const mapping = Object.entries(options.mapping ?? {}).sort(([a], [b]) => a.localeCompare(b));
+  const newMembers = [...(options.newMembers ?? [])]
+    .map((member) => [member.name, member.displayName ?? "", member.userId ?? ""])
+    .sort(([a], [b]) => a.localeCompare(b));
+  const material = JSON.stringify({
+    csv,
+    mapping,
+    newMembers,
+    reset: options.reset === true,
+  });
+  return createHash("sha256").update(material).digest("hex");
 }
 
 export interface ImportBatchView {

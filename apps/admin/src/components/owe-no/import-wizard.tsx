@@ -219,6 +219,8 @@ export function OweImportWizard({ groupId, locale }: { groupId: string; locale: 
   const [busy, setBusy] = useState(false);
   // Named `wipe`: `reset` is already the function that clears the form.
   const [wipe, setWipe] = useState(false);
+  // One key per body: a retry reuses it, and any change starts another.
+  const [commitKey, setCommitKey] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
 
@@ -254,12 +256,15 @@ export function OweImportWizard({ groupId, locale }: { groupId: string; locale: 
   async function run() {
     setBusy(true);
     setError(null);
-    const response = await importCommitAction(groupId, csv, choices, { reset: wipe });
+    const key = commitKey ?? crypto.randomUUID();
+    setCommitKey(key);
+    const response = await importCommitAction(groupId, csv, choices, { reset: wipe, idempotencyKey: key });
     setBusy(false);
     if (!response.ok) {
       setError(describe(response.code, copy));
       return;
     }
+    setCommitKey(null);
     setResult({ created: response.result.created, skipped: response.result.skipped_duplicates });
     setPreview(null);
     setCsv("");
@@ -272,6 +277,7 @@ export function OweImportWizard({ groupId, locale }: { groupId: string; locale: 
     setCsv("");
     setFile(null);
     setChoices({});
+    setCommitKey(null);
     setError(null);
   }
 
@@ -289,6 +295,7 @@ export function OweImportWizard({ groupId, locale }: { groupId: string; locale: 
       const reader = picked.text();
       setFile({ name: picked.name, size: picked.size });
       setPreview(null);
+      setCommitKey(null);
       setError(null);
       void reader.then(setCsv).catch(() => setError(copy.fileError));
     } catch {
@@ -360,11 +367,17 @@ export function OweImportWizard({ groupId, locale }: { groupId: string; locale: 
           preview={preview}
           identities={identities}
           choices={choices}
-          onChoice={(name, choice) => setChoices((current) => ({ ...current, [name]: choice }))}
+          onChoice={(name, choice) => {
+            setChoices((current) => ({ ...current, [name]: choice }));
+            setCommitKey(null);
+          }}
           ready={isReady(preview, choices)}
           busy={busy}
           wipe={wipe}
-          onWipe={setWipe}
+          onWipe={(value) => {
+            setWipe(value);
+            setCommitKey(null);
+          }}
           onRun={run}
         />
       ) : null}

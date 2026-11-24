@@ -21,15 +21,16 @@ estable: no se reutiliza ni se reordena. Este índice es la fuente del orden rea
 | 14 | `sprint-14-mejoras` | 2026-11-10 | finalizada |
 | 15 | `sprint-15-app-y-finanzas` | 2026-11-12 | finalizada 2026-11-15 (12 tareas) · PR #97 |
 | 16 | `sprint-16-invitation-session-and-migration` | 2026-11-16 | cerrada 2026-11-18 · release 0.19.0 publicada · excepción: push a dos dispositivos (backlog) |
-| 17 | `sprint-17-panel-y-notificaciones` | 2026-11-16 (renumerado) | pendiente de aprobación (5 tareas) · se ejecutará después del sprint 16 |
+| 17 | `sprint-17-panel-y-notificaciones` | 2026-11-23 (reescrito) | 01 y 03–05 finalizadas · 02 en `test` (dos móviles) |
 | 18 | `sprint-18-invitation-club` | 2026-11-18 | cerrada 2026-11-23 · release 0.20.0 publicada |
 
 > **Renumeración del 16:** el plan de «panel y notificaciones» vivía en `origin/docs/sprint-16` sin
 > aprobar y nunca llegó a `staging`. Al arrancar el flujo de invitación, sesión y migración se le
-> asigna el 16; el plan anterior se conserva **íntegro** como 17 en
-> [`sprint-17-panel-y-notificaciones/`](sprint-17-panel-y-notificaciones/README.md). La rama
-> `origin/docs/sprint-16` no se borra ni se pisa. Si el propietario prefiere el plan anterior en el
-> backlog, se mueve sin tocar sus tareas.
+> asigna el 16 y el plan anterior pasa al 17; su rama original no se borra ni se pisa. El
+> 2026-11-23 el 17 se reescribió tras una re-auditoría contra el código (una tarea ya estaba hecha y
+> otra apuntaba al sitio equivocado): ver
+> [`sprint-17-panel-y-notificaciones/`](sprint-17-panel-y-notificaciones/README.md). El plan
+> original queda en el historial de git.
 
 ## Regla
 

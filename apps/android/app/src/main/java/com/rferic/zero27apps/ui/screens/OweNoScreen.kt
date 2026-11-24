@@ -87,6 +87,10 @@ internal fun plainAmount(amountMinor: Long): String =
     if (amountMinor % 100 == 0L) (amountMinor / 100).toString()
     else String.format(java.util.Locale.ROOT, "%.2f", amountMinor / 100.0).replace('.', ',')
 
+/** A settlement pays the whole amount to one receiver, never split across people. */
+internal fun settlementParticipants(receiverId: String, amountMinor: Long): List<OweParticipantBody> =
+    listOf(OweParticipantBody(memberId = receiverId, amountMinor = amountMinor))
+
 /** Domain details → a sentence the owner can act on. */
 internal fun oweErrorText(
     error: Throwable,
@@ -394,7 +398,7 @@ private class OweStore(
                     amountMinor = transfer.amountMinor,
                     occurredOn = occurredOn,
                     paidBy = transfer.from,
-                    participants = listOf(OweParticipantBody(memberId = transfer.to, amountMinor = transfer.amountMinor)),
+                    participants = settlementParticipants(transfer.to, transfer.amountMinor),
                 ),
             )
         }
@@ -424,7 +428,7 @@ private class OweStore(
                 amountMinor = amountMinor,
                 occurredOn = occurredOn,
                 paidBy = from,
-                participants = listOf(OweParticipantBody(memberId = to, amountMinor = amountMinor)),
+                participants = settlementParticipants(to, amountMinor),
             ),
         )
         open(groupId)
@@ -708,7 +712,8 @@ fun OweNoScreen(
     }
 
     val current = store.detail
-    if (editingMovement != null) showExpense = true
+    // A settlement has its own form: the expense one would be rejected.
+    if (editingMovement != null && editingMovement?.kind != "settlement") showExpense = true
     if (showExpense && current != null) {
         ExpenseDialog(
             members = current.members,
@@ -766,22 +771,48 @@ fun OweNoScreen(
         )
     }
 
-    if (showPayment && current != null) {
+    val settlementEdit = editingMovement?.takeIf { it.kind == "settlement" }
+    if ((showPayment || settlementEdit != null) && current != null) {
         ManualPaymentDialog(
             members = current.members,
             currency = current.group.currency,
             saving = store.loading,
-            onDismiss = { showPayment = false },
+            error = store.error,
+            editing = settlementEdit,
+            canDelete = settlementEdit != null &&
+                (current.group.createdBy == store.userId || settlementEdit.createdBy == store.userId),
+            onDelete = {
+                pendingDeleteMovement = settlementEdit
+                editingMovement = null
+            },
+            onDismiss = {
+                showPayment = false
+                editingMovement = null
+            },
             onSave = { from, to, amount, day ->
-                store.settleUp(
-                    current.group.id,
-                    from,
-                    to,
-                    amount,
-                    strings.settle,
-                    day,
-                    onSuccess = { showPayment = false },
-                )
+                if (settlementEdit != null) {
+                    store.updateMovement(
+                        current.group.id,
+                        settlementEdit.id,
+                        settlementEdit.description,
+                        amount,
+                        from,
+                        settlementParticipants(to, amount),
+                        day,
+                        null,
+                        "settlement",
+                    ) { editingMovement = null }
+                } else {
+                    store.settleUp(
+                        current.group.id,
+                        from,
+                        to,
+                        amount,
+                        strings.settle,
+                        day,
+                        onSuccess = { showPayment = false },
+                    )
+                }
             },
         )
     }
@@ -2477,22 +2508,40 @@ private fun ManualPaymentDialog(
     members: List<OweMemberDto>,
     currency: String,
     saving: Boolean,
+    error: String? = null,
+    editing: OweMovementDto? = null,
+    canDelete: Boolean = false,
+    onDelete: () -> Unit = {},
     onDismiss: () -> Unit,
     onSave: (String, String, Long, String) -> Unit,
 ) {
     val strings = LocalStrings.current
     val palette = LocalPalette.current
     val active = members.filter { it.state == "active" }
-    var from by remember { mutableStateOf(active.firstOrNull()?.id) }
-    var to by remember { mutableStateOf(active.drop(1).firstOrNull()?.id ?: active.firstOrNull()?.id) }
-    var amount by remember { mutableStateOf("") }
-    var day by remember { mutableStateOf(LocalDate.now().toString()) }
+    // Editing prefills every field from the settlement itself; creating starts
+    // on the first two members, as before.
+    var from by remember(editing?.id) {
+        mutableStateOf(editing?.paidBy ?: active.firstOrNull()?.id)
+    }
+    var to by remember(editing?.id) {
+        mutableStateOf(
+            editing?.shares?.firstOrNull()?.memberId
+                ?: active.drop(1).firstOrNull()?.id
+                ?: active.firstOrNull()?.id,
+        )
+    }
+    var amount by remember(editing?.id) {
+        mutableStateOf(editing?.let { plainAmount(it.amountMinor) } ?: "")
+    }
+    var day by remember(editing?.id) {
+        mutableStateOf(editing?.occurredOn ?: LocalDate.now().toString())
+    }
     val minor = parseMinor(amount)
     val dayValid = runCatching { LocalDate.parse(day) }.isSuccess
 
     AppFormSheet(
         onDismissRequest = onDismiss,
-        title = { Text(strings.registerPayment) },
+        title = { Text(if (editing != null) strings.editPayment else strings.registerPayment) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -2532,6 +2581,14 @@ private fun ManualPaymentDialog(
                     isError = !dayValid,
                     singleLine = true,
                 )
+                error?.let {
+                    Text(it, color = palette.destructive, fontSize = 11.sp)
+                }
+                if (editing != null && canDelete) {
+                    TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
+                        Text(strings.deleteMovement, color = palette.destructive, fontSize = 13.sp)
+                    }
+                }
             }
         },
         confirmButton = {

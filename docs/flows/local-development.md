@@ -50,7 +50,10 @@ pnpm db:restore .local/db-backups/local-<fecha>.dump   # vuelve al estado anteri
 - Las copias viven en `.local/db-backups/` (ignorado por git); se conservan las 20 últimas y cada
   una lleva la fecha en el nombre.
 - La restauración vacía `public` y `auth` y carga el dump: es un punto en el tiempo, no una mezcla.
-  El esquema y el registro de migraciones no se tocan (vienen de las migraciones aplicadas).
+  El esquema de `public`/`auth` y su registro de migraciones vienen de las migraciones aplicadas.
+  Los esquemas `module_*` no los crean las migraciones sino el instalador de módulos, así que se
+  recrean desde el mismo dump con su DDL, sus datos, su dueño (`postgres`) y el permiso de
+  `module_installer`; sin eso, restaurar tras un reset dejaba el módulo «instalado» sin sus tablas.
 - **Tripwire**: `pnpm db:shim` instala `scripts/shims/supabase` delante del CLI real (en
   `~/.local/bin` y en `node_modules/.bin`, para cubrir también `npx`). Registra cada invocación
   (fecha, pid, padre, directorio y argumentos) en `~/.local/state/027apps/supabase-guard.log` y

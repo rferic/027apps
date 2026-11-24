@@ -12,6 +12,7 @@ export async function devicesRouteDeps(): Promise<DevicesRouteDeps> {
     devices: {
       db: settingsDeps.db,
       revokeSessions: revokeSessions(settingsDeps.db),
+      withTransaction: withTransactionClient,
     },
     transfers: {
       db: settingsDeps.db,

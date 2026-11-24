@@ -45,11 +45,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         const body = ctx.body as {
           csv: string;
           mapping?: Record<string, string>;
+          new_members?: Array<{ name: string; display_name?: string; user_id?: string }>;
           confirm_duplicates?: boolean;
           reset?: boolean;
         };
+        // A retry after a lost reply carries the same key: the domain answers it
+        // with the stored result instead of running the file again.
+        const idempotencyKey = req.headers.get("idempotency-key")?.slice(0, 200) || undefined;
         const result = await commitImport(owe, callerId(ctx.caller), id, body.csv, {
+          ...(idempotencyKey ? { idempotencyKey } : {}),
           ...(body.mapping ? { mapping: body.mapping } : {}),
+          ...(body.new_members
+            ? {
+                newMembers: body.new_members.map((member) => ({
+                  name: member.name,
+                  ...(member.display_name ? { displayName: member.display_name } : {}),
+                  ...(member.user_id ? { userId: member.user_id } : {}),
+                })),
+              }
+            : {}),
           ...(body.confirm_duplicates === undefined
             ? {}
             : { confirmDuplicates: body.confirm_duplicates }),

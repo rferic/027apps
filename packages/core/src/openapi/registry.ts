@@ -1,7 +1,11 @@
 import { z, type ZodType } from "zod";
 import { createApiKeySchema, updateApiKeySchema } from "../api-keys/api";
 import { patchCurrenciesBodySchema, patchCurrencyBodySchema } from "../currencies/api";
-import { registerDeviceSchema, revokeDeviceQuerySchema } from "../devices/api";
+import {
+  notificationPreferencesSchema as notificationPreferencesBodySchema,
+  registerDeviceSchema,
+  revokeDeviceQuerySchema,
+} from "../devices/api";
 import {
   oweAddMember,
   oweCreateGroup,
@@ -48,6 +52,7 @@ import {
   demoResponseSchema,
   deviceListSchema,
   deviceResponseSchema,
+  notificationPreferencesResponseSchema,
   deviceTransferCreatedSchema,
   deviceTransferExchangeSchema,
   deviceTransferStatusResponseSchema,
@@ -185,6 +190,10 @@ const apiKeyUpdate = component("ApiKeyUpdate", updateApiKeySchema);
 // `minProperties` because JSON Schema does not carry the refinement.
 overrideComponent("ApiKeyUpdate", { minProperties: 1 });
 const deviceRegister = component("DeviceRegister", registerDeviceSchema);
+const notificationPreferencesBody = component(
+  "NotificationPreferencesBody",
+  notificationPreferencesBodySchema,
+);
 const moduleUpdate = component("ModuleUpdate", moduleUpdateSchema);
 const moduleUninstall = component("ModuleUninstall", moduleUninstallSchema);
 const moduleSettingWrite = component("ModuleSettingWrite", moduleSettingSchema);
@@ -393,7 +402,7 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
   {
     method: "post",
     path: "/owe-no/groups/{id}/imports",
-    summary: "Commit a Splitwise CSV in one transaction (creator; duplicates need confirmation).",
+    summary: "Commit a Splitwise CSV in one transaction (creator); duplicates need confirmation; an optional Idempotency-Key replays the stored result.",
     scopes: ["expenses:read_write"],
     request: oweImportCommit,
     response: oweImportResultSchema,
@@ -976,6 +985,23 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     query: revokeDeviceQuerySchema,
     auth: "session",
     status: 204,
+  },
+  {
+    method: "get",
+    path: "/devices/{id}/notification-preferences",
+    summary: "Master switch and muted notification kinds of the caller's device.",
+    scopes: ["devices:read"],
+    response: notificationPreferencesResponseSchema,
+    auth: "session",
+  },
+  {
+    method: "put",
+    path: "/devices/{id}/notification-preferences",
+    summary: "Set the device master switch and the kinds it silences.",
+    scopes: ["devices:write"],
+    request: notificationPreferencesBody,
+    response: notificationPreferencesResponseSchema,
+    auth: "session",
   },
   {
     method: "post",
