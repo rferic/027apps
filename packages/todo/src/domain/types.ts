@@ -5,7 +5,9 @@ export interface TodoDb extends QueryClient {}
 
 export interface TodoDeps {
   db: TodoDb;
-  /** Instance timezone when a group has none yet, and the settings both use. */
+  /** Runs a use case atomically when the caller can offer a transaction. */
+  withTransaction?: <T>(fn: (db: TodoDb) => Promise<T>) => Promise<T>;
+  /** Injected clock: the jobs and the tests need to move "now". */
   now?: () => Date;
 }
 

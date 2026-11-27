@@ -7,7 +7,7 @@
 **Fecha de inicio:** 2026-11-27
 **Última actualización:** 2026-11-27
 **Estado:** `implementacion` (tarea 01 en curso)
-**Siguiente paso:** tarea 02 — dominio de grupos, miembros y carpeta personal.
+**Siguiente paso:** tarea 03 — dominio de tareas.
 
 ## 1. Brief
 
@@ -191,3 +191,6 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
 - `2026-11-27` — **tarea 01** en `test`: paquete `packages/todo`, manifest validado con digests,
   DDL 1.0.0 con diez tablas, vista y helpers, RLS de solo lectura, e instalación/desinstalación
   comprobadas en `db-tests` (352 tests en verde).
+- `2026-11-27` — **tarea 02** en `test`: `permissions.ts` (reglas puras, 21 tests) y `groups.ts`
+  (grupos, miembros, carpeta personal idempotente, echar libera tareas y caduca solicitudes),
+  con `todo-group_members`/`todo_groups` cualificados por esquema. `db-tests` en 356.

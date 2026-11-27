@@ -117,6 +117,9 @@ importers:
       '@027apps/owe-no':
         specifier: workspace:*
         version: link:../owe-no
+      '@027apps/todo':
+        specifier: workspace:*
+        version: link:../todo
     devDependencies:
       '@027apps/core':
         specifier: workspace:*
