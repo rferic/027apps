@@ -70,6 +70,7 @@ import com.rferic.zero27apps.ui.migration.MigrationScanScreen
 import com.rferic.zero27apps.ui.screens.HomeScreen
 import com.rferic.zero27apps.ui.screens.InviteScreen
 import com.rferic.zero27apps.ui.screens.InviteMembersScreen
+import com.rferic.zero27apps.ui.screens.NotificationsScreen
 import com.rferic.zero27apps.ui.screens.LoginScreen
 import com.rferic.zero27apps.ui.screens.quotaFraction
 import com.rferic.zero27apps.ui.screens.OweNoScreen
@@ -108,15 +109,18 @@ fun AppRoot(
     val joinCode by viewModel.joinCode.collectAsStateWithLifecycle()
     val shareLink by viewModel.shareLink.collectAsStateWithLifecycle()
     val joinLink by viewModel.joinLink.collectAsStateWithLifecycle()
+    val pushStatus by viewModel.pushStatus.collectAsStateWithLifecycle()
     var scanningMigration by rememberSaveable { mutableStateOf(false) }
     var showingMigrationQr by rememberSaveable { mutableStateOf(false) }
     var showingInviteMembers by rememberSaveable { mutableStateOf(false) }
+    var showingNotifications by rememberSaveable { mutableStateOf(false) }
 
     // Signing out is a clean slate: the next sign-in starts on the shell, not on
     // whatever full screen the previous session left open.
     LaunchedEffect(state is AppState.SignedIn) {
         if (state !is AppState.SignedIn) {
             showingInviteMembers = false
+            showingNotifications = false
             showingMigrationQr = false
             scanningMigration = false
         }
@@ -224,6 +228,15 @@ fun AppRoot(
                             onMintQr = viewModel::createJoinCode,
                             onStopQr = viewModel::stopJoinCode,
                         )
+                    } else if (showingNotifications) {
+                        NotificationsScreen(
+                            api = viewModel.api()!!,
+                            token = viewModel.accessToken(),
+                            pushStatus = pushStatus,
+                            onRetryPush = viewModel::retryPush,
+                            onBack = { showingNotifications = false },
+                            iconUrl = { key -> viewModel.api()?.moduleIconUrl(key) },
+                        )
                     } else if (showingMigrationQr) {
                         MigrationQrScreen(
                             instance = current.instance,
@@ -244,6 +257,7 @@ fun AppRoot(
                             onStartConsumed = onStartConsumed,
                             onMigrate = { showingMigrationQr = true },
                             onOpenInviteMembers = { showingInviteMembers = true },
+                            onOpenNotifications = { showingNotifications = true },
                         )
                     }
                     is AppState.Failure -> FailureScreen(
@@ -481,6 +495,7 @@ private fun Shell(
     onStartConsumed: () -> Unit = {},
     onMigrate: () -> Unit,
     onOpenInviteMembers: () -> Unit,
+    onOpenNotifications: () -> Unit,
 ) {
     val pushStatus by viewModel.pushStatus.collectAsStateWithLifecycle()
     val inviteMembers by viewModel.inviteMembers.collectAsStateWithLifecycle()
@@ -668,7 +683,7 @@ private fun Shell(
                     onForgetInstance = viewModel::forgetInstance,
                     update = update,
                     pushStatus = pushStatus,
-                    onRetryPush = viewModel::retryPush,
+                    onOpenNotifications = onOpenNotifications,
                     onCheckUpdates = { viewModel.checkForUpdate(manual = true) },
                     onInstallUpdate = viewModel::installUpdate,
                     lastCheckAt = viewModel.lastUpdateCheckAt(),

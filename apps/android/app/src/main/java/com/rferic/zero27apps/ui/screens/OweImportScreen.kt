@@ -38,10 +38,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rferic.zero27apps.data.ApiClient
-import com.rferic.zero27apps.data.OweAddMemberBody
-import com.rferic.zero27apps.data.OweMappingOptionDto
+import com.rferic.zero27apps.data.OweImportNewMember
 import com.rferic.zero27apps.data.OweImportPreviewDto
 import com.rferic.zero27apps.data.OweImportResultDto
+import com.rferic.zero27apps.data.OweMappingOptionDto
 import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.theme.LocalPalette
 import java.io.IOException
@@ -89,11 +89,14 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
     var preview by remember { mutableStateOf<OweImportPreviewDto?>(null) }
     var mappingOptions by remember { mutableStateOf<List<OweMappingOptionDto>>(emptyList()) }
     var mapping by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var pending by remember { mutableStateOf<Map<String, OweImportNewMember>>(emptyMap()) }
     var mappingName by remember { mutableStateOf<String?>(null) }
     var duplicates by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<OweImportResultDto?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
+    // One key per body: a retry reuses it; a new file or mapping starts another.
+    var commitKey by remember { mutableStateOf<String?>(null) }
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -111,6 +114,7 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
                 return@launch
             }
             csv = text
+            commitKey = null
             runCatching { api.oweImportPreview(groupId, text) }
                 .onSuccess { value ->
                     preview = value
@@ -122,28 +126,17 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
     }
 
     fun mapName(name: String, option: OweMappingOptionDto?) {
-        // A member that already exists is reused as-is: no duplicate person.
-        if (option?.kind == "member") {
-            mapping = mapping + (name to option.id)
-            mappingName = null
-            return
-        }
-        busy = true
-        scope.launch {
-            runCatching {
-                api.oweAddMember(
-                    groupId,
-                    // A real account is invited: the server refuses to force it active.
-                    OweAddMemberBody(option?.displayName ?: name, option?.id),
-                )
-            }.onSuccess { member ->
-                // Several CSV names may point at the same member (a merge).
-                mapping = mapping + (name to member.id)
-            }.onFailure { error = oweErrorText(it, strings) }
-            busy = false
-            mappingName = null
-        }
+        // Nothing is created here: the choice travels to the commit, which
+        // creates the member in the import's own transaction. Cancelling the
+        // screen must leave the group exactly as it was.
+        val (nextMapping, nextPending) = chooseImportMapping(name, option, mapping, pending)
+        mapping = nextMapping
+        pending = nextPending
+        commitKey = null
+        mappingName = null
     }
+
+    fun isMapped(name: String): Boolean = mapping.containsKey(name) || pending.containsKey(name)
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -212,7 +205,7 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
             for (name in current.unresolved) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(name, modifier = Modifier.weight(1f), fontSize = 13.sp)
-                    if (mapping.containsKey(name)) {
+                    if (isMapped(name)) {
                         Text("✓", color = palette.accent, fontSize = 14.sp)
                     } else {
                         TextButton(onClick = { mappingName = name }) { Text(strings.assign) }
@@ -230,12 +223,12 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
 
         val ready = current.currencies.size <= 1 &&
             current.errors.isEmpty() &&
-            current.unresolved.all { mapping.containsKey(it) } &&
+            current.unresolved.all { isMapped(it) } &&
             (current.duplicates == 0 || duplicates)
         val whyDisabled = when {
             current.currencies.size > 1 -> strings.multiCurrency
             current.errors.isNotEmpty() -> strings.fileError
-            current.unresolved.any { !mapping.containsKey(it) } -> strings.mapIdentity
+            current.unresolved.any { !isMapped(it) } -> strings.mapIdentity
             current.duplicates > 0 && !duplicates -> strings.importDuplicates
             else -> null
         }
@@ -246,10 +239,22 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
             onClick = {
                 val text = csv ?: return@Button
                 busy = true
+                val key = commitKey ?: java.util.UUID.randomUUID().toString()
+                commitKey = key
                 scope.launch {
                     runCatching {
-                        api.oweImportCommit(groupId, text, mapping.ifEmpty { null }, duplicates)
-                    }.onSuccess { result = it }.onFailure { error = oweErrorText(it, strings) }
+                        api.oweImportCommit(
+                            groupId,
+                            text,
+                            mapping.ifEmpty { null },
+                            pending.values.toList().ifEmpty { null },
+                            duplicates,
+                            key,
+                        )
+                    }.onSuccess {
+                        commitKey = null
+                        result = it
+                    }.onFailure { error = oweErrorText(it, strings) }
                     busy = false
                 }
             },
@@ -288,6 +293,33 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
         )
     }
 }
+
+/**
+ * What the mapping step decided for one CSV name: reuse an existing member, or
+ * ask the commit to create one (a fictitious person, or a real account that
+ * enters invited). Pure, so the screen never creates a member while mapping.
+ */
+internal fun chooseImportMapping(
+    name: String,
+    option: OweMappingOptionDto?,
+    mapping: Map<String, String>,
+    pending: Map<String, OweImportNewMember>,
+): Pair<Map<String, String>, Map<String, OweImportNewMember>> =
+    if (option?.kind == "member") {
+        (mapping - name + (name to option.id)) to (pending - name)
+    } else {
+        (mapping - name) to (
+            pending - name + (
+                name to OweImportNewMember(
+                    name = name,
+                    // A real account is invited by the server; its display name
+                    // may differ from the one written in the CSV.
+                    displayName = option?.displayName ?: name,
+                    userId = option?.id,
+                )
+            )
+        )
+    }
 
 private fun normalized(value: String): String =
     java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFD)

@@ -321,3 +321,41 @@ data class RequestRequesterDto(
 data class AdminInvitationRequestsResponse(
     val requests: List<AdminInvitationRequestDto> = emptyList(),
 )
+
+// --- Notification preferences (Ajustes → Notificaciones) --------------------
+
+@Serializable
+data class NotificationTypeDto(
+    val key: String,
+    val enabled: Boolean = true,
+)
+
+@Serializable
+data class NotificationModuleDto(
+    val key: String,
+    val name: String,
+)
+
+@Serializable
+data class NotificationGroupDto(
+    val module: NotificationModuleDto? = null,
+    val types: List<NotificationTypeDto> = emptyList(),
+)
+
+@Serializable
+data class NotificationDeviceDto(
+    val id: String,
+    @SerialName("push_enabled") val pushEnabled: Boolean = true,
+)
+
+@Serializable
+data class NotificationPreferencesDto(
+    val device: NotificationDeviceDto,
+    val groups: List<NotificationGroupDto> = emptyList(),
+)
+
+@Serializable
+data class NotificationPreferencesBody(
+    @SerialName("push_enabled") val pushEnabled: Boolean,
+    val muted: List<String>,
+)

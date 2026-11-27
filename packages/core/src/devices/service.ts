@@ -12,6 +12,8 @@ import type { QueryClient } from "../api/rate-limit-storage";
 export interface DevicesDeps {
   db: QueryClient;
   revokeSessions?: (userId: string) => Promise<void>;
+  /** Used when a write touches more than one row (notification preferences). */
+  withTransaction?: <T>(fn: (db: QueryClient) => Promise<T>) => Promise<T>;
 }
 
 export type DevicePlatform = "android" | "ios";
@@ -21,6 +23,8 @@ export type DeviceView = {
   user_id: string;
   platform: DevicePlatform;
   push_token: string | null;
+  /** The device master switch; turning it off keeps the device and its session. */
+  push_enabled: boolean;
   last_seen_at: string;
   revoked_at: string | null;
   created_at: string;
@@ -40,7 +44,7 @@ const toIsoOrNull = (value: unknown): string | null =>
   value === null || value === undefined ? null : toIso(value);
 
 const VIEW_COLUMNS =
-  "id, user_id, platform, push_token, last_seen_at, revoked_at, created_at";
+  "id, user_id, platform, push_token, push_enabled, last_seen_at, revoked_at, created_at";
 
 function toView(row: Record<string, unknown>): DeviceView {
   return {
@@ -48,6 +52,7 @@ function toView(row: Record<string, unknown>): DeviceView {
     user_id: String(row.user_id),
     platform: String(row.platform) as DevicePlatform,
     push_token: row.push_token === null ? null : String(row.push_token),
+    push_enabled: row.push_enabled !== false,
     last_seen_at: toIso(row.last_seen_at),
     revoked_at: toIsoOrNull(row.revoked_at),
     created_at: toIso(row.created_at),

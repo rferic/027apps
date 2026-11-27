@@ -8,7 +8,6 @@ import {
   importMappingOptions,
   previewImport,
 } from "@027apps/owe-no/domain/importer.js";
-import { addMember } from "@027apps/owe-no/domain/service.js";
 
 /**
  * The panel's Splitwise wizard: preview, directory and commit. They return data
@@ -53,37 +52,57 @@ export async function importIdentitiesAction(groupId: string) {
 /** A mapping choice: reuse a member, invite an account, or create a fictitious one. */
 export type ImportChoice = { member_id?: string; user_id?: string; display_name: string };
 
+/**
+ * Turns the wizard's choices into what the domain expects: an id for a member
+ * that already exists, and a name (with its account, if any) for one the import
+ * must create inside its own transaction.
+ */
+function importPayload(choices: Record<string, ImportChoice>): {
+  mapping?: Record<string, string>;
+  newMembers?: Array<{ name: string; displayName?: string; userId?: string }>;
+} {
+  const mapping: Record<string, string> = {};
+  const newMembers: Array<{ name: string; displayName?: string; userId?: string }> = [];
+  for (const [name, choice] of Object.entries(choices)) {
+    // A CSV name may point at a member that already exists under another
+    // spelling; reuse it instead of creating a duplicate person.
+    if (choice.member_id) {
+      mapping[name] = choice.member_id;
+      continue;
+    }
+    // A real account enters invited and is charged like a fictitious one
+    // (owner's ruling, 2026-11-15); it inherits this balance when it accepts.
+    newMembers.push({
+      name,
+      ...(choice.display_name && choice.display_name !== name
+        ? { displayName: choice.display_name }
+        : {}),
+      ...(choice.user_id ? { userId: choice.user_id } : {}),
+    });
+  }
+  return {
+    ...(Object.keys(mapping).length > 0 ? { mapping } : {}),
+    ...(newMembers.length > 0 ? { newMembers } : {}),
+  };
+}
+
 export async function importCommitAction(
   groupId: string,
   csv: string,
   choices: Record<string, ImportChoice>,
-  options: { confirmDuplicates?: boolean; reset?: boolean } = {},
+  options: { confirmDuplicates?: boolean; reset?: boolean; idempotencyKey?: string } = {},
 ) {
   try {
     const userId = await callerId();
     const { owe } = await oweDeps();
-    // The importer never invents ids: each unresolved name becomes (or joins) a
-    // member first, exactly like the app does.
-    const mapping: Record<string, string> = {};
-    for (const [name, choice] of Object.entries(choices)) {
-      // A CSV name may point at a member that already exists under another
-      // spelling; reuse it instead of creating a duplicate person.
-      if (choice.member_id) {
-        mapping[name] = choice.member_id;
-        continue;
-      }
-      // A real account enters invited and is charged like a fictitious one
-      // (owner's ruling, 2026-11-15); it inherits this balance when it accepts.
-      const member = await addMember(owe, userId, groupId, {
-        displayName: choice.display_name || name,
-        ...(choice.user_id ? { inviteeId: choice.user_id } : {}),
-      });
-      mapping[name] = member.id;
-    }
+    // The importer never invents ids: each unresolved name travels to the
+    // domain, which creates (or joins) the member inside the import's own
+    // transaction. A cancel or a failed commit leaves the group untouched.
     const result = await commitImport(owe, userId, groupId, csv, {
-      mapping,
+      ...importPayload(choices),
       confirmDuplicates: options.confirmDuplicates === true,
       ...(options.reset === true ? { reset: true } : {}),
+      ...(options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : {}),
     });
     return { ok: true as const, result };
   } catch (error) {

@@ -67,6 +67,22 @@ class ApiClient(
     /** Absolute URL of a module icon; the request still carries the session. */
     fun moduleIconUrl(key: String): String = "$baseUrl/api/v1/modules/$key/icon"
 
+    // --- Notification preferences (sprint 17) --------------------------------
+    suspend fun notificationPreferences(deviceId: String): NotificationPreferencesDto =
+        read(request(HttpMethod.Get, "/api/v1/devices/$deviceId/notification-preferences"))
+
+    suspend fun updateNotificationPreferences(
+        deviceId: String,
+        body: NotificationPreferencesBody,
+    ): NotificationPreferencesDto =
+        read(
+            request(
+                HttpMethod.Put,
+                "/api/v1/devices/$deviceId/notification-preferences",
+                body,
+            ),
+        )
+
     /**
      * Re-arms the revoked-session signal. The client outlives a logout, so a
      * new sign-in must be able to report a second revocation.
@@ -239,13 +255,21 @@ class ApiClient(
         groupId: String,
         csv: String,
         mapping: Map<String, String>?,
+        newMembers: List<OweImportNewMember>?,
         confirmDuplicates: Boolean,
+        idempotencyKey: String? = null,
     ): OweImportResultDto =
         read(
             request(
                 HttpMethod.Post,
                 "/api/v1/owe-no/groups/$groupId/imports",
-                OweImportCommitBody(csv, mapping, if (confirmDuplicates) true else null),
+                OweImportCommitBody(
+                    csv,
+                    mapping,
+                    newMembers,
+                    if (confirmDuplicates) true else null,
+                ),
+                headers = idempotencyKey?.let { mapOf("Idempotency-Key" to it) } ?: emptyMap(),
             ),
         )
 
@@ -384,12 +408,15 @@ class ApiClient(
         path: String,
         body: Any? = null,
         authenticated: Boolean = true,
+        headers: Map<String, String> = emptyMap(),
     ): HttpResponse {
-        val first = send(method, path, body, authenticated)
+        val first = send(method, path, body, authenticated, headers)
         if (first.status != HttpStatusCode.Unauthorized || !authenticated) return first
         return when (refresh()) {
             RefreshResult.Refreshed -> {
-                val second = send(method, path, body, authenticated)
+                // A refresh and retry keep the same headers, including the
+                // Idempotency-Key: the server must see the same request.
+                val second = send(method, path, body, authenticated, headers)
                 if (second.status == HttpStatusCode.Unauthorized) sessionRevoked()
                 second
             }
@@ -417,12 +444,19 @@ class ApiClient(
         throw ApiException("unauthorized", 401, "Session revoked")
     }
 
-    private suspend fun send(method: HttpMethod, path: String, body: Any?, authenticated: Boolean): HttpResponse =
+    private suspend fun send(
+        method: HttpMethod,
+        path: String,
+        body: Any?,
+        authenticated: Boolean,
+        headers: Map<String, String> = emptyMap(),
+    ): HttpResponse =
         try {
             http.request("${baseUrl.trimEnd('/')}$path") {
                 this.method = method
                 if (authenticated) token()?.let { header(HttpHeaders.Authorization, "Bearer $it") }
                 bypassToken()?.let { header("x-vercel-protection-bypass", it) }
+                headers.forEach { (name, value) -> header(name, value) }
                 if (body != null) {
                     contentType(ContentType.Application.Json)
                     setBody(body)

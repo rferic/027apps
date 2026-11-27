@@ -6,6 +6,7 @@ const loadMemberMock = vi.fn();
 const loadMemberInvitationMock = vi.fn();
 const loadInviteesMock = vi.fn();
 const loadMemberInviterMock = vi.fn();
+const loadMemberNotificationsMock = vi.fn();
 const notFoundMock = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
 });
@@ -36,6 +37,7 @@ vi.mock("@/lib/panel-members", () => ({
   loadMember: (id: string) => loadMemberMock(id),
   loadInvitees: (id: string) => loadInviteesMock(id),
   loadMemberInviter: (id: string) => loadMemberInviterMock(id),
+  loadMemberNotifications: (id: string) => loadMemberNotificationsMock(id),
 }));
 
 vi.mock("@/lib/invitation-grants", () => ({
@@ -94,12 +96,30 @@ beforeEach(() => {
   loadInviteesMock.mockResolvedValue({ ok: true, users: [], total: 0, activeTotal: 0 });
   loadMemberInviterMock.mockReset();
   loadMemberInviterMock.mockResolvedValue({ ok: true, inviter: "u0" });
+  loadMemberNotificationsMock.mockReset();
+  loadMemberNotificationsMock.mockResolvedValue("active");
   notFoundMock.mockClear();
 });
 
 describe("MemberPage", () => {
   it("opts the segment out of the static shell (the layout opt-out is not inherited)", () => {
     expect(instant).toBe(false);
+  });
+
+  it("tells whether the member receives notifications", async () => {
+    loadMemberMock.mockResolvedValue({ ok: true, member: MEMBER });
+
+    loadMemberNotificationsMock.mockResolvedValue("off");
+    let html = renderToStaticMarkup(await render());
+    expect(html).toContain("Disabled");
+
+    loadMemberNotificationsMock.mockResolvedValue("none");
+    html = renderToStaticMarkup(await render());
+    expect(html).toContain("None");
+
+    loadMemberNotificationsMock.mockResolvedValue("unknown");
+    html = renderToStaticMarkup(await render());
+    expect(html).not.toContain("Notifications");
   });
 
   it("shows the breadcrumb, the name, the email, the badges and the profile form", async () => {
@@ -113,6 +133,8 @@ describe("MemberPage", () => {
     expect(html).toContain("ana@example.com");
     expect(html).toContain("Super admin");
     expect(html).toContain("Active");
+    expect(html).toContain("Notifications");
+    expect(html).toContain("Enabled");
     expect(html).toContain("Display name");
     expect(html).toContain("Time zone");
     expect(html).toContain("Save changes");
@@ -183,6 +205,8 @@ describe("MemberPage", () => {
     const html = renderToStaticMarkup(await render());
 
     expect(html).toContain("This is your account.");
+    expect(html).toContain("Notifications");
+    expect(html).toContain("Enabled");
     expect(html).toContain("Display name");
     expect(html).not.toContain('id="member-role"');
     expect(html).not.toContain("Only a super admin can change this role.");

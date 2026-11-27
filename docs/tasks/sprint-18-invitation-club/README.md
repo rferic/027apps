@@ -2,7 +2,7 @@
 id: sprint-18-invitation-club
 titulo: Invitaciones de club (niveles, cuota y QR)
 area: producto
-estado: finalizada · mergeada en staging (PR #138)
+estado: finalizada · en producción (v0.20.0)
 ---
 
 # Sprint 18 — Invitaciones de club
@@ -148,7 +148,10 @@ ver `docs/flows/pre-delivery-verification.md`); sus suites de invitaciones se cu
 - Verificación: core 620, admin 1344, i18n 1102 cadenas/9 locales, OpenAPI 121/121, Android 122;
   `db-tests` completo tiene 5 fallos preexistentes por datos de demo locales, y las suites
   objetivo de invitaciones están verdes. CI con base limpia es la referencia.
-- Pendiente: orden explícita de merge (PR del sprint contra `staging`) y promoción posterior.
+- Promocionada a producción el 2026-11-23: PR #149 (merge commit `b84d6a63`), migraciones 0037–0039
+  aplicadas a `027apps-prod` tras la aprobación del Environment `production`, y release `v0.20.0`
+  publicada (ambiente `release`). Verificación: `/api/v1/health` en producción y el endpoint de
+  actualización Android sirviendo `0.20.0` (version code 2000).
 
 ## Relación con el sprint 17
 

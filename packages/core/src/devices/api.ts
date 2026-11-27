@@ -10,6 +10,12 @@ import {
   revokeOtherDevices,
   type DevicesDeps,
 } from "./service";
+import {
+  readNotificationPreferences,
+  writeNotificationPreferences,
+  type NotificationPreferencesInput,
+} from "./preferences";
+import { isNotificationKind } from "../notifications/catalog";
 import { checkRateLimit } from "../api/rate-limit";
 import {
   createDeviceTransfer,
@@ -124,6 +130,47 @@ export function revokeDeviceRoute(deps: DevicesRouteDeps) {
       });
       return new Response(null, { status: 204 });
     });
+}
+
+/**
+ * The master switch and the muted kinds of one device. Only its owner reads and
+ * writes them; the kind list is the Core's catalog, so a client cannot invent
+ * one (an unknown kind would never be looked up by the sender).
+ */
+export const notificationPreferencesSchema = z
+  .object({
+    push_enabled: z.boolean(),
+    muted: z.array(z.string().min(1).max(80)).max(50),
+  })
+  .strict()
+  .refine(
+    (value) =>
+      new Set(value.muted).size === value.muted.length &&
+      value.muted.every((kind) => isNotificationKind(kind)),
+    { message: "unknown or repeated notification kind", path: ["muted"] },
+  );
+
+export function notificationPreferencesRoute(deps: DevicesRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(req, readOptions(deps), deps.door, async (ctx) =>
+      readNotificationPreferences(deps.devices, ctx.caller, uuid(rawId)),
+    );
+}
+
+export function updateNotificationPreferencesRoute(deps: DevicesRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(
+      req,
+      options(deps, ["devices:write"], notificationPreferencesSchema),
+      deps.door,
+      async (ctx) =>
+        writeNotificationPreferences(
+          deps.devices,
+          ctx.caller,
+          uuid(rawId),
+          ctx.body as NotificationPreferencesInput,
+        ),
+    );
 }
 
 /**
