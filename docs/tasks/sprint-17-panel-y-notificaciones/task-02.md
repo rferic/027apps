@@ -2,15 +2,29 @@
 id: sprint-17-task-02
 titulo: Preferencias de notificación por móvil (maestro, generales y módulos)
 area: core + app + SQL
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-23-sprint17-notification-preferences.md
 fuente: docs/tasks/sprint-17-panel-y-notificaciones/README.md
 mockup: docs/mockups/sprint-17-notifications/index.html
 adrs: [0004, 0007]
 ---
 
-**Estado (2026-11-23)**: implementada, revisada y auditada (ver abajo); para `finalizada` solo falta
-la prueba con dos móviles reales, que es la puerta del propietario.
+**Estado (2026-11-27)**: **finalizada**. Implementada, revisada y auditada (ver abajo), y con la
+prueba de dos móviles reales superada en staging.
+
+**Puerta de los dos móviles (2026-11-27)**, sobre `staging` con FCM real (`apps-4d26a`):
+
+- Dos dispositivos de la misma cuenta (`super_admin`), ambos `push_enabled = true` y con token:
+  uno silenció **«Solicitudes de plazas»** (`device_notification_mutes` con
+  `kind = 'invitation.requested'`) y el otro quedó sin silencios.
+- Una cuenta de prueba de nivel 1 (cuota 0) pidió 1 plaza: `POST /api/v1/me/invitation-requests`
+  devolvió `201` y el `event_outbox` `invitation.requested` (target `admins`) pasó a `published`
+  al primer intento.
+- El móvil sin silencio recibió el push; el silenciado no recibió ni notificación ni mensaje FCM
+  (logcat sin entrega). El filtro `reachable()` de `packages/core/src/realtime/service.ts` excluye
+  el dispositivo en el servidor, antes de gastar cuota de FCM.
+- Estado de staging restaurado: niveles `1→5, 2→2, 3→1`, solicitud cancelada y cuenta de prueba
+  (`qa-push@test.local`) purgada con su invitación.
 
 - Migración `0040`: `devices.push_enabled` y `device_notification_mutes` con RLS del dueño.
 - Catálogo de avisos en `packages/core/src/notifications/catalog.ts` (cuatro tipos; corregido y
