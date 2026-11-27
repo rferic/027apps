@@ -7,7 +7,7 @@
 **Fecha de inicio:** 2026-11-27
 **Última actualización:** 2026-11-27
 **Estado:** `implementacion` (tarea 01 en curso)
-**Siguiente paso:** tarea 01 — contrato, paquete y base de datos.
+**Siguiente paso:** tarea 02 — dominio de grupos, miembros y carpeta personal.
 
 ## 1. Brief
 
@@ -187,4 +187,7 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
   Elegido el logo **A · lista con checks** de cuatro propuestas. Confirmados los cuatro tipos de
   aviso en el Core. Añadido el emoji en el título de grupos y tareas. Spec y mockup aprobados;
   escrito el plan (`docs/superpowers/plans/2026-11-27-todo.md`) y el sprint
-  (`docs/tasks/sprint-19-todo/README.md`, tareas 01–12). Pendiente la aprobación del plan.
+  (`docs/tasks/sprint-19-todo/README.md`, tareas 01–12). Plan aprobado el 2026-11-27.
+- `2026-11-27` — **tarea 01** en `test`: paquete `packages/todo`, manifest validado con digests,
+  DDL 1.0.0 con diez tablas, vista y helpers, RLS de solo lectura, e instalación/desinstalación
+  comprobadas en `db-tests` (352 tests en verde).

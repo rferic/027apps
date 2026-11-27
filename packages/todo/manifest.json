@@ -1,0 +1,162 @@
+{
+  "key": "todo",
+  "name": "Tareas",
+  "branding": {
+    "description": "Shared tasks as post-its: take one, get one, earn power",
+    "icon": "assets/icon.svg",
+    "color": "indigo"
+  },
+  "version": "1.0.0",
+  "contract": 1,
+  "is_public": true,
+  "migrations": [
+    {
+      "version": "1.0.0",
+      "up": "./sql/001-init.sql",
+      "down": "./sql/001-init.down.sql",
+      "digest": "sha256:3a37d008f81e4fa7c98cdf9215002e4851b55983d49abf6779d302803e4a7969",
+      "down_digest": "sha256:1c0b1f91a0ecedc221cf918c19f8acb109ca12f6b521ee55049688e25cc965a5"
+    }
+  ],
+  "settings": [
+    {
+      "category": "todo",
+      "label": "Tareas",
+      "icon": "check",
+      "sort_order": 90,
+      "settings": [
+        {
+          "key": "default_power",
+          "type": "int",
+          "min": 1,
+          "max": 5,
+          "step": 1,
+          "default": 1,
+          "label": "Default power",
+          "help": "Value a new task gets when the group uses power.",
+          "is_public": false,
+          "is_secret": false,
+          "mcp_access": "read",
+          "sort_order": 10
+        },
+        {
+          "key": "request_ttl_hours",
+          "type": "int",
+          "min": 1,
+          "max": 168,
+          "step": 1,
+          "default": 24,
+          "label": "Request validity (hours)",
+          "help": "How long a request to take a task stays open.",
+          "is_public": false,
+          "is_secret": false,
+          "mcp_access": "read",
+          "sort_order": 20
+        }
+      ]
+    }
+  ],
+  "i18n": [
+    "en",
+    "es",
+    "ca",
+    "it",
+    "fr",
+    "de",
+    "pt",
+    "gl",
+    "eu"
+  ],
+  "scopes": [
+    "groups:read",
+    "groups:write",
+    "tasks:read",
+    "tasks:write",
+    "power:read"
+  ],
+  "mcp_tools": [],
+  "channels": [
+    {
+      "pattern": "todo-group-{id}",
+      "members_fn": "channel_members"
+    }
+  ],
+  "events": [
+    {
+      "type": "todo.task_created",
+      "target": "channel:todo-group-{id}",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.task_created_assigned",
+      "target": "user",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.task_assigned",
+      "target": "user",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.task_released",
+      "target": "channel:todo-group-{id}",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.task_completed",
+      "target": "channel:todo-group-{id}",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.task_overdue",
+      "target": "channel:todo-group-{id}",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.task_overdue_assigned",
+      "target": "user",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.request_created",
+      "target": "user",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.request_resolved",
+      "target": "user",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.season_closed",
+      "target": "channel:todo-group-{id}",
+      "notify": [
+        "push"
+      ]
+    }
+  ],
+  "docs": {
+    "readme": "README.md",
+    "api": "docs/api.md",
+    "settings": "docs/settings.md",
+    "events": "docs/events.md"
+  }
+}

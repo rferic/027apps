@@ -2,7 +2,7 @@
 id: sprint-19-task-01
 titulo: Contrato, paquete y base de datos
 area: sql + core
-estado: en curso
+estado: test
 plan: docs/superpowers/plans/2026-11-27-todo.md
 spec: docs/superpowers/specs/2026-11-27-todo.md
 fuente: docs/tasks/sprint-19-todo/README.md
