@@ -91,10 +91,11 @@ export async function installTodo(c: ClientBase): Promise<{
 }
 
 /** The deps the domain use cases take, over the test client. */
-export function todoDeps(c: ClientBase) {
+export function todoDeps(c: ClientBase, now?: () => Date) {
   const db: TodoDb = { query: (sql, params = []) => query(c, sql, params) };
   return {
     db,
+    ...(now ? { now } : {}),
     withTransaction: async <T,>(fn: (tx: TodoDb) => Promise<T>): Promise<T> => {
       await c.query("savepoint todo_op");
       try {

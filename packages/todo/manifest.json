@@ -1,6 +1,6 @@
 {
   "key": "todo",
-  "name": "Tareas",
+  "name": "NotNow",
   "branding": {
     "description": "Shared tasks as post-its: take one, get one, earn power",
     "icon": "assets/icon.svg",
@@ -21,7 +21,7 @@
   "settings": [
     {
       "category": "todo",
-      "label": "Tareas",
+      "label": "NotNow",
       "icon": "check",
       "sort_order": 90,
       "settings": [
@@ -158,5 +158,16 @@
     "api": "docs/api.md",
     "settings": "docs/settings.md",
     "events": "docs/events.md"
-  }
+  },
+  "app": {
+    "visible": true
+  },
+  "app_actions": [
+    {
+      "key": "new_task",
+      "label": "New task",
+      "icon": "add",
+      "screen": "new_task"
+    }
+  ]
 }

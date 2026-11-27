@@ -3,7 +3,7 @@
 > Plantilla de `new-module`. Es la memoria del proceso: si una sesión se interrumpe, el
 > siguiente agente continúa desde aquí. No sustituye a la spec ni al plan.
 
-**Módulo:** `todo` — Tareas
+**Módulo:** `todo` — NotNow
 **Fecha de inicio:** 2026-11-27
 **Última actualización:** 2026-11-27
 **Estado:** `implementacion` (tarea 01 en curso)
@@ -31,7 +31,7 @@
 
 ## 3. Identidad y manifest
 
-- **Nombre:** Tareas
+- **Nombre:** **NotNow** (elegido el 2026-11-27; «tareas» sigue siendo el concepto, no la marca)
 - **Key:** `todo` (no reservada)
 - **Icono/logo:** **A · lista con checks** (elegido por el propietario el 2026-11-27). Rejilla
   24×24, `fill="none"`, `stroke="currentColor"`, `stroke-width="1.8"`, extremos redondeados:
@@ -67,6 +67,9 @@
   texto** (`🏠 Casa`, `💡💡 Cambiar la bombilla`), con un selector de emojis frecuentes en el
   formulario y el teclado libre. Sin campo aparte; los límites se cuentan por puntos de código,
   porque un emoji es un carácter en PostgreSQL y dos en JavaScript.
+- **Alta rápida:** el «+» de Inicio abre el formulario de tarea preguntando a qué grupo va (con
+  la carpeta personal entre las opciones y la última usada preseleccionada). Desde dentro de un
+  grupo, el grupo se deduce y el formulario no pregunta. Se declara como `app_actions: new_task`.
 - **Grupo:** lo crea un usuario y él gestiona sus miembros (añadir y echar). El admin de la
   instancia puede verlo y tocarlo todo desde el panel.
 - **Carpeta personal:** cada usuario tiene un grupo de uno, sin miembros y **sin power**. No

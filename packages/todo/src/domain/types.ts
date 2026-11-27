@@ -9,6 +9,8 @@ export interface TodoDeps {
   withTransaction?: <T>(fn: (db: TodoDb) => Promise<T>) => Promise<T>;
   /** Injected clock: the jobs and the tests need to move "now". */
   now?: () => Date;
+  /** Overrides the instance `request_ttl_hours` setting in tests. */
+  requestTtlHours?: number;
 }
 
 export type TodoGroupKind = "group" | "personal";

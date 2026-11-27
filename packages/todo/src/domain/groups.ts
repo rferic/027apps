@@ -50,7 +50,7 @@ async function run<T>(deps: TodoDeps, fn: (db: TodoDeps["db"]) => Promise<T>): P
 }
 
 /** Membership is the only way in; anything else reads as an unknown group. */
-async function memberGroup(deps: TodoDeps, userId: string, groupId: string): Promise<TodoGroup> {
+export async function requireMember(deps: TodoDeps, userId: string, groupId: string): Promise<TodoGroup> {
   const { rows } = await deps.db.query(
     `select ${GROUP_COLUMNS}
        from module_todo.todo_groups g
@@ -62,8 +62,8 @@ async function memberGroup(deps: TodoDeps, userId: string, groupId: string): Pro
   return toGroup(rows[0]);
 }
 
-async function ownerGroup(deps: TodoDeps, userId: string, groupId: string): Promise<TodoGroup> {
-  const group = await memberGroup(deps, userId, groupId);
+export async function requireOwner(deps: TodoDeps, userId: string, groupId: string): Promise<TodoGroup> {
+  const group = await requireMember(deps, userId, groupId);
   if (group.ownerId !== userId) throw new TodoDomainError("forbidden", "only the owner manages the group");
   return group;
 }
@@ -164,7 +164,7 @@ export async function listGroups(deps: TodoDeps, caller: Caller): Promise<GroupS
 }
 
 export async function getGroup(deps: TodoDeps, caller: Caller, groupId: string): Promise<TodoGroup> {
-  return memberGroup(deps, caller.userId, groupId);
+  return requireMember(deps, caller.userId, groupId);
 }
 
 export async function updateGroup(
@@ -178,7 +178,7 @@ export async function updateGroup(
     powerPeriod?: PowerPeriod;
   },
 ): Promise<TodoGroup> {
-  const group = await ownerGroup(deps, caller.userId, groupId);
+  const group = await requireOwner(deps, caller.userId, groupId);
   const name = input.name === undefined ? group.name : validGroupName(input.name);
   const power = groupPower(
     group.kind,
@@ -201,7 +201,7 @@ export async function updateGroup(
 
 /** Dropping a group takes its tasks and seasons with it (cascade). */
 export async function deleteGroup(deps: TodoDeps, caller: Caller, groupId: string): Promise<void> {
-  const group = await ownerGroup(deps, caller.userId, groupId);
+  const group = await requireOwner(deps, caller.userId, groupId);
   if (group.kind === "personal") {
     throw new TodoDomainError("personal_group", "the personal folder cannot be deleted");
   }
@@ -213,7 +213,7 @@ export async function listMembers(
   caller: Caller,
   groupId: string,
 ): Promise<MemberView[]> {
-  await memberGroup(deps, caller.userId, groupId);
+  await requireMember(deps, caller.userId, groupId);
   const { rows } = await deps.db.query(
     `select m.user_id, m.role, m.joined_at, p.display_name
        from module_todo.todo_group_members m
@@ -236,7 +236,7 @@ export async function addMember(
   groupId: string,
   userId: string,
 ): Promise<MemberView[]> {
-  const group = await ownerGroup(deps, caller.userId, groupId);
+  const group = await requireOwner(deps, caller.userId, groupId);
   if (group.kind === "personal") {
     throw new TodoDomainError("personal_group", "the personal folder has no members");
   }
@@ -264,7 +264,7 @@ export async function removeMember(
   groupId: string,
   userId: string,
 ): Promise<MemberView[]> {
-  const group = await ownerGroup(deps, caller.userId, groupId);
+  const group = await requireOwner(deps, caller.userId, groupId);
   if (group.kind === "personal") {
     throw new TodoDomainError("personal_group", "the personal folder has no members");
   }

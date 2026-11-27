@@ -9,7 +9,7 @@ mockup: docs/mockups/todo/index.html
 estado_modulo: docs/tasks/sprint-19-todo/state.md
 ---
 
-# Sprint 19 — Módulo Tareas
+# Sprint 19 — Módulo NotNow
 
 Segundo módulo de la plataforma. Un post-it dentro de un grupo: está pendiente o hecho, se crea
 libre o puesto a alguien, y el grupo puede activar **power** para repartir puntos por temporadas.
