@@ -2,7 +2,7 @@
 id: sprint-17-panel-y-notificaciones
 titulo: Importador seguro, notificaciones por móvil y liquidaciones editables
 area: producto
-estado: aprobada 2026-11-23 · en curso (tarea 01)
+estado: aprobada 2026-11-23 · finalizada 2026-11-27
 ---
 
 # Sprint 17 — Importador seguro, notificaciones por móvil y liquidaciones editables
@@ -60,8 +60,8 @@ en el historial.
 
 Orden propuesto: **01 → 03 → 04 → 05 → 02**. La 01 primero porque es la única donde hoy se puede
 duplicar dinero; la 02 al final porque es la más grande y la única con puerta visual. El propietario
-puede cambiar el orden. **01 y 03–05 finalizadas; 02 en `test`** esperando solo la puerta de los dos
-móviles del propietario.
+puede cambiar el orden. **01–05 finalizadas**: la 02 cerró el 2026-11-27 con la puerta de los dos
+móviles del propietario en staging.
 
 ### 01 · Import atómico y candado
 
