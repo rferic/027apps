@@ -7,16 +7,13 @@ import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
-import com.rferic.zero27apps.auth.EncryptedSessionManager
 import com.rferic.zero27apps.auth.EncryptedStringStore
 import com.rferic.zero27apps.auth.KeystoreSecretCipher
-import com.rferic.zero27apps.auth.SupabaseFactory
-import com.rferic.zero27apps.auth.refreshOutcome
+import com.rferic.zero27apps.auth.StoredSession
 import com.rferic.zero27apps.data.ApiClient
 import com.rferic.zero27apps.data.RefreshResult
 import com.rferic.zero27apps.prefs.PrefsStringStore
 import com.rferic.zero27apps.ui.i18n.AppStrings
-import io.github.jan.supabase.auth.auth
 import io.ktor.client.engine.okhttp.OkHttp
 import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
@@ -63,40 +60,21 @@ class TodoRequestActionReceiver : BroadcastReceiver() {
         val prefs = PrefsStringStore(context)
         val instance = InstanceStore(prefs, BuildConfig.DEFAULT_INSTANCE_URL).current()
         val sessionStore = EncryptedStringStore(KeystoreSecretCipher(), prefs, "session")
-        // The public instance document says which Supabase this app talks to.
-        val probe = ApiClient(
-            baseUrl = instance,
-            engine = OkHttp.create(),
-            token = { null },
-            refresh = { RefreshResult.NoSession },
-            protectionBypass = BuildConfig.VERCEL_PROTECTION_BYPASS,
-        )
-        val auth = try {
-            probe.instance().auth ?: throw IllegalStateException("no auth")
-        } finally {
-            probe.close()
-        }
-        val supabase = SupabaseFactory(sessionStore).create(auth.supabaseUrl, auth.supabaseAnonKey)
+        // No Supabase client here: this runs next to the open app, and a second
+        // client renewing the same refresh token is what makes Supabase revoke
+        // the session. The tap sends the token the app stored and nothing else;
+        // if it is expired the toast asks to try again from the app.
         val api = ApiClient(
             baseUrl = instance,
             engine = OkHttp.create(),
-            token = { supabase.auth.currentSessionOrNull()?.accessToken },
-            // Refresh only when the server says 401: rotating the token on every
-            // tap would invalidate the session the open app is using.
-            refresh = {
-                runCatching { supabase.auth.refreshCurrentSession() }.fold(
-                    onSuccess = { RefreshResult.Refreshed },
-                    onFailure = { refreshOutcome(it) },
-                )
-            },
+            token = { StoredSession.accessToken(sessionStore) },
+            refresh = { RefreshResult.NoSession },
             protectionBypass = BuildConfig.VERCEL_PROTECTION_BYPASS,
         )
         try {
-            supabase.auth.awaitInitialization()
             if (accept) api.todoAcceptRequest(requestId) else api.todoDenyRequest(requestId)
         } finally {
             api.close()
-            supabase.close()
         }
     }
 
