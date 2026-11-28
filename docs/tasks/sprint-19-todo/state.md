@@ -7,7 +7,7 @@
 **Fecha de inicio:** 2026-11-27
 **Última actualización:** 2026-11-27
 **Estado:** `implementacion` (tarea 01 en curso)
-**Siguiente paso:** tarea 08 — eventos, avisos y push con acciones.
+**Siguiente paso:** tarea 09 — panel (resumen y categorías).
 
 ## 1. Brief
 
@@ -219,3 +219,7 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
 - `2026-11-28` — **tarea 07** en `test`: `apps/admin/src/lib/todo.ts` (door, mapeo de errores del
   dominio, `profileContext`, `personalName`, `parseQuery`) y las 19 rutas de `/api/v1/todo` con
   sus scopes, rate limits y esquemas zod. 36 tests en el paquete; `admin` 1364 en verde.
+- `2026-11-28` — **tarea 08** (servidor) en `test`: catálogo de avisos del Core ampliado con los
+  cuatro tipos de NotNow, y `events.ts` con los diez eventos cableados en tareas, solicitudes y
+  cierre de temporada. Cada `resource` lleva `actor_id`, que es como el Core excluye al actor del
+  push. Pendiente de la app: los textos y los botones Aceptar/Denegar de la notificación (tarea 10).

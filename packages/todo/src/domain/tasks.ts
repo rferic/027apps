@@ -9,6 +9,7 @@ import {
   taskTitle,
 } from "./permissions.js";
 import { localDate, nextPeriod, periodEnded, periodFor, type Recurrence } from "./recurrence.js";
+import { emitTaskCompleted, emitTaskCreated, emitTaskReleased } from "./events.js";
 import { award } from "./power.js";
 import type { TodoDeps, TodoTask, TodoTaskState } from "./types.js";
 
@@ -183,7 +184,16 @@ export async function createTask(
       caller.userId,
     ],
   );
-  return toTask(rows[0]!);
+  const task = toTask(rows[0]!);
+  await emitTaskCreated(deps, {
+    groupId,
+    actorId: caller.userId,
+    taskId: task.id,
+    title: task.title,
+    assigneeId: task.assigneeId,
+    power: task.power,
+  });
+  return task;
 }
 
 export async function getTask(
@@ -328,7 +338,14 @@ export async function releaseTask(
     [taskId, caller.userId],
   );
   if (!rows[0]) throw new TodoDomainError("task_done", "the task is already done");
-  return toTask(rows[0]);
+  const released = toTask(rows[0]);
+  await emitTaskReleased(deps, {
+    groupId: released.groupId,
+    actorId: caller.userId,
+    taskId: released.id,
+    title: released.title,
+  });
+  return released;
 }
 
 /**
@@ -375,7 +392,15 @@ export async function completeTask(
   if (powerEnabled) {
     await award(deps, task.groupId, caller.userId, seasonNumber, task.power);
   }
-  return toTask(rows[0]);
+  const completed = toTask(rows[0]);
+  await emitTaskCompleted(deps, {
+    groupId: completed.groupId,
+    actorId: caller.userId,
+    taskId: completed.id,
+    title: completed.title,
+    power: completed.power,
+  });
+  return completed;
 }
 
 /**

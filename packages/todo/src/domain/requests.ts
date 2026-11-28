@@ -1,6 +1,7 @@
 import type { Caller } from "./groups.js";
 import { TodoDomainError } from "./errors.js";
 import { canRequestTask, canReopenTask } from "./permissions.js";
+import { emitRequestCreated, emitRequestResolved, emitTaskAssigned } from "./events.js";
 import { refund } from "./power.js";
 import { localDate } from "./recurrence.js";
 import type { TodoDeps } from "./types.js";
@@ -50,7 +51,7 @@ export async function requestTask(
   taskId: string,
 ): Promise<RequestView> {
   const { rows } = await deps.db.query(
-    `select t.id, t.group_id, t.state, t.assignee_id, g.timezone
+    `select t.id, t.group_id, t.state, t.assignee_id, t.title, g.timezone
        from module_todo.todo_tasks t
        join module_todo.todo_groups g on g.id = t.group_id
        join module_todo.todo_group_members m
@@ -81,7 +82,15 @@ export async function requestTask(
     }
     throw error;
   });
-  return toRequest(inserted[0]!);
+  const request = toRequest(inserted[0]!);
+  await emitRequestCreated(deps, {
+    groupId: request.groupId,
+    actorId: caller.userId,
+    holderId: String(rows[0].assignee_id),
+    taskId,
+    title: String(rows[0].title ?? ""),
+  });
+  return request;
 }
 
 export async function listRequests(
@@ -146,8 +155,27 @@ async function answer(
         where id = $1 and state = 'pending'`,
       [String(rows[0].task_id), rows[0].requester_id],
     );
+    await emitTaskAssigned(deps, {
+      groupId: String(rows[0].group_id),
+      actorId: caller.userId,
+      assigneeId: String(rows[0].requester_id),
+      taskId: String(rows[0].task_id),
+      title: String(rows[0].title ?? ""),
+    });
   }
-  return toRequest(resolved[0]);
+  const answered = toRequest(resolved[0]);
+  if (rows[0].requester_id) {
+    await emitRequestResolved(deps, {
+      groupId: answered.groupId,
+      actorId: caller.userId,
+      requesterId: String(rows[0].requester_id),
+      taskId: answered.taskId,
+      requestId: answered.id,
+      title: String(rows[0].title ?? ""),
+      state: accept ? "accepted" : "denied",
+    });
+  }
+  return answered;
 }
 
 export async function acceptRequest(

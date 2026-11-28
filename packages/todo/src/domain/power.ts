@@ -1,6 +1,7 @@
 import type { Caller } from "./groups.js";
 import { requireMember, requireOwner } from "./groups.js";
 import { TodoDomainError } from "./errors.js";
+import { emitSeasonClosed } from "./events.js";
 import { nextPeriod, periodEnded, periodFor, localDate, type Recurrence } from "./recurrence.js";
 import type { TodoDeps } from "./types.js";
 
@@ -177,7 +178,14 @@ export async function closeSeason(
      on conflict (group_id, number) do nothing`,
     [groupId, target.seasonNumber + 1, target.powerPeriod, nextStart],
   );
-  if (caller) return powerBoard(deps, caller, groupId);
+  if (caller) {
+    await emitSeasonClosed(deps, {
+      groupId,
+      actorId: caller.userId,
+      seasonNumber: season.number,
+    });
+    return powerBoard(deps, caller, groupId);
+  }
   return {
     seasonNumber: target.seasonNumber + 1,
     period: target.powerPeriod,
