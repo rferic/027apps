@@ -15,6 +15,7 @@ import com.rferic.zero27apps.auth.MigrationLink
 import com.rferic.zero27apps.auth.sessionIdOf
 import com.rferic.zero27apps.auth.KeystoreSecretCipher
 import com.rferic.zero27apps.auth.SupabaseFactory
+import com.rferic.zero27apps.auth.SessionRefresher
 import com.rferic.zero27apps.auth.refreshOutcome
 import com.rferic.zero27apps.data.ApiClient
 import com.rferic.zero27apps.data.ApiException
@@ -117,6 +118,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private var supabase: SupabaseClient? = null
     private var client: ApiClient? = null
     private var revalidating = false
+
+    /**
+     * The only place the session is renewed. The boot, a 401 retry and the login
+     * flow used to renew independently and could leave with the same refresh
+     * token; Supabase reads the second use as theft and ends the whole session.
+     */
+    private val sessionRefresher = SessionRefresher(
+        session = { supabase?.auth?.currentSessionOrNull() },
+        refresh = {
+            val current = supabase ?: error("no Supabase client")
+            current.auth.refreshCurrentSession()
+        },
+    )
 
     init {
         refresh()
@@ -972,18 +986,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 return
             }
             // A revoked refresh token must fail now, not after the first API
-            // call; a network error keeps the stored session and offers retry.
-            try {
-                supabaseClient.auth.refreshCurrentSession()
-            } catch (error: Exception) {
-                if (error is kotlinx.coroutines.CancellationException) throw error
-                if (refreshOutcome(error) == RefreshResult.NoSession) {
+            // call; a token that is still inside its useful life is not renewed
+            // at all, because a second rotation of the same token is what
+            // Supabase reads as theft.
+            when (sessionRefresher.ensure()) {
+                RefreshResult.NoSession -> {
                     sessionStore.clear()
                     _state.value = AppState.NeedsLogin(base, LoginNotice.SESSION_REVOKED)
-                } else {
-                    _state.value = AppState.Failure(FailureReason.NETWORK)
+                    return
                 }
-                return
+                RefreshResult.Network -> {
+                    _state.value = AppState.Failure(FailureReason.NETWORK)
+                    return
+                }
+                RefreshResult.Refreshed -> Unit
             }
             val me = try {
                 api.me()
@@ -1017,17 +1033,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             baseUrl = base,
             engine = OkHttp.create(),
             token = { supabase?.auth?.currentSessionOrNull()?.accessToken },
-            refresh = {
-                val auth = supabase
-                if (auth == null) {
-                    RefreshResult.NoSession
-                } else {
-                    runCatching { auth.auth.refreshCurrentSession() }.fold(
-                        onSuccess = { RefreshResult.Refreshed },
-                        onFailure = { refreshOutcome(it) },
-                    )
-                }
-            },
+            // One renewal at a time, and none while the token is still good:
+            // two clients rotating the same refresh token is what ends the
+            // session for everybody (SessionRefresher).
+            refresh = { sessionRefresher.ensure() },
             onSessionEnded = { endSession(revoked = true) },
             protectionBypass = BuildConfig.VERCEL_PROTECTION_BYPASS,
         )
