@@ -3,6 +3,8 @@ import type { ModulePageContext } from "@027apps/core/modules/pages.js";
 import FixtureOverview from "@027apps/fixture/admin/overview/page";
 import OweNoGroups from "@/components/owe-no/groups-page";
 import OweNoOverview from "@027apps/owe-no/admin/overview/page";
+import TodoCategoriesPage from "@/components/todo/categories-page";
+import TodoOverview from "@027apps/todo/admin/overview/page";
 
 /**
  * Static registry of module admin pages.
@@ -17,4 +19,6 @@ export const MODULE_PAGES: Record<string, ComponentType<{ context: ModulePageCon
   "fixture/overview": FixtureOverview,
   "owe-no/overview": OweNoOverview,
   "owe-no/groups": OweNoGroups,
+  "todo/overview": TodoOverview,
+  "todo/categories": TodoCategoriesPage,
 };

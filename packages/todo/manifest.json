@@ -1,0 +1,263 @@
+{
+  "key": "todo",
+  "name": "NotNow",
+  "branding": {
+    "description": "Shared tasks as post-its: take one, get one, earn power",
+    "icon": "assets/icon.svg",
+    "color": "indigo"
+  },
+  "version": "1.4.0",
+  "contract": 1,
+  "is_public": true,
+  "migrations": [
+    {
+      "version": "1.0.0",
+      "up": "./sql/001-init.sql",
+      "down": "./sql/001-init.down.sql",
+      "digest": "sha256:3a37d008f81e4fa7c98cdf9215002e4851b55983d49abf6779d302803e4a7969",
+      "down_digest": "sha256:1c0b1f91a0ecedc221cf918c19f8acb109ca12f6b521ee55049688e25cc965a5"
+    },
+    {
+      "version": "1.1.0",
+      "up": "./sql/002-jobs.sql",
+      "down": "./sql/002-jobs.down.sql",
+      "digest": "sha256:baff7b147911bc46ae2442b5af5a8d8e22e41ddfd1cdddc209f41a6fe2922daf",
+      "down_digest": "sha256:13af1a9bbf256b683b3cdfacfd45d4b2a6d8b4b542626904a06648dcec6ae5eb"
+    },
+    {
+      "version": "1.2.0",
+      "up": "./sql/003-widgets.sql",
+      "down": "./sql/003-widgets.down.sql",
+      "digest": "sha256:3b5b99599d1ef70edc4d4cc5398e5cb868c65bf8fe061f076bc6fa4e93e121da",
+      "down_digest": "sha256:c1344cbfc918599552d8d1c7ab4b7c9fce37b26f58dd9da2e0d0b475a3cbc42c"
+    },
+    {
+      "version": "1.3.0",
+      "up": "./sql/004-overdue.sql",
+      "down": "./sql/004-overdue.down.sql",
+      "digest": "sha256:8e3a05258f13bc931eb69f352a8878235fde947f666f02ead181c5110efe9ef5",
+      "down_digest": "sha256:63de5d50af4e5360339686b65de9d18b0b479a5c1db0cb4b35797d50dd4206f2"
+    },
+    {
+      "version": "1.4.0",
+      "up": "./sql/005-demo.sql",
+      "down": "./sql/005-demo.down.sql",
+      "digest": "sha256:67bae093286c22d8c4441409955793e651f0443c10f148fb814c842719359024",
+      "down_digest": "sha256:53e5b881fcf6d5938bd46e87828822c6ad3931173e277cd6219e0921405996a8"
+    }
+  ],
+  "settings": [
+    {
+      "category": "todo",
+      "label": "NotNow",
+      "icon": "check",
+      "sort_order": 90,
+      "settings": [
+        {
+          "key": "default_power",
+          "type": "int",
+          "min": 1,
+          "max": 5,
+          "step": 1,
+          "default": 1,
+          "label": "Default power",
+          "help": "Value a new task gets when the group uses power.",
+          "is_public": false,
+          "is_secret": false,
+          "mcp_access": "read",
+          "sort_order": 10
+        },
+        {
+          "key": "request_ttl_hours",
+          "type": "int",
+          "min": 1,
+          "max": 168,
+          "step": 1,
+          "default": 24,
+          "label": "Request validity (hours)",
+          "help": "How long a request to take a task stays open.",
+          "is_public": false,
+          "is_secret": false,
+          "mcp_access": "read",
+          "sort_order": 20
+        }
+      ]
+    }
+  ],
+  "i18n": [
+    "en",
+    "es",
+    "ca",
+    "it",
+    "fr",
+    "de",
+    "pt",
+    "gl",
+    "eu"
+  ],
+  "scopes": [
+    "groups:read",
+    "groups:write",
+    "tasks:read",
+    "tasks:write",
+    "power:read"
+  ],
+  "mcp_tools": [],
+  "channels": [
+    {
+      "pattern": "todo-group-{id}",
+      "members_fn": "channel_members"
+    }
+  ],
+  "events": [
+    {
+      "type": "todo.task_created",
+      "target": "channel:todo-group-{id}",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.task_created_assigned",
+      "target": "user",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.task_assigned",
+      "target": "user",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.task_released",
+      "target": "channel:todo-group-{id}",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.task_completed",
+      "target": "channel:todo-group-{id}",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.task_overdue",
+      "target": "channel:todo-group-{id}",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.task_overdue_assigned",
+      "target": "user",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.task_missed_period",
+      "target": "channel:todo-group-{id}",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.task_missed_period_assigned",
+      "target": "user",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.request_created",
+      "target": "user",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.request_resolved",
+      "target": "user",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.season_closed",
+      "target": "channel:todo-group-{id}",
+      "notify": [
+        "push"
+      ]
+    }
+  ],
+  "docs": {
+    "readme": "README.md",
+    "api": "docs/api.md",
+    "settings": "docs/settings.md",
+    "events": "docs/events.md"
+  },
+  "app": {
+    "visible": true
+  },
+  "app_actions": [
+    {
+      "key": "new_task",
+      "label": "New task",
+      "icon": "add",
+      "screen": "new_task"
+    }
+  ],
+  "jobs": [
+    {
+      "key": "hourly",
+      "schedule": "5 * * * *",
+      "fn": "job_hourly",
+      "timeout_seconds": 60
+    }
+  ],
+  "admin_pages": [
+    {
+      "route": "overview",
+      "label": "Overview",
+      "icon": "chart",
+      "group": "module",
+      "role": "admin"
+    },
+    {
+      "route": "categories",
+      "label": "Categories",
+      "icon": "tags",
+      "group": "module",
+      "role": "admin"
+    }
+  ],
+  "dashboard_widgets": [
+    {
+      "key": "todo.my_tasks",
+      "type": "summary",
+      "surface": "app",
+      "title": "Your tasks",
+      "icon": "check",
+      "order": 30,
+      "data_fn": "widget_my_tasks"
+    },
+    {
+      "key": "todo.metric",
+      "type": "metric",
+      "surface": "panel",
+      "title": "Open tasks",
+      "icon": "check",
+      "order": 90,
+      "data_fn": "widget_metric"
+    }
+  ],
+  "demo": {
+    "seed_fn": "seed_demo",
+    "clear_fn": "clear_demo"
+  }
+}

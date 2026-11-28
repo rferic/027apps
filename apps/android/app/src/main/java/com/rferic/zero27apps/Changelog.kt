@@ -21,6 +21,57 @@ object Changelog {
 
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.22.0",
+            date = "2026-11-28",
+            notes = mapOf(
+                "es" to listOf(
+                    "NotNow: grupos de post-its con su grupo personal, para repartir lo cotidiano sin un kanban.",
+                    "Coge una tarea libre, suéltala o pide una que tenga otra persona; el dueño acepta o deniega desde la notificación o desde la bandeja.",
+                    "Power por temporadas: cada tarea vale de 1 a 5, hay clasificación y archivo de temporadas cerradas.",
+                ),
+                "en" to listOf(
+                    "NotNow: groups of post-its plus your personal group, to share the everyday without a kanban.",
+                    "Take a free task, release it, or ask for one somebody else holds; the holder accepts or denies from the notification or the inbox.",
+                    "Power by season: each task is worth 1 to 5, with a ranking and an archive of closed seasons.",
+                ),
+                "ca" to listOf(
+                    "NotNow: grups de post-its amb el teu grup personal, per repartir el dia a dia sense un kanban.",
+                    "Cull una tasca lliure, deixa-la anar o demana una que tingui una altra persona; l'amo accepta o denega des de la notificació o la safata.",
+                    "Power per temporades: cada tasca val d'1 a 5, amb classificació i arxiu de temporades tancades.",
+                ),
+                "gl" to listOf(
+                    "NotNow: grupos de post-its co teu grupo persoal, para repartir o día a día sen un kanban.",
+                    "Colle unha tarefa libre, sóltase ou pide unha que teña outra persoa; o dono acepta ou denega desde a notificación ou a bandexa.",
+                    "Power por tempadas: cada tarefa vale de 1 a 5, con clasificación e arquivo de tempadas pechadas.",
+                ),
+                "eu" to listOf(
+                    "NotNow: post-it taldeak eta zure talde pertsonala, egunerokoa kanbanik gabe banatzeko.",
+                    "Hartu zeregin aske bat, utzi edo beste norbaitek duena eskatu; duenak onartu edo ukatu egiten du jakinarazpenetik edo sarrera-ontzitik.",
+                    "Power denboraldika: zeregin bakoitzak 1etik 5era balio du, sailkapenarekin eta itxitako denboraldien artxiboarekin.",
+                ),
+                "pt" to listOf(
+                    "NotNow: grupos de post-its com o teu grupo pessoal, para repartir o dia a dia sem um kanban.",
+                    "Pega numa tarefa livre, liberta-a ou pede uma que outra pessoa tenha; o dono aceita ou recusa na notificação ou na caixa de entrada.",
+                    "Power por temporadas: cada tarefa vale de 1 a 5, com classificação e arquivo de temporadas fechadas.",
+                ),
+                "fr" to listOf(
+                    "NotNow : des groupes de post-it avec votre groupe personnel, pour partager le quotidien sans kanban.",
+                    "Prenez une tâche libre, libérez-la ou demandez-en une que quelqu'un d'autre détient ; son détenteur accepte ou refuse depuis la notification ou la boîte de réception.",
+                    "Power par saisons : chaque tâche vaut de 1 à 5, avec un classement et les archives des saisons closes.",
+                ),
+                "it" to listOf(
+                    "NotNow: gruppi di post-it con il tuo gruppo personale, per dividere il quotidiano senza un kanban.",
+                    "Prendi un'attività libera, lasciala o chiedine una che ha un'altra persona; chi la ha accetta o rifiuta dalla notifica o dalla casella.",
+                    "Power a stagioni: ogni attività vale da 1 a 5, con classifica e archivio delle stagioni chiuse.",
+                ),
+                "de" to listOf(
+                    "NotNow: Gruppen aus Haftnotizen plus deine persönliche Gruppe, um den Alltag ohne Kanban zu teilen.",
+                    "Nimm eine freie Aufgabe, gib sie frei oder frage eine an, die jemand anderes hat; wer sie hat, nimmt an oder lehnt ab — aus der Benachrichtigung oder dem Posteingang.",
+                    "Power in Saisons: jede Aufgabe zählt 1 bis 5, mit Rangliste und Archiv geschlossener Saisons.",
+                ),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.21.0",
             date = "2026-11-23",
             notes = mapOf(

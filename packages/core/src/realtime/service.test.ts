@@ -141,4 +141,33 @@ describe("push data map", () => {
       currency: "EUR",
     });
   });
+
+  it("carries the request id an actionable notification answers against", async () => {
+    const { data } = await pushDataFor(
+      claimedEvent({
+        type: "todo.request_created",
+        module_key: "todo",
+        target: "user",
+        subject_id: "u-2",
+        resource: {
+          request_id: "req-9",
+          task_id: "task-1",
+          description: "Sacar la basura",
+          group_name: "Casa",
+          actor_name: "Luis",
+          group_id: "g-1",
+        },
+      }),
+    );
+
+    expect(data).toMatchObject({
+      key: "push.todo_request_created",
+      module: "todo",
+      description: "Sacar la basura",
+      group: "Casa",
+      actor: "Luis",
+      target: "g-1",
+      request_id: "req-9",
+    });
+  });
 });

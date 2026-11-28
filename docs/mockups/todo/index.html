@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tareas — mockup</title>
+<style>
+  :root{
+    --bg:#070b10; --panel:#0d131b; --card:#121a24; --card2:#182230; --line:#20303f;
+    --fg:#e9eef5; --muted:#8b9bb0; --accent:#818cf8; --accent-deep:#4f46e5;
+    --ok:#34d399; --warn:#fbbf24; --bad:#fb7185;
+    --mod-indigo:#818cf8; --mod-teal:#1cc29f; --mod-violet:#9d6cff; --mod-amber:#fbbf24;
+    --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.45}
+  header.top{display:flex;align-items:center;gap:14px;padding:16px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#070b10ee;backdrop-filter:blur(8px);z-index:5}
+  header.top h1{font-size:15px;margin:0;font-weight:650}
+  header.top .sub{color:var(--muted);font-size:12px}
+  .seg{margin-left:auto;display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:3px}
+  .seg button{background:none;border:0;color:var(--muted);font:inherit;font-size:12.5px;padding:6px 12px;border-radius:7px;cursor:pointer}
+  .seg button[aria-selected="true"]{background:var(--accent-deep);color:#fff}
+  .wrap{display:grid;grid-template-columns:210px 1fr;gap:22px;padding:20px 22px 40px;align-items:start;max-width:1180px;margin:0 auto}
+  .screens{position:sticky;top:70px;display:flex;flex-direction:column;gap:2px}
+  .screens .h{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:10px 8px 4px}
+  .screens button{text-align:left;background:none;border:0;color:var(--muted);font:inherit;font-size:12.5px;padding:7px 10px;border-radius:8px;cursor:pointer}
+  .screens button:hover{background:var(--card)}
+  .screens button[aria-selected="true"]{background:var(--card2);color:var(--fg);box-shadow:inset 2px 0 0 var(--accent)}
+  .stage{display:flex;justify-content:center}
+  [hidden]{display:none!important}
+
+  /* ---------- phone ---------- */
+  .phone{width:392px;background:#0b1219;border:1px solid #22303f;border-radius:34px;padding:10px;box-shadow:0 30px 70px #0008}
+  .phone .screen{background:var(--bg);border-radius:26px;overflow:hidden;min-height:720px;display:flex;flex-direction:column;position:relative}
+  .statusbar{display:flex;justify-content:space-between;padding:10px 18px 4px;font-size:11px;color:var(--muted)}
+  .appbar{display:flex;align-items:center;gap:10px;padding:6px 18px 12px}
+  .appbar h2{font-size:19px;margin:0;font-weight:680}
+  .appbar .ico{margin-left:auto;position:relative;width:34px;height:34px;border-radius:10px;background:var(--card);display:grid;place-items:center;color:var(--accent);cursor:pointer}
+  .appbar .ico .badge{position:absolute;top:-3px;right:-3px;background:var(--bad);color:#fff;border-radius:9px;font-size:9.5px;padding:1px 5px;font-weight:700}
+  .body{padding:0 18px 90px;display:flex;flex-direction:column;gap:12px;flex:1}
+  .muted{color:var(--muted)}
+  .tiny{font-size:11.5px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px 14px}
+  .row{display:flex;align-items:center;gap:10px}
+  .grow{flex:1;min-width:0}
+  .title{font-weight:640;font-size:14.5px}
+  .ellipsis{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .avatar{width:26px;height:26px;border-radius:50%;background:var(--card2);border:1px solid var(--line);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--fg);flex:none}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 8px;border-radius:999px;background:var(--card2);border:1px solid var(--line);color:var(--muted)}
+  .chip.power{color:var(--accent);border-color:#3b3f8a;background:#1a1c3f}
+  .chip.due{color:var(--warn);border-color:#5a4416;background:#2a210c}
+  .chip.over{color:var(--bad);border-color:#5f2530;background:#2b1218}
+  .btn{background:var(--accent-deep);color:#fff;border:0;border-radius:10px;padding:8px 12px;font:inherit;font-size:12.5px;font-weight:620;cursor:pointer}
+  .btn.ghost{background:var(--card2);color:var(--fg);border:1px solid var(--line)}
+  .btn.sm{padding:6px 10px;font-size:11.5px;border-radius:9px}
+  .btn.danger{background:#3a1620;color:#ffb3c0;border:1px solid #5f2530}
+  .tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:3px}
+  .tabs button{flex:1;background:none;border:0;color:var(--muted);font:inherit;font-size:12.5px;padding:7px;border-radius:8px;cursor:pointer}
+  .tabs button[aria-selected="true"]{background:var(--card2);color:var(--fg);font-weight:620}
+  .fab{position:absolute;right:18px;bottom:22px;width:52px;height:52px;border-radius:50%;background:var(--accent-deep);display:grid;place-items:center;font-size:26px;color:#fff;box-shadow:0 10px 24px #4f46e555}
+  .navbar{position:absolute;left:0;right:0;bottom:0;height:58px;border-top:1px solid var(--line);background:#0a1018;display:flex;align-items:center;justify-content:space-around;font-size:10px;color:var(--muted)}
+  .navbar .on{color:var(--accent)}
+  .post{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 12px;display:flex;flex-direction:column;gap:8px}
+  .post.free{border-style:dashed;border-color:#2c3f52}
+  .post .meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .sectionlabel{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding:2px 2px 0}
+  .empty{color:var(--muted);font-size:12px;text-align:center;padding:14px}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .kv{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:7px 0;border-bottom:1px solid #16212c}
+  .kv:last-child{border-bottom:0}
+  .kv b{font-weight:600}
+  .bar{height:6px;border-radius:4px;background:#1b2733;overflow:hidden}
+  .bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--accent-deep),var(--accent))}
+  /* notification */
+  .osnotif{margin:6px 12px;background:#1b2431;border:1px solid #2b3b4d;border-radius:20px;padding:12px 13px;box-shadow:0 16px 40px #0009}
+  .osnotif .app{display:flex;align-items:center;gap:7px;font-size:10.5px;color:var(--muted);margin-bottom:6px}
+  .osnotif .t{font-weight:660;font-size:13.5px}
+  .osnotif .d{font-size:12.5px;color:#c6d2e0;margin-top:2px}
+  .osnotif .acts{display:flex;gap:8px;margin-top:11px}
+  .osnotif .acts button{flex:1;background:#26313f;border:1px solid #35465a;color:var(--fg);border-radius:11px;padding:8px;font:inherit;font-size:12.5px;font-weight:620;cursor:pointer}
+  .osnotif .acts button.primary{background:var(--accent-deep);border-color:#5b54ff;color:#fff}
+
+  /* ---------- panel ---------- */
+  .window{width:100%;max-width:860px;background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .chrome{display:flex;align-items:center;gap:8px;padding:9px 12px;background:#0a0f15;border-bottom:1px solid var(--line)}
+  .chrome i{width:9px;height:9px;border-radius:50%;background:#2b3a4a;display:block}
+  .chrome .url{margin-left:10px;font-size:11.5px;color:var(--muted);background:#0f1620;border:1px solid var(--line);border-radius:7px;padding:3px 10px}
+  .pwrap{display:grid;grid-template-columns:186px 1fr;min-height:520px}
+  .pside{border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:2px;background:#0b1118}
+  .pside .brand{display:flex;align-items:center;gap:8px;padding:4px 8px 14px;font-weight:650;font-size:13px}
+  .pside .brand .m{width:26px;height:26px;border-radius:8px;background:#1a1c3f;color:var(--accent);display:grid;place-items:center;font-size:13px}
+  .pside .grp{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:12px 8px 4px}
+  .pside a{color:var(--muted);text-decoration:none;font-size:12.5px;padding:7px 9px;border-radius:8px}
+  .pside a.on{background:var(--card2);color:var(--fg)}
+  .pmain{padding:18px 20px 24px}
+  .pmain h3{margin:0 0 3px;font-size:16px}
+  .pmain .lead{color:var(--muted);font-size:12.5px;margin:0 0 16px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:0 8px 8px;border-bottom:1px solid var(--line)}
+  td{padding:9px 8px;border-bottom:1px solid #16212c}
+  .pill{display:inline-block;font-size:10.5px;padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+  .pill.on{color:var(--ok);border-color:#1d5a45;background:#0e2a22}
+  .pill.off{color:var(--muted)}
+  .formgrid{display:grid;grid-template-columns:1fr 110px 150px 80px;gap:8px;margin-bottom:14px}
+  input,select{background:#0b1118;border:1px solid var(--line);color:var(--fg);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;width:100%}
+  .swatches{display:flex;gap:6px}
+  .sw{width:22px;height:22px;border-radius:7px;border:1px solid #ffffff1f;cursor:pointer}
+  .sw[aria-selected="true"]{outline:2px solid var(--fg);outline-offset:1px}
+  .note{margin-top:14px;color:var(--muted);font-size:11.5px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>NotNow · mockup</h1>
+    <div class="sub">Módulo <code>todo</code> · NotNow — indigo · «post-its» por grupos, solicitudes con botones y power por temporada</div>
+  </div>
+  <div class="seg" role="tablist">
+    <button id="t-mob" aria-selected="true" onclick="mode('mob')">Móvil</button>
+    <button id="t-pan" aria-selected="false" onclick="mode('pan')">Panel</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="screens" id="nav-mob">
+    <div class="h">Móvil</div>
+    <button aria-selected="true" onclick="show('s-home')">Tareas (inicio)</button>
+    <button onclick="show('s-group')">Grupo · pendientes</button>
+    <button onclick="show('s-task')">Detalle de tarea</button>
+    <button onclick="show('s-power')">Power y temporada</button>
+    <button onclick="show('s-results')">Resultados</button>
+    <button onclick="show('s-inbox')">Solicitudes</button>
+    <button onclick="show('s-push')">Notificación push</button>
+  </nav>
+  <nav class="screens" id="nav-pan" hidden>
+    <div class="h">Panel</div>
+    <button aria-selected="true" onclick="show('p-overview')">Resumen</button>
+    <button onclick="show('p-cats')">Categorías</button>
+  </nav>
+
+  <main class="stage">
+    <!-- ================= MÓVIL ================= -->
+    <div id="mob-stage">
+
+      <!-- inicio -->
+      <section class="phone" id="s-home">
+        <div class="screen">
+          <div class="statusbar"><span>14:51</span><span>▮▮▮ ⌁ 91</span></div>
+          <div class="appbar">
+            <h2>NotNow</h2>
+            <div class="ico" title="Solicitudes">✉<span class="badge">1</span></div>
+          </div>
+          <div class="body">
+            <div class="card" style="border-color:#2b3568;background:linear-gradient(135deg,#171a3a,#121a24)">
+              <div class="row">
+                <div class="dot" style="background:var(--mod-indigo)"></div>
+                <div class="grow">
+                  <div class="title">🔒 Personal</div>
+                  <div class="tiny muted">3 pendientes · solo tú</div>
+                </div>
+                <span class="muted">›</span>
+              </div>
+            </div>
+
+            <div class="sectionlabel">Mis grupos</div>
+
+            <div class="card">
+              <div class="row">
+                <div class="dot" style="background:var(--mod-teal)"></div>
+                <div class="grow">
+                  <div class="title">🏠 Casa</div>
+                  <div class="tiny muted">4 miembros · 7 pendientes</div>
+                </div>
+                <span class="chip power">⚡ Temporada 3</span>
+              </div>
+              <div class="row" style="margin-top:9px;gap:6px">
+                <span class="avatar">E</span><span class="avatar">M</span><span class="avatar">L</span><span class="avatar">P</span>
+                <span class="tiny muted" style="margin-left:auto">2 tuyas</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="row">
+                <div class="dot" style="background:var(--mod-amber)"></div>
+                <div class="grow">
+                  <div class="title">🎒 Colegio</div>
+                  <div class="tiny muted">3 miembros · 2 pendientes</div>
+                </div>
+                <span class="muted">›</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="row">
+                <div class="dot" style="background:var(--mod-violet)"></div>
+                <div class="grow">
+                  <div class="title">🚗 Viaje a Galicia</div>
+                  <div class="tiny muted">3 miembros · 5 pendientes</div>
+                </div>
+                <span class="muted">›</span>
+              </div>
+            </div>
+
+            <button class="btn ghost" style="margin-top:4px">+ Crear grupo</button>
+          </div>
+          <div class="navbar"><span>⌂<br>Inicio</span><span>▦<br>Módulos</span><span class="on">☑<br>NotNow</span><span>⚙<br>Ajustes</span></div>
+        </div>
+      </section>
+
+      <!-- grupo -->
+      <section class="phone" id="s-group" hidden>
+        <div class="screen">
+          <div class="statusbar"><span>14:53</span><span>▮▮▮ ⌁ 91</span></div>
+          <div class="appbar">
+            <span class="muted" style="font-size:20px">‹</span>
+            <h2>🏠 Casa</h2>
+            <div class="ico" title="Ajustes del grupo">⚙</div>
+          </div>
+          <div class="body">
+            <div class="tabs" role="tablist">
+              <button aria-selected="true">Pendientes 7</button>
+              <button aria-selected="false">Hechas 12</button>
+            </div>
+            <div class="row" style="gap:6px;flex-wrap:wrap">
+              <span class="chip">Todas</span>
+              <span class="chip" style="color:var(--fg);border-color:#3b3f8a">🏠 Casa</span>
+              <span class="chip">🛒 Compras</span>
+              <span class="chip">📄 Papeleo</span>
+              <span class="chip power">⚡ Power 3</span>
+            </div>
+
+            <div class="post">
+              <div class="row">
+                <div class="grow">
+                  <div class="title">💡 Cambiar la bombilla del pasillo</div>
+                  <div class="meta" style="margin-top:5px">
+                    <span class="chip">🏠 Casa</span><span class="chip power">⚡ 2</span>
+                    <span class="chip due">hoy</span>
+                  </div>
+                </div>
+                <span class="avatar">E</span>
+              </div>
+              <div class="row"><span class="tiny muted grow">Tuya</span><button class="btn sm">Hecha</button><button class="btn sm ghost">Soltar</button></div>
+            </div>
+
+            <div class="post free">
+              <div class="row">
+                <div class="grow">
+                  <div class="title">🧾 Pagar la comunidad</div>
+                  <div class="meta" style="margin-top:5px">
+                    <span class="chip">📄 Papeleo</span><span class="chip power">⚡ 5</span>
+                    <span class="chip over">vencida</span>
+                  </div>
+                </div>
+              </div>
+              <div class="row"><span class="tiny muted grow">Libre</span><button class="btn sm">Coger</button></div>
+            </div>
+
+            <div class="post">
+              <div class="row">
+                <div class="grow">
+                  <div class="title">🗑️ Sacar la basura</div>
+                  <div class="meta" style="margin-top:5px">
+                    <span class="chip">🏠 Casa</span><span class="chip power">⚡ 1</span>
+                    <span class="chip">cada lunes</span>
+                  </div>
+                </div>
+                <span class="avatar">M</span>
+              </div>
+              <div class="row"><span class="tiny muted grow">De Marta</span><button class="btn sm ghost">Pedir</button></div>
+            </div>
+
+            <div class="post free">
+              <div class="row">
+                <div class="grow">
+                  <div class="title">🧴 Comprar detergente</div>
+                  <div class="meta" style="margin-top:5px"><span class="chip">🛒 Compras</span><span class="chip power">⚡ 1</span></div>
+                </div>
+              </div>
+              <div class="row"><span class="tiny muted grow">Libre</span><button class="btn sm">Coger</button></div>
+            </div>
+          </div>
+          <div class="fab">+</div>
+        </div>
+      </section>
+
+      <!-- detalle -->
+      <section class="phone" id="s-task" hidden>
+        <div class="screen">
+          <div class="statusbar"><span>14:55</span><span>▮▮▮ ⌁ 91</span></div>
+          <div class="appbar">
+            <span class="muted" style="font-size:20px">‹</span>
+            <h2 style="font-size:16px">🧾 Pagar la comunidad</h2>
+            <div class="ico">✎</div>
+          </div>
+          <div class="body">
+            <div class="card">
+              <div class="kv"><span class="muted">Estado</span><b style="color:var(--warn)">Pendiente</b></div>
+              <div class="kv"><span class="muted">Categoría</span><b>📄 Papeleo</b></div>
+              <div class="kv"><span class="muted">Power</span><b style="color:var(--accent)">⚡ 5</b></div>
+              <div class="kv"><span class="muted">Dueño</span><b>Libre</b></div>
+              <div class="kv"><span class="muted">Fecha máxima</span><b style="color:var(--bad)">25 nov (vencida)</b></div>
+            </div>
+
+            <div class="card">
+              <div class="tiny muted" style="margin-bottom:6px">Notas</div>
+              <div class="tiny">El recibo está en el cajón del mueble del salón. Se paga por la app del banco.</div>
+            </div>
+
+            <div class="card">
+              <div class="tiny muted" style="margin-bottom:8px">Emoji del título</div>
+              <div class="row" style="gap:6px;flex-wrap:wrap">
+                <span class="chip" style="font-size:15px">🏠</span>
+                <span class="chip" style="font-size:15px">🛒</span>
+                <span class="chip" style="font-size:15px">🎒</span>
+                <span class="chip" style="font-size:15px">📄</span>
+                <span class="chip" style="font-size:15px">💡</span>
+                <span class="chip" style="font-size:15px">🗑️</span>
+                <span class="chip" style="font-size:15px">🧾</span>
+                <span class="chip" style="font-size:15px">🧴</span>
+                <span class="chip" style="font-size:15px">🚗</span>
+                <span class="chip" style="font-size:15px">📌</span>
+              </div>
+              <div class="tiny muted" style="margin-top:8px">Se insertan en el título; puedes poner varios y escribir los que quieras con el teclado.</div>
+            </div>
+
+            <button class="btn">Coger la tarea</button>
+
+            <div class="sectionlabel">Historial de periodos</div>
+            <div class="card list">
+              <div class="row"><span class="dot" style="background:var(--ok)"></span><div class="grow tiny">Octubre · hecha</div><span class="tiny muted">Ana</span></div>
+              <div class="row"><span class="dot" style="background:var(--ok)"></span><div class="grow tiny">Septiembre · hecha</div><span class="tiny muted">Eric</span></div>
+              <div class="row"><span class="dot" style="background:var(--bad)"></span><div class="grow tiny">Agosto · no hecha</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- power -->
+      <section class="phone" id="s-power" hidden>
+        <div class="screen">
+          <div class="statusbar"><span>14:58</span><span>▮▮▮ ⌁ 91</span></div>
+          <div class="appbar">
+            <span class="muted" style="font-size:20px">‹</span>
+            <h2 style="font-size:16px">Power · 🏠 Casa</h2>
+          </div>
+          <div class="body">
+            <div class="card" style="background:linear-gradient(135deg,#1d1f45,#121a24);border-color:#33387a">
+              <div class="row">
+                <div class="grow">
+                  <div class="tiny muted">Temporada 3 · mensual</div>
+                  <div style="font-size:19px;font-weight:700;margin-top:3px">Hasta el 30 nov</div>
+                </div>
+                <span class="chip power">⚡ 128</span>
+              </div>
+            </div>
+
+            <div class="list">
+              <div class="card">
+                <div class="row"><span class="avatar">M</span><div class="grow"><div class="title">Marta</div><div class="tiny muted">14 tareas hechas</div></div><b style="color:var(--accent);font-size:16px">48</b></div>
+                <div class="bar" style="margin-top:9px"><span style="width:100%"></span></div>
+              </div>
+              <div class="card">
+                <div class="row"><span class="avatar">E</span><div class="grow"><div class="title">Eric</div><div class="tiny muted">11 tareas hechas</div></div><b style="color:var(--accent);font-size:16px">42</b></div>
+                <div class="bar" style="margin-top:9px"><span style="width:87%"></span></div>
+              </div>
+              <div class="card">
+                <div class="row"><span class="avatar">A</span><div class="grow"><div class="title">Ana</div><div class="tiny muted">9 tareas hechas</div></div><b style="color:var(--accent);font-size:16px">27</b></div>
+                <div class="bar" style="margin-top:9px"><span style="width:56%"></span></div>
+              </div>
+              <div class="card">
+                <div class="row"><span class="avatar">P</span><div class="grow"><div class="title">Pablo</div><div class="tiny muted">4 tareas hechas</div></div><b style="color:var(--accent);font-size:16px">11</b></div>
+                <div class="bar" style="margin-top:9px"><span style="width:23%"></span></div>
+              </div>
+            </div>
+
+            <button class="btn ghost">Cerrar temporada ahora</button>
+            <div class="tiny muted" style="text-align:center">Solo el dueño del grupo. Genera el resultado y pone el marcador a cero.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- resultados -->
+      <section class="phone" id="s-results" hidden>
+        <div class="screen">
+          <div class="statusbar"><span>15:01</span><span>▮▮▮ ⌁ 91</span></div>
+          <div class="appbar">
+            <span class="muted" style="font-size:20px">‹</span>
+            <h2 style="font-size:16px">Temporada 2 · 🏠 Casa</h2>
+          </div>
+          <div class="body">
+            <div class="card" style="text-align:center;background:linear-gradient(135deg,#1d1f45,#121a24);border-color:#33387a">
+              <div class="tiny muted">Cerrada el 31 de octubre</div>
+              <div style="font-size:17px;font-weight:700;margin-top:4px">🏆 Ganó Marta</div>
+              <div class="tiny muted" style="margin-top:2px">61 puntos · 19 tareas</div>
+            </div>
+            <div class="card">
+              <div class="kv"><span><b>1.</b> Marta</span><b>61 ⚡ · 19 tareas</b></div>
+              <div class="kv"><span><b>1.</b> Eric</span><b>61 ⚡ · 17 tareas</b></div>
+              <div class="kv"><span><b>3.</b> Ana</span><b>44 ⚡ · 12 tareas</b></div>
+              <div class="kv"><span><b>4.</b> Pablo</span><b>18 ⚡ · 5 tareas</b></div>
+            </div>
+            <div class="tiny muted" style="text-align:center">Empate en el primer puesto: mismo puesto para los dos.</div>
+            <button class="btn ghost">Ver temporadas anteriores</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- solicitudes -->
+      <section class="phone" id="s-inbox" hidden>
+        <div class="screen">
+          <div class="statusbar"><span>15:04</span><span>▮▮▮ ⌁ 91</span></div>
+          <div class="appbar">
+            <span class="muted" style="font-size:20px">‹</span>
+            <h2 style="font-size:16px">Solicitudes</h2>
+          </div>
+          <div class="body">
+            <div class="tabs"><button aria-selected="true">Me las piden 1</button><button aria-selected="false">He pedido 1</button></div>
+
+            <div class="card">
+              <div class="row">
+                <span class="avatar">P</span>
+                <div class="grow">
+                  <div class="title">Pablo quiere «🗑️ Sacar la basura»</div>
+                  <div class="tiny muted">Hace 20 min · caduca en 23 h</div>
+                </div>
+              </div>
+              <div class="row" style="margin-top:10px">
+                <button class="btn sm" style="flex:1">Aceptar</button>
+                <button class="btn sm ghost" style="flex:1">Denegar</button>
+              </div>
+            </div>
+
+            <div class="sectionlabel">He pedido</div>
+            <div class="card">
+              <div class="row">
+                <span class="avatar">M</span>
+                <div class="grow">
+                  <div class="title">«Regar las plantas» · Marta</div>
+                  <div class="tiny muted">Pendiente de respuesta · caduca en 6 h</div>
+                </div>
+                <span class="chip">⏳</span>
+              </div>
+            </div>
+            <div class="card">
+              <div class="row">
+                <span class="avatar">E</span>
+                <div class="grow">
+                  <div class="title">«Pintar la valla» · Eric</div>
+                  <div class="tiny muted">Aceptada hace 2 días</div>
+                </div>
+                <span class="chip" style="color:var(--ok);border-color:#1d5a45">✓</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- push -->
+      <section class="phone" id="s-push" hidden>
+        <div class="screen" style="background:linear-gradient(180deg,#0a1420,#070b10)">
+          <div class="statusbar"><span>15:06</span><span>▮▮▮ ⌁ 91</span></div>
+          <div class="osnotif" style="margin-top:70px">
+            <div class="app"><span style="width:16px;height:16px;border-radius:5px;background:#1a1c3f;color:var(--accent);display:grid;place-items:center;font-size:10px">☑</span> 027Apps Dev · ahora</div>
+            <div class="t">Pablo quiere coger «Sacar la basura»</div>
+            <div class="d">Casa · si aceptas, la tarea pasa a él y dejas de tenerla.</div>
+            <div class="acts"><button>Aceptar</button><button>Denegar</button></div>
+          </div>
+          <div class="osnotif" style="opacity:.55">
+            <div class="app"><span style="width:16px;height:16px;border-radius:5px;background:#1a1c3f;color:var(--accent);display:grid;place-items:center;font-size:10px">☑</span> 027Apps Dev · 14:51</div>
+            <div class="t">Nueva tarea en Casa</div>
+            <div class="d">«🧴 Comprar detergente» está libre. Quien la coja, se la queda.</div>
+          </div>
+          <div class="tiny muted" style="text-align:center;margin-top:26px;padding:0 30px">Los botones llaman a la API sin abrir la app. Si el móvil está sin red, la notificación sigue ahí y el botón reintenta.</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= PANEL ================= -->
+    <div id="pan-stage" hidden>
+
+      <section class="window" id="p-overview">
+        <div class="chrome"><i></i><i></i><i></i><span class="url">027apps.local/panel/todo</span></div>
+        <div class="pwrap">
+          <aside class="pside">
+            <div class="brand"><span class="m">027</span> 027Apps</div>
+            <div class="grp">Módulos</div>
+            <a href="#" class="on">Tareas · Resumen</a>
+            <a href="#">Tareas · Categorías</a>
+            <a href="#">OweNo</a>
+            <div class="grp">Core</div>
+            <a href="#">Miembros</a><a href="#">Módulos</a><a href="#">Ajustes</a>
+          </aside>
+          <div class="pmain">
+            <h3>Tareas</h3>
+            <p class="lead">Todos los grupos de la instancia. Solo lectura; borrar una tarea pendiente queda auditado.</p>
+            <table>
+              <thead><tr><th>Grupo</th><th>Dueño</th><th>Miembros</th><th>Pendientes</th><th>Hechas</th><th>Power</th></tr></thead>
+              <tbody>
+                <tr><td><span class="dot" style="background:var(--mod-teal);display:inline-block;margin-right:6px"></span>🏠 Casa</td><td>Eric</td><td>4</td><td>7</td><td>26</td><td><span class="pill on">mensual · T3</span></td></tr>
+                <tr><td><span class="dot" style="background:var(--mod-amber);display:inline-block;margin-right:6px"></span>🎒 Colegio</td><td>Marta</td><td>3</td><td>2</td><td>9</td><td><span class="pill off">apagado</span></td></tr>
+                <tr><td><span class="dot" style="background:var(--mod-violet);display:inline-block;margin-right:6px"></span>🚗 Viaje a Galicia</td><td>Eric</td><td>3</td><td>5</td><td>0</td><td><span class="pill off">apagado</span></td></tr>
+                <tr><td><span class="dot" style="background:#3d4a5a;display:inline-block;margin-right:6px"></span>Grupos personales (4)</td><td>—</td><td>1</td><td>11</td><td>18</td><td><span class="pill off">no aplica</span></td></tr>
+              </tbody>
+            </table>
+            <p class="note">Las grupos personales se agrupan en una sola fila: su contenido no se abre desde el panel salvo que el propietario lo pida.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="window" id="p-cats" hidden>
+        <div class="chrome"><i></i><i></i><i></i><span class="url">027apps.local/panel/todo/categories</span></div>
+        <div class="pwrap">
+          <aside class="pside">
+            <div class="brand"><span class="m">027</span> 027Apps</div>
+            <div class="grp">Módulos</div>
+            <a href="#">Tareas · Resumen</a>
+            <a href="#" class="on">Tareas · Categorías</a>
+            <a href="#">OweNo</a>
+            <div class="grp">Core</div>
+            <a href="#">Miembros</a><a href="#">Módulos</a><a href="#">Ajustes</a>
+          </aside>
+          <div class="pmain">
+            <h3>Categorías</h3>
+            <p class="lead">Catálogo de la instancia: lo comparten todos los grupos y la grupo personal.</p>
+            <div class="formgrid">
+              <input value="Jardín" placeholder="Nombre">
+              <input value="🌿" placeholder="Emoji">
+              <div class="swatches">
+                <span class="sw" style="background:var(--mod-teal)"></span>
+                <span class="sw" style="background:var(--mod-indigo)"></span>
+                <span class="sw" style="background:var(--mod-violet)" aria-selected="true"></span>
+                <span class="sw" style="background:var(--mod-amber)"></span>
+                <span class="sw" style="background:var(--mod-rose,#fb7185)"></span>
+                <span class="sw" style="background:#34d399"></span>
+                <span class="sw" style="background:#5b9bff"></span>
+                <span class="sw" style="background:#8a8f98"></span>
+              </div>
+              <button class="btn">Añadir</button>
+            </div>
+            <table>
+              <thead><tr><th>Orden</th><th>Categoría</th><th>Color</th><th>Tareas</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td>🏠 Casa</td><td><span class="pill">teal</span></td><td>31</td><td class="muted">editar · borrar</td></tr>
+                <tr><td>2</td><td>🛒 Compras</td><td><span class="pill">amber</span></td><td>14</td><td class="muted">editar · borrar</td></tr>
+                <tr><td>3</td><td>📄 Papeleo</td><td><span class="pill">slate</span></td><td>6</td><td class="muted">editar · borrar</td></tr>
+                <tr><td>4</td><td>🎒 Colegio</td><td><span class="pill">violet</span></td><td>9</td><td class="muted">editar · borrar</td></tr>
+              </tbody>
+            </table>
+            <p class="note">Borrar una categoría no borra tareas: se quedan sin categoría. Solo se ofrecen los 8 colores del design system, nunca hex libre.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+  const groups = {
+    mob: ['s-home','s-group','s-task','s-power','s-results','s-inbox','s-push'],
+    pan: ['p-overview','p-cats'],
+  };
+  let mode_ = 'mob';
+  function render() {
+    document.getElementById('nav-mob').hidden = mode_ !== 'mob';
+    document.getElementById('nav-pan').hidden = mode_ !== 'pan';
+    document.getElementById('mob-stage').hidden = mode_ !== 'mob';
+    document.getElementById('pan-stage').hidden = mode_ !== 'pan';
+    document.getElementById('t-mob').setAttribute('aria-selected', mode_ === 'mob');
+    document.getElementById('t-pan').setAttribute('aria-selected', mode_ === 'pan');
+  }
+  function mode(m) { mode_ = m; active[m] = active[m] || groups[m][0]; show(active[m]); render(); }
+  function show(id) {
+    const all = [...groups.mob, ...groups.pan];
+    all.forEach(x => document.getElementById(x).hidden = x !== id);
+    const m = groups.mob.includes(id) ? 'mob' : 'pan';
+    active[m] = id;
+    document.querySelectorAll('#nav-' + m + ' button').forEach((b, i) => {
+      b.setAttribute('aria-selected', groups[m][i] === id);
+    });
+    if (mode_ !== m) { mode_ = m; render(); }
+  }
+  const active = {};
+  show('s-home'); render();
+</script>
+</body>
+</html>

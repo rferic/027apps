@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="OweNo">
+  <!-- B · a dos tonos: las dos personas en el tono base, el gasto compartido sólido. -->
+  <circle cx="9.1" cy="12" r="7.1" fill="currentColor" opacity=".38" />
+  <circle cx="14.9" cy="12" r="7.1" fill="currentColor" opacity=".38" />
+  <path d="M12 5.52a7.1 7.1 0 0 1 0 12.96 7.1 7.1 0 0 1 0-12.96Z" fill="currentColor" />
+</svg>

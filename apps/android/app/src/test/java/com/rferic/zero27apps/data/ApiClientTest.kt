@@ -398,6 +398,46 @@ class ApiClientTest {
         assertEquals("network_error", (error as ApiException).code)
         assertTrue(error.network)
     }
+
+    // The three writes that create something need an Idempotency-Key: a tap
+    // repeated on a flaky network must not count twice. The header is per call,
+    // never reused between different actions.
+    @Test
+    fun `every creating NotNow write carries an idempotency key`() = runTest {
+        val keys = mutableListOf<String>()
+        val engine = MockEngine { request ->
+            keys += request.headers["Idempotency-Key"] ?: ""
+            respond(
+                content = """{"task":{"id":"t1","groupId":"g1","title":"Sacar la basura"},
+                              "request":{"id":"r1","groupId":"g1","taskId":"t1"}}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val api = client(engine)
+        api.todoCreateTask("g1", TodoCreateTaskBody(title = "Sacar la basura"))
+        api.todoComplete("t1")
+        api.todoRequest("t1")
+
+        assertEquals(3, keys.size)
+        assertTrue(keys.all { it.isNotBlank() })
+        assertEquals(3, keys.toSet().size)
+    }
+
+    @Test
+    fun `the request inbox carries the task, the group and who asks`() = runTest {
+        val engine = ok(
+            """
+            {"requests":[{"id":"r1","groupId":"g1","taskId":"t1","requesterId":"u2",
+              "state":"pending","createdAt":"2026-11-28T08:00:00Z","expiresAt":"2026-11-29T08:00:00Z",
+              "resolvedAt":null,"taskTitle":"Sacar la basura","groupName":"Casa","requesterName":"Luis"}]}
+            """,
+        )
+        val request = client(engine).todoRequests("incoming").single()
+        assertEquals("Sacar la basura", request.taskTitle)
+        assertEquals("Casa", request.groupName)
+        assertEquals("Luis", request.requesterName)
+    }
 }
 
 /** The debug log must never carry a credential: only ids and tokens are redacted. */
@@ -482,4 +522,5 @@ class ApiPathRedactionTest {
         assertNull(vercelProtectionBypass("https://027apps-git-staging-eric-rf.vercel.app", ""))
         assertNull(vercelProtectionBypass("not a url", "bypass-secret"))
     }
+
 }

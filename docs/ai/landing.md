@@ -62,11 +62,12 @@ Cada módulo declara uno:
 **Regla:** nada `planned` se presenta como disponible. Las pantallas de la web son maquetas
 declaradas como simuladas; la app publicada no se presenta como «en desarrollo».
 
-## Catálogo actual (2026-11-12)
+## Catálogo actual (2026-11-28)
 
 | Módulo | App | Panel | Estado |
 |---|---|---|---|
 | OweNo | Sí | Grupos, gastos, balances, liquidación e importador de Splitwise | app `available` (APK firmado), panel `available` |
+| NotNow (`todo`) | Sí: grupos, post-its, solicitudes y power | Resumen de grupos y catálogo de categorías | app `in-development` (pantallas y recorrido hechos en local, pendiente de aceptación en staging), panel `available` |
 | Categorías | Sí (previsto) | Grupos y permisos | app `planned`, panel `available` |
 | Miembros | Invitaciones (niveles, cuota, QR y enlace); roles y bajas previstos | Roles, invitaciones, niveles, cuota, solicitudes, árbol | app `in-development` (invitaciones), panel `available` |
 | Módulos | Sí (previsto) | Activar y conceder | app `planned`, panel `available` |
@@ -86,6 +87,13 @@ y `/self-host`.
 Las notificaciones push ya no son una promesa: viajan como notificación del sistema, sin importe
 mientras el ojo está cerrado, y al tocarlas abren el grupo. La sección Android lo dice así; antes
 avisaba de que eran «planned».
+
+NotNow se presenta en la landing como **en desarrollo** (`In development`): el módulo está
+implementado y recorrido con dos usuarios en local, pero la ficha no promete nada hasta que el
+propietario lo acepte sobre el APK de staging. Su fila de la app lleva cuatro características y una
+maqueta HTML del grupo con post-its; su tarjeta de `/self-host` dice «Shared tasks as post-its,
+with requests, power and seasons». Al pasar a `available` se actualizan las dos páginas y esta
+tabla en el mismo PR.
 
 La app ya puede **invitar**: pantalla de invitación con barra de cuota, QR rotativo y enlace, y
 solicitud de más plazas al administrador. Es solo la parte de **invitaciones** del módulo Miembros:
