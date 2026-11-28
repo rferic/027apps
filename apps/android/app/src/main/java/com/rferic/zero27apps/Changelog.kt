@@ -21,53 +21,77 @@ object Changelog {
 
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.22.2",
+            date = "2026-11-28",
+            notes = mapOf(
+                "es" to listOf(
+                    "La sesión ya no se cierra sola: la app renueva el acceso una sola vez y solo cuando toca, para que el servidor no la tome por un token robado.",
+                ),
+                "en" to listOf(
+                    "The session no longer signs itself out: the app renews access once, and only when it has to, so the server never mistakes it for a stolen token.",
+                ),
+                "ca" to listOf(
+                    "La sessió ja no es tanca sola: l'aplicació renova l'accés una sola vegada i només quan cal, perquè el servidor no la prengui per un testimoni robat.",
+                ),
+                "gl" to listOf(
+                    "A sesión xa non se pecha soa: a app renova o acceso unha soa vez e só cando fai falta, para que o servidor non a tome por un token roubado.",
+                ),
+                "eu" to listOf(
+                    "Saioa ez da bakarrik ixten: aplikazioak sarbidea behin bakarrik berritzen du, behar denean soilik, zerbitzariak lapurtutako token bat ez dezan uste.",
+                ),
+                "pt" to listOf(
+                    "A sessão já não se fecha sozinha: a app renova o acesso uma só vez e apenas quando é preciso, para o servidor não a tomar por um token roubado.",
+                ),
+                "fr" to listOf(
+                    "La session ne se déconnecte plus toute seule : l'application renouvelle l'accès une seule fois, et seulement quand il le faut, pour que le serveur ne la prenne pas pour un jeton volé.",
+                ),
+                "it" to listOf(
+                    "La sessione non si chiude più da sola: l'app rinnova l'accesso una sola volta e solo quando serve, così il server non la scambia per un token rubato.",
+                ),
+                "de" to listOf(
+                    "Die Sitzung meldet sich nicht mehr von selbst ab: Die App erneuert den Zugriff nur einmal und nur wenn nötig, damit der Server ihn nicht für ein gestohlenes Token hält.",
+                ),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.22.1",
             date = "2026-11-28",
             notes = mapOf(
                 "es" to listOf(
                     "Al añadir un gasto el pagador ya viene elegido: quien lo añade. Y al registrar un pago, paga quien lo registra y cobra la primera persona del grupo que no eres tú.",
                     "Los selectores de persona muestran el correo bajo el nombre, para distinguir dos usuarios que se llamen igual.",
-                    "La sesión ya no se cierra sola: la app renueva el acceso una sola vez y solo cuando toca, para que el servidor no la tome por un token robado.",
                 ),
                 "en" to listOf(
                     "When you add an expense the payer is already set: whoever adds it. And when you register a payment, whoever registers it pays and the first person in the group who is not you receives.",
                     "People pickers show the account email under each name, so two users with the same name can be told apart.",
-                    "The session no longer signs itself out: the app renews access once, and only when it has to, so the server never mistakes it for a stolen token.",
                 ),
                 "ca" to listOf(
                     "En afegir una despesa el pagador ja ve triat: qui l'afegeix. I en registrar un pagament, paga qui el registra i cobra la primera persona del grup que no ets tu.",
                     "Els selectors de persona mostren el correu sota el nom, per distingir dos usuaris que es diguin igual.",
-                    "La sessió ja no es tanca sola: l'aplicació renova l'accés una sola vegada i només quan cal, perquè el servidor no la prengui per un testimoni robat.",
                 ),
                 "gl" to listOf(
                     "Ao engadir un gasto o pagador xa vén elixido: quen o engade. E ao rexistrar un pago, paga quen o rexistra e cobra a primeira persoa do grupo que non es ti.",
                     "Os selectores de persoa amosan o correo baixo o nome, para distinguir dous usuarios que se chamen igual.",
-                    "A sesión xa non se pecha soa: a app renova o acceso unha soa vez e só cando fai falta, para que o servidor non a tome por un token roubado.",
                 ),
                 "eu" to listOf(
                     "Gastu bat gehitzean ordaintzailea hautatuta dator: gastua gehitzen duena. Eta pago bat erregistratzean, erregistratzen duenak ordaintzen du eta zu ez zaren taldeko lehen pertsonak kobratzen du.",
                     "Pertsona-hautatzaileek posta elektronikoa erakusten dute izenaren azpian, izen bera duten bi erabiltzaile bereizteko.",
-                    "Saioa ez da bakarrik ixten: aplikazioak sarbidea behin bakarrik berritzen du, behar denean soilik, zerbitzariak lapurtutako token bat ez dezan uste.",
                 ),
                 "pt" to listOf(
                     "Ao adicionar uma despesa o pagador já vem escolhido: quem a adiciona. E ao registar um pagamento, paga quem o regista e recebe a primeira pessoa do grupo que não és tu.",
                     "Os seletores de pessoa mostram o email sob o nome, para distinguir dois utilizadores com o mesmo nome.",
-                    "A sessão já não se fecha sozinha: a app renova o acesso uma só vez e apenas quando é preciso, para o servidor não a tomar por um token roubado.",
                 ),
                 "fr" to listOf(
                     "En ajoutant une dépense, le payeur est déjà choisi : celui qui l'ajoute. Et pour un paiement enregistré, paie celui qui l'enregistre et la première personne du groupe qui n'est pas vous le reçoit.",
                     "Les sélecteurs de personne affichent l'e-mail sous le nom, pour distinguer deux utilisateurs qui portent le même nom.",
-                    "La session ne se déconnecte plus toute seule : l'application renouvelle l'accès une seule fois, et seulement quand il le faut, pour que le serveur ne la prenne pas pour un jeton volé.",
                 ),
                 "it" to listOf(
                     "Quando aggiungi una spesa il pagatore è già scelto: chi la aggiunge. E quando registri un pagamento, paga chi lo registra e incassa la prima persona del gruppo che non sei tu.",
                     "I selettori di persona mostrano l'email sotto il nome, per distinguere due utenti con lo stesso nome.",
-                    "La sessione non si chiude più da sola: l'app rinnova l'accesso una sola volta e solo quando serve, così il server non la scambia per un token rubato.",
                 ),
                 "de" to listOf(
                     "Beim Hinzufügen einer Ausgabe ist der Zahler schon gesetzt: wer sie hinzufügt. Und bei einer erfassten Zahlung zahlt, wer sie erfasst, und die erste Person der Gruppe, die nicht du bist, erhält sie.",
                     "Personenauswahlen zeigen die E-Mail unter dem Namen, damit zwei Nutzer mit demselben Namen unterscheidbar sind.",
-                    "Die Sitzung meldet sich nicht mehr von selbst ab: Die App erneuert den Zugriff nur einmal und nur wenn nötig, damit der Server ihn nicht für ein gestohlenes Token hält.",
                 ),
             ),
         ),
