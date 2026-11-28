@@ -7,6 +7,7 @@ import {
   type PowerPeriod,
 } from "./permissions";
 import type { TodoDeps, TodoGroup, TodoGroupKind } from "./types";
+import { notifyOverdue } from "./overdue";
 
 /**
  * Groups, their members and the personal group (spec §5.1).
@@ -151,6 +152,9 @@ export async function createGroup(
 }
 
 export async function listGroups(deps: TodoDeps, caller: Caller): Promise<GroupSummary[]> {
+  // Opening the module is the moment the deadline warnings are due (spec §5.6):
+  // the job cannot emit them, so the sweep runs here, once per task.
+  await notifyOverdue(deps, caller);
   const { rows } = await deps.db.query(
     `select ${GROUP_COLUMNS},
             (select count(*) from module_todo.todo_group_members x where x.group_id = g.id) as member_count,

@@ -17,13 +17,19 @@ async function outbox(c: Parameters<typeof query>[0]) {
       where module_key = 'todo'
       order by created_at, type`,
   );
-  return rows.map((row) => ({
-    type: String(row.type),
-    target: String(row.target),
-    subject: row.subject_id === null ? null : String(row.subject_id),
-    notify: row.notify as string[] | null,
-    actor: String((row.resource as { actor_id?: string }).actor_id ?? ""),
-  }));
+  return rows.map((row) => {
+    const resource = row.resource as Record<string, unknown>;
+    return {
+      type: String(row.type),
+      target: String(row.target),
+      subject: row.subject_id === null ? null : String(row.subject_id),
+      notify: row.notify as string[] | null,
+      actor: String(resource.actor_id ?? ""),
+      description: String(resource.description ?? ""),
+      group: String(resource.group_name ?? ""),
+      actorName: String(resource.actor_name ?? ""),
+    };
+  });
 }
 
 describe("todo events", () => {
@@ -64,7 +70,17 @@ describe("todo events", () => {
 
       let rows = await outbox(c);
       expect(rows.filter((row) => row.type === "todo.task_created")).toEqual([
-        { type: "todo.task_created", target: channel, subject: null, notify: ["push"], actor: ana.userId },
+        {
+          type: "todo.task_created",
+          target: channel,
+          subject: null,
+          notify: ["push"],
+          actor: ana.userId,
+          // What the notification needs to say something, not just an id.
+          description: "Comprar detergente",
+          group: "Casa",
+          actorName: "Test User",
+        },
       ]);
       expect(rows.filter((row) => row.type === "todo.task_created_assigned")).toEqual([
         {
@@ -73,6 +89,9 @@ describe("todo events", () => {
           subject: luis.userId,
           notify: ["push"],
           actor: ana.userId,
+          description: "Pintar la valla",
+          group: "Casa",
+          actorName: "Test User",
         },
       ]);
       expect(rows.filter((row) => row.type === "todo.task_released").map((row) => row.actor)).toEqual([
@@ -88,8 +107,19 @@ describe("todo events", () => {
           subject: ana.userId, // the holder is told
           notify: ["push"],
           actor: luis.userId, // the requester asked
+          description: "Regar las plantas",
+          group: "Casa",
+          actorName: "Test User",
         },
       ]);
+      // The notification's Accept/Deny answer this id without opening the app.
+      const { rows: requestedRows } = await query(
+        c,
+        "select resource from public.event_outbox where type = 'todo.request_created'",
+      );
+      const requestedResource = requestedRows[0]!.resource as { request_id?: string };
+      expect(requestedResource.request_id).toBe(request.id);
+
       // Completion did not emit the season: the group has no power yet.
       expect(rows.some((row) => row.type === "todo.season_closed")).toBe(false);
 
@@ -103,6 +133,10 @@ describe("todo events", () => {
           subject: luis.userId, // the requester hears the answer
           notify: ["push"],
           actor: ana.userId, // the holder answered
+          // The holder's answer must name the task it is about.
+          description: "Regar las plantas",
+          group: "Casa",
+          actorName: "Test User",
         },
       ]);
       expect(rows.filter((row) => row.type === "todo.task_assigned").map((row) => row.subject)).toEqual([
@@ -132,6 +166,9 @@ describe("todo events", () => {
           subject: null,
           notify: ["push"],
           actor: ana.userId,
+          description: "",
+          group: "Casa",
+          actorName: "Test User",
         },
       ]);
     });

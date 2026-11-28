@@ -677,6 +677,9 @@ private fun Shell(
                 openModule == "todo" && viewModel.api() != null -> TodoScreen(
                     api = viewModel.api()!!,
                     userId = (state as? AppState.SignedIn)?.user?.id,
+                    // Only an administrator can list the instance's people, which
+                    // is what adding a member to a group needs.
+                    isAdmin = state.user.role == "admin" || state.user.role == "super_admin",
                     onBack = { openModule = null },
                     startAction = startAction,
                     onStartConsumed = { startAction = null },

@@ -5,9 +5,10 @@
 
 **Módulo:** `todo` — NotNow
 **Fecha de inicio:** 2026-11-27
-**Última actualización:** 2026-11-27
-**Estado:** `implementacion` (tarea 01 en curso)
-**Siguiente paso:** tarea 10 — terminar la verificación en el emulador (login y recorrido de pantallas) antes de pasarla a `test`.
+**Última actualización:** 2026-11-28
+**Estado:** `implementacion` (tareas 01–11 en `test`, 12 en curso)
+**Siguiente paso:** tarea 12 — fichas públicas en landing y auditorías de calidad, estilo y seguridad;
+después, aceptación del propietario en staging y orden de merge.
 
 ## 1. Brief
 
@@ -40,8 +41,9 @@
   (dos círculos solapados con el lente sólido) en `packages/owe-no/assets/{icon,logo}.svg`.
 - **Branding:** `color: indigo` (`--module-indigo`, `#4f46e5` / `#818cf8`); descripción en
   inglés por redactar en el manifest
-- **Manifest borrador:** pendiente
-- **Validación contra el esquema:** pendiente
+- **Manifest:** `packages/todo/manifest.json` en **1.4.0** (contrato 1, cinco migraciones con
+  digests, 12 eventos, 1 canal, 1 job, 2 widgets, 2 páginas de panel, hooks de demo)
+- **Validación contra el esquema:** verde en `packages/todo/src/manifest.test.ts`
 
 ## 4. Análisis y enriquecimiento
 
@@ -157,14 +159,15 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
 | Instalador en runtime | implementada (OweNo instala y desinstala) | install/activate/uninstall bloqueados |
 | API `/api/v1` del Core | implementada | endpoints dependientes bloqueados |
 | Shell del admin | implementada | `admin_pages` bloqueadas |
-| Push con acciones (botones) en la notificación | **pendiente** | la solicitud se queda en «push que abre la app» |
+| Push con acciones (botones) en la notificación | implementado (pendiente de probar con FCM real) | el receptor y el payload `request_id` ya existen; sin FCM en local no hay notificación que pulsar |
 
 ## 7. Artefactos
 
-- **Spec:** `docs/superpowers/specs/2026-11-27-todo.md` — **borrador para aprobación**
-- **Mockup:** `docs/mockups/todo/index.html` — **borrador para aprobación** (7 pantallas de móvil y 2 del panel)
-- **Plan:** `docs/superpowers/plans/2026-11-27-todo.md` — **aprobado 2026-11-27**
-- **Paquete:** `packages/todo/` — pendiente
+- **Spec:** `docs/superpowers/specs/2026-11-27-todo.md` — aprobada, actualizada con lo aprendido
+  (migraciones, eventos de periodo, contrato publicado)
+- **Mockup:** `docs/mockups/todo/index.html` — aceptado
+- **Plan:** `docs/superpowers/plans/2026-11-27-todo.md` — aprobado 2026-11-27
+- **Paquete:** `packages/todo/` — implementado en 1.4.0; API publicada en OpenAPI (26 operaciones)
 
 ## 8. Puertas
 
@@ -172,7 +175,9 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
 - [ ] ¿Empezamos el spec? — respuesta explícita.
 - [ ] Spec + mockup aceptados por el usuario.
 - [ ] Plan aprobado por el usuario.
-- [ ] UI aceptada (si aplica).
+- [ ] UI aceptada (si aplica). — recorrida en local con dos usuarios; falta la aceptación del
+  propietario sobre el APK de staging, incluido el push con botones (requiere FCM, no hay
+  credenciales en local: el propio Ajustes avisa «FCM public configuration is missing»).
 - [ ] Aceptación del resultado y orden de merge.
 
 ## 9. Dudas abiertas
@@ -243,3 +248,43 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
   tests unitarios pasan, y el APK está instalado en el emulador apuntando a `10.0.2.2:3003`.
   **No verificada todavía**: el login por adb se atasca (el teclado del emulador intercala
   caracteres) y el reinicio del entorno cortó la sesión. No pasa a `test` hasta recorrerla.
+- `2026-11-28` — **por qué fallaba el login en el emulador**: `/api/v1/instance` publica
+  `supabase_url: http://127.0.0.1:54321`, y el `127.0.0.1` del emulador es él mismo. Con
+  `adb reverse tcp:54321 tcp:54321` el login funciona a la primera; no era el teclado. El APK de
+  debug necesita ese `adb reverse` en cada arranque del emulador (documentado en `task-10.md`).
+- `2026-11-28` — **tarea 10 en `test`**: recorrida completa en el emulador con dos usuarios.
+  Pantallas: grupos + Personal, grupo (pendientes/hechas, coger, completar, soltar, pedir), alta
+  con emoji y power, alta asignada, detalle con edición, historial de periodos, deshacer, borrar,
+  bandeja (me las piden / he pedido, aceptar), power, cierre de temporada, archivo y resultados,
+  alta de grupo con power y periodo, ajustes del grupo (miembros, añadir/echar, borrar) y ajustes
+  en solo lectura para quien no es dueño. Nueve pantallas de móvil del mockup cubiertas salvo el
+  push con botones (ver abajo).
+- `2026-11-28` — **cambios de servidor que la app necesitó**: la bandeja nombra tarea, grupo y
+  solicitante (`taskTitle`/`groupName`/`requesterName`) y excluye las solicitudes propias de
+  «me las piden»; `GET /tasks/{id}` devuelve `{ task, occurrences }`; la tarea lleva
+  `assigneeName`. El payload del push incluye `description` (el título), `group_name`, `actor_name`
+  y `request_id`, que es lo que permiten los botones Aceptar/Denegar sin abrir la app.
+- `2026-11-28` — **idempotencia implementada** (`withIdempotency`): `Idempotency-Key` obligatorio en
+  crear tarea, completar y solicitar; transacción + cerrojo por clave, respuesta guardada y
+  reutilización de clave en otro endpoint rechazada. La app manda una clave nueva por acción y
+  reutiliza la misma en el reintento tras un 401.
+- `2026-11-28` — **aviso de vencida y de periodo perdido implementados**: migración `1.3.0` con
+  `overdue_notified_on` y `occurrences.notified_at`; el barrido corre al abrir el módulo o sus
+  tareas (el SQL de un módulo no puede escribir el outbox del Core) y emite una sola vez. Se añaden
+  los dos eventos `todo.task_missed_period[_assigned]` al manifest, al catálogo de avisos y a
+  `docs/events.md` (12 eventos).
+- `2026-11-28` — **demo rota en instalación limpia**: `seed_demo` usaba el id de categoría del Core
+  como `todo_tasks.category_id`, que apunta al catálogo del módulo; en una instancia recién
+  instalada ese id no existe y el FK tumbaba el sembrado. Migración `1.4.0`: la demo crea/reutiliza
+  su categoría «Casa» en `todo_categories`. Verificado con `POST /api/v1/demo` sobre módulo limpio.
+- `2026-11-28` — **OpenAPI**: el módulo no estaba publicado (`check:openapi` fallaba con 19 rutas
+  sin operación). Añadidas 26 operaciones en `packages/core/src/openapi/todo.ts`; el documento
+  declara ahora 150 de 150. El generador no tiene hueco para cabeceras: el `Idempotency-Key` se
+  documenta en la descripción de las tres operaciones.
+- `2026-11-28` — **verificación**: `pnpm lint` (0 errores, avisos previos de `<img>`), `pnpm tsc`
+  limpio, core 642, admin 1364, todo 36, Android 157 tests unitarios, `admin build` pendiente de
+  repetir en la auditoría, `db-tests` 381 con la instancia **sin módulos instalados** (con el módulo
+  instalado, 18 pruebas de otros paquetes cuentan filas del registro y fallan: es estado del
+  entorno, no del código). `i18n:check` verde y `check:openapi` 150/150. La suite completa de
+  `db-tests` necesita `SUPABASE_DB_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY` y
+  `SUPABASE_SERVICE_ROLE_KEY`.

@@ -12,6 +12,8 @@ describe("notification catalog", () => {
     expect(notificationKind("todo.task_created_assigned")).toBe("todo.task");
     expect(notificationKind("todo.task_completed")).toBe("todo.task");
     expect(notificationKind("todo.task_overdue_assigned")).toBe("todo.overdue");
+    expect(notificationKind("todo.task_missed_period")).toBe("todo.overdue");
+    expect(notificationKind("todo.task_missed_period_assigned")).toBe("todo.overdue");
     expect(notificationKind("todo.request_resolved")).toBe("todo.request");
     expect(notificationKind("todo.season_closed")).toBe("todo.season");
     expect(

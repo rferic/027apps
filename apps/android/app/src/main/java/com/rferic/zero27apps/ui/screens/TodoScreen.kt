@@ -2,26 +2,14 @@ package com.rferic.zero27apps.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,15 +27,26 @@ import androidx.compose.ui.unit.sp
 import com.rferic.zero27apps.data.ApiClient
 import com.rferic.zero27apps.data.ApiException
 import com.rferic.zero27apps.data.TodoBoardDto
+import com.rferic.zero27apps.data.TodoCandidateDto
 import com.rferic.zero27apps.data.TodoCategoryDto
 import com.rferic.zero27apps.data.TodoCreateTaskBody
 import com.rferic.zero27apps.data.TodoGroupDto
-import com.rferic.zero27apps.data.TodoPowerRow
+import com.rferic.zero27apps.data.TodoMemberDto
 import com.rferic.zero27apps.data.TodoRequestDto
+import com.rferic.zero27apps.data.TodoSeasonDto
+import com.rferic.zero27apps.data.TodoTaskDetailResponse
 import com.rferic.zero27apps.data.TodoTaskDto
+import com.rferic.zero27apps.data.TodoUpdateGroupBody
+import com.rferic.zero27apps.data.TodoUpdateTaskBody
 import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.theme.LocalPalette
 import kotlinx.coroutines.launch
+
+/** Which part of the module is on screen; back walks up this stack. */
+private enum class TodoPane { GROUPS, GROUP, REQUESTS, POWER, SEASON }
+
+/** The new-task dialog: `group` is fixed inside a group, chosen from the "+" otherwise. */
+data class TodoTaskFormTarget(val group: TodoGroupDto?)
 
 /**
  * NotNow in the app: groups of post-its, the personal group, requests to take a
@@ -61,6 +60,7 @@ import kotlinx.coroutines.launch
 fun TodoScreen(
     api: ApiClient,
     userId: String?,
+    isAdmin: Boolean,
     onBack: () -> Unit,
     startAction: String? = null,
     onStartConsumed: () -> Unit = {},
@@ -71,15 +71,24 @@ fun TodoScreen(
     val strings = LocalStrings.current
     val scope = rememberCoroutineScope()
 
+    var pane by remember { mutableStateOf(TodoPane.GROUPS) }
     var groups by remember { mutableStateOf<List<TodoGroupDto>>(emptyList()) }
     var open by remember { mutableStateOf<TodoGroupDto?>(null) }
     var tasks by remember { mutableStateOf<List<TodoTaskDto>>(emptyList()) }
+    var members by remember { mutableStateOf<List<TodoMemberDto>>(emptyList()) }
+    var candidates by remember { mutableStateOf<List<TodoCandidateDto>>(emptyList()) }
+    var candidatesDenied by remember { mutableStateOf(false) }
     var categories by remember { mutableStateOf<List<TodoCategoryDto>>(emptyList()) }
     var board by remember { mutableStateOf<TodoBoardDto?>(null) }
+    var seasons by remember { mutableStateOf<List<TodoSeasonDto>>(emptyList()) }
+    var archived by remember { mutableStateOf<TodoSeasonDto?>(null) }
     var requests by remember { mutableStateOf<List<TodoRequestDto>>(emptyList()) }
-    var showForm by remember { mutableStateOf(false) }
-    var showRequests by remember { mutableStateOf(false) }
-    var showPower by remember { mutableStateOf(false) }
+    var requestTab by remember { mutableStateOf("incoming") }
+    var detail by remember { mutableStateOf<TodoTaskDetailResponse?>(null) }
+    var taskForm by remember { mutableStateOf<TodoTaskFormTarget?>(null) }
+    var groupForm by remember { mutableStateOf(false) }
+    var editingGroup by remember { mutableStateOf<TodoGroupDto?>(null) }
+    var settingsOpen by remember { mutableStateOf(false) }
     var onlyDone by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
@@ -105,12 +114,33 @@ fun TodoScreen(
         }
     }
 
+    fun refreshGroup(group: TodoGroupDto? = open) {
+        val current = group ?: return
+        scope.launch {
+            try {
+                tasks = api.todoTasks(current.id)
+                members = runCatching { api.todoMembers(current.id) }.getOrDefault(members)
+                board = if (current.powerEnabled) runCatching { api.todoBoard(current.id) }.getOrNull() else null
+                val refreshed = runCatching { api.todoGroups() }.getOrNull()
+                if (refreshed != null) {
+                    groups = refreshed
+                    open = refreshed.firstOrNull { it.id == current.id } ?: current
+                }
+            } catch (cause: Throwable) {
+                fail(cause)
+            }
+        }
+    }
+
     fun openGroup(group: TodoGroupDto) {
         open = group
+        pane = TodoPane.GROUP
+        onlyDone = false
         scope.launch {
             busy = true
             try {
                 tasks = api.todoTasks(group.id)
+                members = runCatching { api.todoMembers(group.id) }.getOrDefault(emptyList())
                 board = if (group.powerEnabled) runCatching { api.todoBoard(group.id) }.getOrNull() else null
             } catch (cause: Throwable) {
                 fail(cause)
@@ -120,15 +150,48 @@ fun TodoScreen(
         }
     }
 
-    fun refreshOpen() {
-        val group = open ?: return
+    fun openTask(id: String) {
         scope.launch {
             try {
-                tasks = api.todoTasks(group.id)
-                board = if (group.powerEnabled) runCatching { api.todoBoard(group.id) }.getOrNull() else null
-                groups = api.todoGroups()
+                detail = api.todoTask(id)
             } catch (cause: Throwable) {
                 fail(cause)
+            }
+        }
+    }
+
+    fun openRequests(direction: String) {
+        requestTab = direction
+        pane = TodoPane.REQUESTS
+        scope.launch {
+            try {
+                requests = api.todoRequests(direction)
+            } catch (cause: Throwable) {
+                fail(cause)
+            }
+        }
+    }
+
+    fun openPower() {
+        val group = open ?: return
+        pane = TodoPane.POWER
+        scope.launch {
+            try {
+                board = api.todoBoard(group.id)
+                seasons = runCatching { api.todoSeasons(group.id) }.getOrDefault(emptyList())
+            } catch (cause: Throwable) {
+                fail(cause)
+            }
+        }
+    }
+
+    fun loadCandidates() {
+        if (candidates.isNotEmpty() || candidatesDenied) return
+        scope.launch {
+            try {
+                candidates = api.todoCandidates()
+            } catch (cause: Throwable) {
+                if (cause is ApiException && cause.status == 403) candidatesDenied = true else fail(cause)
             }
         }
     }
@@ -142,80 +205,105 @@ fun TodoScreen(
     }
     LaunchedEffect(startAction) {
         if (startAction == "new_task") {
-            showForm = true
+            taskForm = TodoTaskFormTarget(open)
             onStartConsumed()
         }
     }
 
-    BackHandler(enabled = open != null || showRequests || showPower) {
+    val inDetail = detail != null
+    val inAnyDialog = taskForm != null || groupForm || editingGroup != null || settingsOpen
+    BackHandler(enabled = pane != TodoPane.GROUPS || inDetail || inAnyDialog) {
         when {
-            showPower -> showPower = false
-            showRequests -> showRequests = false
-            open != null -> open = null
-            else -> onBack()
+            taskForm != null -> taskForm = null
+            groupForm -> groupForm = false
+            editingGroup != null -> editingGroup = null
+            settingsOpen -> settingsOpen = false
+            inDetail -> detail = null
+            pane == TodoPane.SEASON -> pane = TodoPane.POWER
+            pane != TodoPane.GROUPS -> pane = TodoPane.GROUPS
         }
     }
 
     Box(Modifier.fillMaxSize().background(palette.background)) {
         Column(Modifier.fillMaxSize()) {
-            // Header
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "‹",
-                    fontSize = 26.sp,
-                    color = palette.mutedForeground,
-                    modifier = Modifier.clickable {
-                        when {
-                            showPower -> showPower = false
-                            showRequests -> showRequests = false
-                            open != null -> open = null
-                            else -> onBack()
-                        }
-                    },
-                )
-                Text(
+            TodoHeader(
+                title = when (pane) {
+                    TodoPane.GROUPS -> "NotNow"
+                    TodoPane.GROUP -> open?.name ?: "NotNow"
+                    TodoPane.REQUESTS -> strings.todoRequests
+                    TodoPane.POWER -> "${strings.todoPower} · ${open?.name ?: ""}"
+                    TodoPane.SEASON -> "${strings.todoResults} · ${archived?.number ?: ""}"
+                },
+                onBack = {
                     when {
-                        showPower -> strings.todoResults
-                        showRequests -> strings.todoRequests
-                        else -> open?.name ?: "NotNow"
-                    },
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = palette.foreground,
-                    modifier = Modifier.padding(start = 10.dp).weight(1f),
-                )
-                if (open != null && !showPower && !showRequests) {
-                    TextButton(onClick = {
-                        scope.launch {
-                            try {
-                                requests = api.todoRequests("incoming")
-                                showRequests = true
-                            } catch (cause: Throwable) {
-                                fail(cause)
-                            }
-                        }
-                    }) {
-                        Text(
-                            if (requests.any { it.state == "pending" }) "${strings.todoRequests} ·" else strings.todoRequests,
-                            color = palette.accent,
-                            fontSize = 12.sp,
-                        )
+                        pane == TodoPane.SEASON -> pane = TodoPane.POWER
+                        pane != TodoPane.GROUPS -> pane = TodoPane.GROUPS
+                        else -> onBack()
                     }
-                }
-            }
+                },
+                trailing = when {
+                    pane == TodoPane.GROUP -> strings.todoRequests to { openRequests("incoming") }
+                    pane == TodoPane.GROUPS -> null
+                    else -> null
+                },
+                onSettings = if (pane == TodoPane.GROUP && open?.personal == false) {
+                    {
+                        settingsOpen = true
+                        loadCandidates()
+                    }
+                } else null,
+            )
 
-            when {
-                showRequests -> RequestsPane(
+            when (pane) {
+                TodoPane.GROUPS -> TodoModulePane(
+                    groups = groups,
+                    busy = busy,
+                    onOpen = ::openGroup,
+                    onRequests = { openRequests("incoming") },
+                    onNewGroup = { groupForm = true },
+                )
+
+                TodoPane.GROUP -> TodoGroupPane(
+                    group = open,
+                    tasks = tasks,
+                    onlyDone = onlyDone,
+                    userId = userId,
+                    onToggleDone = { onlyDone = !onlyDone },
+                    onNewTask = { taskForm = TodoTaskFormTarget(open) },
+                    onPower = ::openPower,
+                    onOpenTask = ::openTask,
+                    onClaim = { task ->
+                        scope.launch {
+                            try { api.todoClaim(task.id); refreshGroup() } catch (cause: Throwable) { fail(cause) }
+                        }
+                    },
+                    onRelease = { task ->
+                        scope.launch {
+                            try { api.todoRelease(task.id); refreshGroup() } catch (cause: Throwable) { fail(cause) }
+                        }
+                    },
+                    onComplete = { task ->
+                        scope.launch {
+                            try { api.todoComplete(task.id); refreshGroup() } catch (cause: Throwable) { fail(cause) }
+                        }
+                    },
+                    onRequest = { task ->
+                        scope.launch {
+                            try { api.todoRequest(task.id); refreshGroup() } catch (cause: Throwable) { fail(cause) }
+                        }
+                    },
+                )
+
+                TodoPane.REQUESTS -> TodoRequestsPane(
                     requests = requests,
+                    tab = requestTab,
+                    onTab = ::openRequests,
                     onAccept = { request ->
                         scope.launch {
                             try {
                                 api.todoAcceptRequest(request.id)
-                                requests = api.todoRequests("incoming")
-                                refreshOpen()
+                                requests = api.todoRequests(requestTab)
+                                refreshGroup()
                             } catch (cause: Throwable) {
                                 fail(cause)
                             }
@@ -225,7 +313,7 @@ fun TodoScreen(
                         scope.launch {
                             try {
                                 api.todoDenyRequest(request.id)
-                                requests = api.todoRequests("incoming")
+                                requests = api.todoRequests(requestTab)
                             } catch (cause: Throwable) {
                                 fail(cause)
                             }
@@ -233,88 +321,235 @@ fun TodoScreen(
                     },
                 )
 
-                showPower -> PowerPane(
+                TodoPane.POWER -> TodoPowerPane(
+                    group = open,
                     board = board,
-                    canClose = open?.ownerId != null && open?.ownerId == userId &&
-                        open?.powerPeriod != "infinite",
-                    onClose = {
-                        val group = open ?: return@PowerPane
+                    seasons = seasons,
+                    isOwner = open?.ownerId != null && open?.ownerId == userId,
+                    onCloseSeason = {
+                        val group = open ?: return@TodoPowerPane
                         scope.launch {
                             try {
                                 api.todoCloseSeason(group.id)
                                 board = api.todoBoard(group.id)
+                                seasons = api.todoSeasons(group.id)
                                 groups = api.todoGroups()
                             } catch (cause: Throwable) {
                                 fail(cause)
                             }
                         }
                     },
-                )
-
-                open == null -> GroupsPane(
-                    groups = groups,
-                    busy = busy,
-                    onOpen = ::openGroup,
-                    onNew = { showForm = true },
-                )
-
-                else -> GroupPane(
-                    tasks = tasks,
-                    onlyDone = onlyDone,
-                    powerEnabled = open?.powerEnabled == true,
-                    powerPeriod = open?.powerPeriod ?: "infinite",
-                    userId = userId,
-                    onToggleDone = { onlyDone = !onlyDone },
-                    onNew = { showForm = true },
-                    onPower = {
+                    onOpenSeason = { number ->
+                        val group = open ?: return@TodoPowerPane
                         scope.launch {
                             try {
-                                board = api.todoBoard(open!!.id)
-                                showPower = true
+                                archived = api.todoSeason(group.id, number)
+                                pane = TodoPane.SEASON
                             } catch (cause: Throwable) {
                                 fail(cause)
                             }
                         }
                     },
-                    onClaim = { task ->
-                        scope.launch {
-                            try { api.todoClaim(task.id); refreshOpen() } catch (cause: Throwable) { fail(cause) }
-                        }
-                    },
-                    onRelease = { task ->
-                        scope.launch {
-                            try { api.todoRelease(task.id); refreshOpen() } catch (cause: Throwable) { fail(cause) }
-                        }
-                    },
-                    onComplete = { task ->
-                        scope.launch {
-                            try { api.todoComplete(task.id); refreshOpen() } catch (cause: Throwable) { fail(cause) }
-                        }
-                    },
-                    onRequest = { task ->
-                        scope.launch {
-                            try { api.todoRequest(task.id); refreshOpen() } catch (cause: Throwable) { fail(cause) }
-                        }
-                    },
                 )
+
+                TodoPane.SEASON -> TodoSeasonPane(season = archived)
             }
         }
 
-        if (showForm) {
-            TaskForm(
+        taskForm?.let { target ->
+            TodoTaskFormDialog(
                 groups = groups,
                 categories = categories,
-                fixedGroup = open,
-                onDismiss = { showForm = false },
+                target = target,
+                members = if (target.group?.id == open?.id) members else emptyList(),
+                userId = userId,
+                onDismiss = { taskForm = null },
                 onCreate = { groupId, body ->
                     scope.launch {
                         try {
                             api.todoCreateTask(groupId, body)
-                            showForm = false
-                            if (open?.id == groupId) refreshOpen() else {
-                                groups = api.todoGroups()
-                                groups.firstOrNull { it.id == groupId }?.let(::openGroup)
+                            taskForm = null
+                            val group = groups.firstOrNull { it.id == groupId }
+                            if (group != null) {
+                                if (open?.id == group.id) refreshGroup() else openGroup(group)
                             }
+                        } catch (cause: Throwable) {
+                            fail(cause)
+                        }
+                    }
+                },
+            )
+        }
+
+        if (groupForm) {
+            TodoGroupFormDialog(
+                onDismiss = { groupForm = false },
+                onSave = { name, power, period ->
+                    scope.launch {
+                        try {
+                            val group = api.todoCreateGroup(name, power, period)
+                            groupForm = false
+                            groups = api.todoGroups()
+                            openGroup(group)
+                        } catch (cause: Throwable) {
+                            fail(cause)
+                        }
+                    }
+                },
+            )
+        }
+
+        editingGroup?.let { group ->
+            TodoGroupFormDialog(
+                existing = group,
+                onDismiss = { editingGroup = null },
+                onSave = { name, power, period ->
+                    scope.launch {
+                        try {
+                            val updated = api.todoUpdateGroup(
+                                group.id,
+                                TodoUpdateGroupBody(name = name, powerEnabled = power, powerPeriod = period),
+                            )
+                            editingGroup = null
+                            open = updated
+                            groups = api.todoGroups()
+                        } catch (cause: Throwable) {
+                            fail(cause)
+                        }
+                    }
+                },
+            )
+        }
+
+        if (settingsOpen && open != null) {
+            TodoGroupSettingsDialog(
+                group = open!!,
+                members = members,
+                candidates = candidates,
+                candidatesDenied = candidatesDenied,
+                canPick = isAdmin && !candidatesDenied,
+                isOwner = open?.ownerId != null && open?.ownerId == userId,
+                onDismiss = { settingsOpen = false },
+                onLoadCandidates = ::loadCandidates,
+                onAddMember = { memberId ->
+                    scope.launch {
+                        try {
+                            members = api.todoAddMember(open!!.id, memberId)
+                        } catch (cause: Throwable) {
+                            fail(cause)
+                        }
+                    }
+                },
+                onRemoveMember = { memberId ->
+                    scope.launch {
+                        try {
+                            members = api.todoRemoveMember(open!!.id, memberId)
+                            refreshGroup()
+                        } catch (cause: Throwable) {
+                            fail(cause)
+                        }
+                    }
+                },
+                onEdit = { editingGroup = open },
+                onDelete = {
+                    scope.launch {
+                        try {
+                            api.todoDeleteGroup(open!!.id)
+                            settingsOpen = false
+                            open = null
+                            detail = null
+                            pane = TodoPane.GROUPS
+                            groups = api.todoGroups()
+                        } catch (cause: Throwable) {
+                            fail(cause)
+                        }
+                    }
+                },
+            )
+        }
+
+        detail?.let { current ->
+            TodoTaskDetailSheet(
+                detail = current,
+                userId = userId,
+                canEdit = current.task?.let { it.assigneeId == null || it.assigneeId == userId } == true,
+                categories = categories,
+                powerEnabled = open?.powerEnabled == true,
+                onDismiss = {
+                    detail = null
+                    refreshGroup()
+                },
+                onSave = { body ->
+                    scope.launch {
+                        try {
+                            api.todoUpdateTask(current.task!!.id, body)
+                            openTask(current.task!!.id)
+                            refreshGroup()
+                        } catch (cause: Throwable) {
+                            fail(cause)
+                        }
+                    }
+                },
+                onClaim = {
+                    scope.launch {
+                        try {
+                            api.todoClaim(current.task!!.id)
+                            openTask(current.task!!.id)
+                            refreshGroup()
+                        } catch (cause: Throwable) {
+                            fail(cause)
+                        }
+                    }
+                },
+                onRelease = {
+                    scope.launch {
+                        try {
+                            api.todoRelease(current.task!!.id)
+                            openTask(current.task!!.id)
+                            refreshGroup()
+                        } catch (cause: Throwable) {
+                            fail(cause)
+                        }
+                    }
+                },
+                onComplete = {
+                    scope.launch {
+                        try {
+                            api.todoComplete(current.task!!.id)
+                            openTask(current.task!!.id)
+                            refreshGroup()
+                        } catch (cause: Throwable) {
+                            fail(cause)
+                        }
+                    }
+                },
+                onReopen = {
+                    scope.launch {
+                        try {
+                            api.todoReopen(current.task!!.id)
+                            openTask(current.task!!.id)
+                            refreshGroup()
+                        } catch (cause: Throwable) {
+                            fail(cause)
+                        }
+                    }
+                },
+                onRequest = {
+                    scope.launch {
+                        try {
+                            api.todoRequest(current.task!!.id)
+                            refreshGroup()
+                        } catch (cause: Throwable) {
+                            fail(cause)
+                        }
+                    }
+                },
+                onDelete = {
+                    scope.launch {
+                        try {
+                            api.todoDeleteTask(current.task!!.id)
+                            detail = null
+                            refreshGroup()
                         } catch (cause: Throwable) {
                             fail(cause)
                         }
@@ -334,359 +569,35 @@ fun TodoScreen(
 }
 
 @Composable
-private fun GroupsPane(
-    groups: List<TodoGroupDto>,
-    busy: Boolean,
-    onOpen: (TodoGroupDto) -> Unit,
-    onNew: () -> Unit,
+private fun TodoHeader(
+    title: String,
+    onBack: () -> Unit,
+    trailing: Pair<String, () -> Unit>?,
+    onSettings: (() -> Unit)?,
 ) {
     val palette = LocalPalette.current
-    val strings = LocalStrings.current
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        if (busy && groups.isEmpty()) item { Text("…", color = palette.mutedForeground) }
-        items(groups) { group ->
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .background(palette.surface, RoundedCornerShape(16.dp))
-                    .border(1.dp, palette.border, RoundedCornerShape(16.dp))
-                    .clickable { onOpen(group) }
-                    .padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(if (group.personal) "🔒" else "📋", fontSize = 18.sp)
-                Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                    Text(group.name, color = palette.foreground, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                    Text(
-                        if (group.personal) strings.todoPersonal
-                        else "${group.memberCount} · ${group.pendingCount} ${strings.todoPending.lowercase()}",
-                        color = palette.mutedForeground,
-                        fontSize = 12.sp,
-                    )
-                }
-                if (group.powerEnabled) Text("⚡", fontSize = 14.sp)
-            }
-        }
-        item {
-            Button(
-                onClick = onNew,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            ) { Text(strings.todoNewGroup) }
-        }
-    }
-}
-
-@Composable
-private fun GroupPane(
-    tasks: List<TodoTaskDto>,
-    onlyDone: Boolean,
-    powerEnabled: Boolean,
-    powerPeriod: String,
-    userId: String?,
-    onToggleDone: () -> Unit,
-    onNew: () -> Unit,
-    onPower: () -> Unit,
-    onClaim: (TodoTaskDto) -> Unit,
-    onRelease: (TodoTaskDto) -> Unit,
-    onComplete: (TodoTaskDto) -> Unit,
-    onRequest: (TodoTaskDto) -> Unit,
-) {
-    val palette = LocalPalette.current
-    val strings = LocalStrings.current
-    val visible = tasks.filter { if (onlyDone) it.done else !it.done }
-
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pill(
-                label = "${strings.todoPending} ${tasks.count { !it.done }}",
-                selected = !onlyDone,
-                onClick = { if (onlyDone) onToggleDone() },
-            )
-            Pill(
-                label = "${strings.todoDone} ${tasks.count { it.done }}",
-                selected = onlyDone,
-                onClick = { if (!onlyDone) onToggleDone() },
-            )
-            if (powerEnabled) {
-                Pill(label = "⚡ ${strings.todoSeason} $powerPeriod", selected = false, onClick = onPower)
-            }
-        }
-        Spacer(Modifier.height(8.dp))
-        LazyColumn(
-            Modifier.weight(1f).padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            if (visible.isEmpty()) item {
-                Text(strings.todoEmpty, color = palette.mutedForeground, fontSize = 13.sp, modifier = Modifier.padding(8.dp))
-            }
-            items(visible) { task ->
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(palette.surface, RoundedCornerShape(14.dp))
-                        .border(1.dp, palette.border, RoundedCornerShape(14.dp))
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Text(task.title, color = palette.foreground, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        if (task.power != null) Tag("⚡ ${task.power}", palette.accent)
-                        if (task.dueOn != null) Tag(task.dueOn!!, palette.mutedForeground)
-                        if (task.periodic) Tag("↻ ${task.recurrence}", palette.mutedForeground)
-                        Tag(
-                            if (task.free) strings.todoFree
-                            else if (task.assigneeId == userId) strings.todoPersonal
-                            else strings.todoGroup,
-                            palette.mutedForeground,
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (!task.done && task.free) {
-                            SmallAction(strings.todoTake) { onClaim(task) }
-                        }
-                        if (!task.done && task.assigneeId == userId) {
-                            SmallAction(strings.todoComplete) { onComplete(task) }
-                            SmallAction(strings.todoReleaseIt) { onRelease(task) }
-                        }
-                        if (!task.done && !task.free && task.assigneeId != userId) {
-                            SmallAction(strings.todoAskForIt) { onRequest(task) }
-                        }
-                    }
-                }
-            }
-        }
-        Button(
-            onClick = onNew,
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-        ) { Text(strings.todoNewTask) }
-    }
-}
-
-@Composable
-private fun Pill(label: String, selected: Boolean, onClick: () -> Unit) {
-    val palette = LocalPalette.current
-    Box(
-        Modifier
-            .background(if (selected) palette.accent else palette.surface, RoundedCornerShape(999.dp))
-            .border(1.dp, palette.border, RoundedCornerShape(999.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 5.dp),
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            label,
-            color = if (selected) palette.accentForeground else palette.mutedForeground,
-            fontSize = 11.5.sp,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-        )
-    }
-}
-
-@Composable
-private fun Tag(text: String, color: androidx.compose.ui.graphics.Color) {
-    Text(text, color = color, fontSize = 10.5.sp)
-}
-
-@Composable
-private fun SmallAction(label: String, onClick: () -> Unit) {
-    val palette = LocalPalette.current
-    Box(
-        Modifier
-            .background(palette.surface, RoundedCornerShape(9.dp))
-            .border(1.dp, palette.border, RoundedCornerShape(9.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 9.dp, vertical = 5.dp),
-    ) { Text(label, color = palette.accent, fontSize = 11.5.sp, fontWeight = FontWeight.Medium) }
-}
-
-@Composable
-private fun RequestsPane(
-    requests: List<TodoRequestDto>,
-    onAccept: (TodoRequestDto) -> Unit,
-    onDeny: (TodoRequestDto) -> Unit,
-) {
-    val palette = LocalPalette.current
-    val strings = LocalStrings.current
-    val pending = requests.filter { it.state == "pending" }
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (pending.isEmpty()) item {
-            Text(strings.todoEmpty, color = palette.mutedForeground, fontSize = 13.sp)
-        }
-        items(pending) { request ->
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .background(palette.surface, RoundedCornerShape(14.dp))
-                    .border(1.dp, palette.border, RoundedCornerShape(14.dp))
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text("↗ ${strings.todoRequests}", color = palette.foreground, fontSize = 13.sp)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SmallAction(strings.todoAccept) { onAccept(request) }
-                    SmallAction(strings.todoDeny) { onDeny(request) }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PowerPane(board: TodoBoardDto?, canClose: Boolean, onClose: () -> Unit) {
-    val palette = LocalPalette.current
-    val strings = LocalStrings.current
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        Text(
-            "${strings.todoSeason} ${board?.seasonNumber ?: 1} · ${board?.period ?: ""}",
+            "‹",
+            fontSize = 26.sp,
             color = palette.mutedForeground,
-            fontSize = 12.sp,
+            modifier = Modifier.clickable(onClick = onBack),
         )
-        Spacer(Modifier.height(10.dp))
-        val rows: List<TodoPowerRow> = board?.rows ?: emptyList()
-        if (rows.isEmpty()) {
-            Text(strings.todoEmpty, color = palette.mutedForeground, fontSize = 13.sp)
+        Text(
+            title,
+            fontSize = 19.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = palette.foreground,
+            modifier = Modifier.padding(start = 10.dp).weight(1f),
+        )
+        trailing?.let { (label, action) ->
+            TextButton(onClick = action) { Text(label, color = palette.accent, fontSize = 12.sp) }
         }
-        rows.forEach { row ->
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("${row.position}.", color = palette.mutedForeground, fontSize = 12.sp, modifier = Modifier.size(width = 24.dp, height = 18.dp))
-                Text(row.displayName, color = palette.foreground, fontSize = 13.5.sp, modifier = Modifier.weight(1f))
-                Text("${row.points} ⚡ · ${row.tasksDone} ${strings.todoTasksDone}", color = palette.mutedForeground, fontSize = 11.5.sp)
-            }
-        }
-        Spacer(Modifier.height(16.dp))
-        if (canClose) {
-            Button(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text(strings.todoCloseSeason) }
-            Text(strings.todoCloseSeasonHint, color = palette.mutedForeground, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp))
+        onSettings?.let { action ->
+            TextButton(onClick = action) { Text("⚙", color = palette.mutedForeground, fontSize = 15.sp) }
         }
     }
-}
-
-@Composable
-private fun TaskForm(
-    groups: List<TodoGroupDto>,
-    categories: List<TodoCategoryDto>,
-    fixedGroup: TodoGroupDto?,
-    onDismiss: () -> Unit,
-    onCreate: (String, TodoCreateTaskBody) -> Unit,
-) {
-    val palette = LocalPalette.current
-    val strings = LocalStrings.current
-    var title by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf<String?>(null) }
-    var power by remember { mutableStateOf<Int?>(null) }
-    var due by remember { mutableStateOf("") }
-    var recurrence by remember { mutableStateOf("none") }
-    var keepHolder by remember { mutableStateOf(false) }
-    var group by remember { mutableStateOf(fixedGroup ?: groups.firstOrNull()) }
-    val periodic = recurrence != "none"
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(
-                enabled = title.isNotBlank() && group != null,
-                onClick = {
-                    val target = group ?: return@TextButton
-                    onCreate(
-                        target.id,
-                        TodoCreateTaskBody(
-                            title = title.trim(),
-                            notes = notes.trim().ifBlank { null },
-                            categoryId = category,
-                            power = if (target.powerEnabled) power else null,
-                            dueOn = if (periodic) null else due.trim().ifBlank { null },
-                            recurrence = recurrence,
-                            keepAssignee = keepHolder,
-                        ),
-                    )
-                },
-            ) { Text(strings.save) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(strings.cancel) } },
-        title = { Text(strings.todoNewTask) },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (fixedGroup == null) {
-                    Text(strings.todoGroup, color = palette.mutedForeground, fontSize = 11.sp)
-                    groups.forEach { candidate ->
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable { group = candidate }
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(if (group?.id == candidate.id) "●" else "○", color = palette.accent)
-                            Text(candidate.name, color = palette.foreground, fontSize = 13.sp, modifier = Modifier.padding(start = 6.dp))
-                        }
-                    }
-                }
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text(strings.todoTitle) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text(strings.todoNotes) },
-                )
-                if (categories.isNotEmpty()) {
-                    Text(strings.todoCategory, color = palette.mutedForeground, fontSize = 11.sp)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        categories.take(6).forEach { option ->
-                            Pill(
-                                label = "${option.emoji} ${option.name}",
-                                selected = category == option.id,
-                                onClick = { category = if (category == option.id) null else option.id },
-                            )
-                        }
-                    }
-                }
-                if (group?.powerEnabled == true) {
-                    Text(strings.todoPower, color = palette.mutedForeground, fontSize = 11.sp)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        (1..5).forEach { value ->
-                            Pill(
-                                label = "$value ⚡",
-                                selected = power == value,
-                                onClick = { power = if (power == value) null else value },
-                            )
-                        }
-                    }
-                }
-                Text(strings.todoRepeats, color = palette.mutedForeground, fontSize = 11.sp)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf(
-                        "none" to strings.todoNever,
-                        "weekly" to strings.todoWeekly,
-                        "monthly" to strings.todoMonthly,
-                        "yearly" to strings.todoYearly,
-                    ).forEach { (value, label) ->
-                        Pill(label = label, selected = recurrence == value, onClick = { recurrence = value })
-                    }
-                }
-                if (periodic) {
-                    Pill(
-                        label = strings.todoKeepHolder,
-                        selected = keepHolder,
-                        onClick = { keepHolder = !keepHolder },
-                    )
-                } else {
-                    OutlinedTextField(
-                        value = due,
-                        onValueChange = { due = it },
-                        label = { Text(strings.todoDueDate) },
-                        singleLine = true,
-                    )
-                }
-            }
-        },
-    )
 }

@@ -11,6 +11,8 @@ One channel, `todo-group-{id}`, resolved by `channel_members(topic text)`.
 | `todo.task_completed` | channel | group, always |
 | `todo.task_overdue` | channel | group, when a free task passes its date |
 | `todo.task_overdue_assigned` | user | the holder, same case |
+| `todo.task_missed_period` | channel | group, when a period closes with a free task undone |
+| `todo.task_missed_period_assigned` | user | the holder, same case |
 | `todo.request_created` | user | current holder |
 | `todo.request_resolved` | user | requester |
 | `todo.season_closed` | channel | group |

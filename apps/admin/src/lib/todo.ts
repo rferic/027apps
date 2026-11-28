@@ -122,6 +122,19 @@ export function personalName(locale: string): string {
   return PERSONAL[locale.slice(0, 2)] ?? PERSONAL.en!;
 }
 
+/**
+ * `Idempotency-Key` is mandatory on the three writes that create something
+ * (spec §6). A client that forgot it gets a uniform validation error instead of
+ * a silently non-idempotent write.
+ */
+export function idempotencyKey(req: Request): string {
+  const key = req.headers.get("idempotency-key")?.trim() ?? "";
+  if (key === "") {
+    throw new DomainError("validation_failed", "Idempotency-Key header is required");
+  }
+  return key;
+}
+
 /** Query strings reach the domain parsed and validated, never as raw strings. */
 export function parseQuery<T>(schema: ZodType<T>, req: Request): T {
   try {

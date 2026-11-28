@@ -126,6 +126,7 @@ import {
   usersQuerySchema,
   apiKeysQuerySchema,
 } from "./schemas";
+import { TODO_OPERATIONS } from "./todo";
 
 /**
  * Metadata layer that ties the imperative `/api/v1` route handlers to the
@@ -1296,4 +1297,6 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
       "503": { description: "Neither CRON_SECRET nor MAINTENANCE_CRON_SECRET is configured." },
     },
   },
+  // NotNow (the `todo` module): groups, tasks, requests and power.
+  ...TODO_OPERATIONS,
 ];

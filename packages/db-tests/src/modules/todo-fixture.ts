@@ -50,8 +50,9 @@ export function deps(c: ClientBase): ModulesDeps {
 export async function session(
   c: ClientBase,
   role: "super_admin" | "admin" | "user",
+  displayName?: string,
 ): Promise<Caller & { kind: "session" }> {
-  const { id } = await createTestUser(c, { email: email(role), role });
+  const { id } = await createTestUser(c, { email: email(role), role, displayName });
   return { kind: "session", userId: id, role };
 }
 

@@ -12,6 +12,7 @@ import { localDate, nextPeriod, periodEnded, periodFor, type Recurrence } from "
 import { emitTaskCompleted, emitTaskCreated, emitTaskReleased } from "./events";
 import { award } from "./power";
 import type { TodoDeps, TodoTask, TodoTaskState } from "./types";
+import { notifyOverdue } from "./overdue";
 
 /**
  * Tasks (spec §5.2–§5.4): create, edit, take, release, complete and delete.
@@ -34,6 +35,8 @@ const TASK_COLUMNS = `t.id, t.group_id, t.title, t.notes, t.category_id, t.power
 
 export interface TaskView extends TodoTask {
   createdAt: string;
+  /** The holder's name, so the app shows "Pablo" and not a uuid. */
+  assigneeName: string;
 }
 
 export interface TaskFilters {
@@ -75,6 +78,7 @@ function toTask(row: Record<string, unknown>): TaskView {
     completedAt: date(row.completed_at),
     // The microseconds matter: the cursor compares (created_at, id) exactly.
     createdAt: String(row.created_at),
+    assigneeName: row.assignee_name === null || row.assignee_name === undefined ? "" : String(row.assignee_name),
   };
 }
 
@@ -84,9 +88,11 @@ async function load(
   taskId: string,
 ): Promise<{ task: TaskView; timezone: string; powerEnabled: boolean; seasonNumber: number }> {
   const { rows } = await deps.db.query(
-    `select ${TASK_COLUMNS}, g.timezone, g.power_enabled, g.season_number
+    `select ${TASK_COLUMNS}, g.timezone, g.power_enabled, g.season_number,
+            coalesce(a.display_name, '') as assignee_name
        from module_todo.todo_tasks t
        join module_todo.todo_groups g on g.id = t.group_id
+       left join public.profiles a on a.id = t.assignee_id
        join module_todo.todo_group_members m
          on m.group_id = t.group_id and m.user_id = $2
       where t.id = $1`,
@@ -204,6 +210,46 @@ export async function getTask(
   return (await load(deps, caller.userId, taskId)).task;
 }
 
+export interface OccurrenceView {
+  id: string;
+  periodStart: string;
+  periodEnd: string;
+  outcome: "done" | "missed";
+  completedAt: string | null;
+  completedByName: string;
+}
+
+/** The task's history (spec §5.3): one row per period, newest first. */
+export async function listOccurrences(
+  deps: TodoDeps,
+  caller: Caller,
+  taskId: string,
+): Promise<OccurrenceView[]> {
+  // Membership first: an unknown id and another group's id answer the same.
+  await load(deps, caller.userId, taskId);
+  const { rows } = await deps.db.query(
+    `select o.id, o.outcome,
+            to_char(o.period_start, 'YYYY-MM-DD') as period_start,
+            to_char(o.period_end, 'YYYY-MM-DD') as period_end,
+            to_char(o.completed_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as completed_at,
+            coalesce(p.display_name, '') as completed_by_name
+       from module_todo.todo_task_occurrences o
+       left join public.profiles p on p.id = o.completed_by
+      where o.task_id = $1
+      order by o.period_start desc
+      limit 52`,
+    [taskId],
+  );
+  return rows.map((row) => ({
+    id: String(row.id),
+    periodStart: String(row.period_start),
+    periodEnd: String(row.period_end),
+    outcome: row.outcome as OccurrenceView["outcome"],
+    completedAt: row.completed_at === null ? null : String(row.completed_at),
+    completedByName: String(row.completed_by_name ?? ""),
+  }));
+}
+
 export async function listTasks(
   deps: TodoDeps,
   caller: Caller,
@@ -211,6 +257,8 @@ export async function listTasks(
   filters: TaskFilters = {},
 ): Promise<TaskPage> {
   const group = await requireMember(deps, caller.userId, groupId);
+  // A group opened from a push lands here without listing the groups first.
+  await notifyOverdue(deps, caller);
   const limit = Math.min(Math.max(filters.limit ?? 50, 1), 100);
   const params: unknown[] = [groupId];
   const where: string[] = ["t.group_id = $1"];
@@ -239,8 +287,9 @@ export async function listTasks(
 
   params.push(limit + 1);
   const { rows } = await deps.db.query(
-    `select ${TASK_COLUMNS}
+    `select ${TASK_COLUMNS}, coalesce(a.display_name, '') as assignee_name
        from module_todo.todo_tasks t
+       left join public.profiles a on a.id = t.assignee_id
       where ${where.join(" and ")}
       order by t.created_at desc, t.id desc
       limit $${params.length}`,

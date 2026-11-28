@@ -52,6 +52,8 @@ const EVENT_KIND: Readonly<Record<string, NotificationKind>> = {
   "todo.task_completed": "todo.task",
   "todo.task_overdue": "todo.overdue",
   "todo.task_overdue_assigned": "todo.overdue",
+  "todo.task_missed_period": "todo.overdue",
+  "todo.task_missed_period_assigned": "todo.overdue",
   "todo.request_created": "todo.request",
   "todo.request_resolved": "todo.request",
   "todo.season_closed": "todo.season",

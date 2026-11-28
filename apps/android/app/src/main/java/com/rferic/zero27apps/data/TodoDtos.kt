@@ -51,6 +51,7 @@ data class TodoTaskDto(
     val categoryId: String? = null,
     val power: Int? = null,
     val assigneeId: String? = null,
+    val assigneeName: String = "",
     val state: String = "pending",
     val recurrence: String = "none",
     val keepAssignee: Boolean = false,
@@ -73,6 +74,23 @@ data class TodoTasksResponse(
 @Serializable
 data class TodoTaskResponse(val task: TodoTaskDto? = null)
 
+/** One period of a recurring task, or the day a one-off was done. */
+@Serializable
+data class TodoOccurrenceDto(
+    val id: String,
+    val periodStart: String = "",
+    val periodEnd: String = "",
+    val outcome: String = "missed",
+    val completedAt: String? = null,
+    val completedByName: String = "",
+)
+
+@Serializable
+data class TodoTaskDetailResponse(
+    val task: TodoTaskDto? = null,
+    val occurrences: List<TodoOccurrenceDto> = emptyList(),
+)
+
 @Serializable
 data class TodoCategoryDto(
     val id: String,
@@ -94,6 +112,10 @@ data class TodoRequestDto(
     val state: String = "pending",
     val createdAt: String = "",
     val expiresAt: String = "",
+    val resolvedAt: String? = null,
+    val taskTitle: String = "",
+    val groupName: String = "",
+    val requesterName: String = "",
 )
 
 @Serializable
@@ -128,10 +150,14 @@ data class TodoSeasonDto(
     val period: String = "infinite",
     val startedOn: String = "",
     val closedOn: String? = null,
+    val rows: List<TodoPowerRow> = emptyList(),
 )
 
 @Serializable
 data class TodoSeasonsResponse(val seasons: List<TodoSeasonDto> = emptyList())
+
+@Serializable
+data class TodoSeasonResponse(val season: TodoSeasonDto? = null)
 
 /** Bodies the app sends; the server validates them again with zod. */
 @Serializable
@@ -147,6 +173,15 @@ data class TodoCreateTaskBody(
 )
 
 @Serializable
+data class TodoUpdateTaskBody(
+    val title: String? = null,
+    val notes: String? = null,
+    @SerialName("category_id") val categoryId: String? = null,
+    val power: Int? = null,
+    @SerialName("due_on") val dueOn: String? = null,
+)
+
+@Serializable
 data class TodoCreateGroupBody(
     val name: String,
     val timezone: String? = null,
@@ -155,4 +190,23 @@ data class TodoCreateGroupBody(
 )
 
 @Serializable
+data class TodoUpdateGroupBody(
+    val name: String? = null,
+    val timezone: String? = null,
+    @SerialName("power_enabled") val powerEnabled: Boolean? = null,
+    @SerialName("power_period") val powerPeriod: String? = null,
+)
+
+@Serializable
 data class TodoAddMemberBody(@SerialName("user_id") val userId: String)
+
+/** The Core's user list, used to pick somebody to add to a group. */
+@Serializable
+data class TodoCandidateDto(
+    val id: String,
+    @SerialName("display_name") val displayName: String = "",
+    val role: String = "user",
+)
+
+@Serializable
+data class TodoCandidatesResponse(val users: List<TodoCandidateDto> = emptyList())

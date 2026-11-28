@@ -9,6 +9,7 @@ import {
   createTask,
   deleteTask,
   getTask,
+  listOccurrences,
   listTasks,
   releaseTask,
   updateTask,
@@ -177,6 +178,35 @@ describe("todo tasks", () => {
       await advancePeriod(later, task.id);
       const after = await getTask(deps, me, task.id);
       expect(after.assigneeId).toBe(ana.userId);
+    });
+  });
+});
+
+describe("todo task detail", () => {
+  it("names the holder and lists the periods it went through", async () => {
+    await inRollback(async (c) => {
+      await installTodo(c);
+      const deps = todoDeps(c, clock);
+      const ana = await session(c, "user", "Ana");
+      const me = { userId: ana.userId!, role: ana.role };
+      const group = await createGroup(deps, me, { name: "Casa", timezone: TZ });
+
+      const task = await createTask(deps, me, group.id, {
+        title: "Regar las plantas",
+        recurrence: "weekly",
+        assigneeId: ana.userId,
+      });
+      expect((await getTask(deps, me, task.id)).assigneeName).toBe("Ana");
+
+      await completeTask(deps, me, task.id);
+      const history = await listOccurrences(deps, me, task.id);
+      expect(history).toHaveLength(1);
+      expect(history[0]).toMatchObject({
+        outcome: "done",
+        completedByName: "Ana",
+        periodStart: task.periodStart,
+        periodEnd: task.periodEnd,
+      });
     });
   });
 });

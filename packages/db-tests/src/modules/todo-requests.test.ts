@@ -29,8 +29,8 @@ describe("todo requests", () => {
     await inRollback(async (c) => {
       await installTodo(c);
       const deps = todoDeps(c, clock);
-      const ana = await session(c, "user");
-      const luis = await session(c, "user");
+      const ana = await session(c, "user", "Ana");
+      const luis = await session(c, "user", "Luis");
       const me = { userId: ana.userId!, role: ana.role };
       const asLuis = { userId: luis.userId!, role: luis.role };
       const group = await createGroup(deps, me, { name: "Casa", timezone: TZ });
@@ -53,13 +53,26 @@ describe("todo requests", () => {
 
       const accepted = await acceptRequest(deps, me, request.id);
       expect(accepted.state).toBe("accepted");
+      expect(accepted).toMatchObject({
+        taskTitle: "Sacar la basura",
+        groupName: "Casa",
+        requesterName: "Luis",
+      });
       expect((await getTask(deps, me, task.id)).assigneeId).toBe(luis.userId);
 
       // Answering twice is not possible.
       expect(await codeOf(() => acceptRequest(deps, me, request.id))).toBe("request_expired");
 
+      // The inbox the app renders carries what a human needs: which task, which
+      // group and who is asking. Ids alone would render an empty row.
       const outgoing = await listRequests(deps, asLuis, "outgoing");
       expect(outgoing.map((row) => row.id)).toContain(request.id);
+      expect(outgoing[0]).toMatchObject({
+        taskTitle: "Sacar la basura",
+        groupName: "Casa",
+        requesterName: "Luis",
+        state: "accepted",
+      });
     });
   });
 

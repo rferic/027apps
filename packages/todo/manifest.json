@@ -6,7 +6,7 @@
     "icon": "assets/icon.svg",
     "color": "indigo"
   },
-  "version": "1.2.0",
+  "version": "1.4.0",
   "contract": 1,
   "is_public": true,
   "migrations": [
@@ -30,6 +30,20 @@
       "down": "./sql/003-widgets.down.sql",
       "digest": "sha256:3b5b99599d1ef70edc4d4cc5398e5cb868c65bf8fe061f076bc6fa4e93e121da",
       "down_digest": "sha256:c1344cbfc918599552d8d1c7ab4b7c9fce37b26f58dd9da2e0d0b475a3cbc42c"
+    },
+    {
+      "version": "1.3.0",
+      "up": "./sql/004-overdue.sql",
+      "down": "./sql/004-overdue.down.sql",
+      "digest": "sha256:8e3a05258f13bc931eb69f352a8878235fde947f666f02ead181c5110efe9ef5",
+      "down_digest": "sha256:63de5d50af4e5360339686b65de9d18b0b479a5c1db0cb4b35797d50dd4206f2"
+    },
+    {
+      "version": "1.4.0",
+      "up": "./sql/005-demo.sql",
+      "down": "./sql/005-demo.down.sql",
+      "digest": "sha256:0d8d27212ac17c54985aa7840dd0547fc0684d76dbcc0e344ef6d4751c140a21",
+      "down_digest": "sha256:53e5b881fcf6d5938bd46e87828822c6ad3931173e277cd6219e0921405996a8"
     }
   ],
   "settings": [
@@ -140,6 +154,20 @@
     },
     {
       "type": "todo.task_overdue_assigned",
+      "target": "user",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.task_missed_period",
+      "target": "channel:todo-group-{id}",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "todo.task_missed_period_assigned",
       "target": "user",
       "notify": [
         "push"

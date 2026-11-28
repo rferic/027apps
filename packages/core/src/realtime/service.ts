@@ -375,6 +375,10 @@ export async function publishPending(
               ...(text(resource.currency) ? { currency: text(resource.currency)! } : {}),
               ...(text(resource.movement_id) ? { resource_id: text(resource.movement_id)! } : {}),
               ...(text(resource.group_id) ? { target: text(resource.group_id)! } : {}),
+              // The id an actionable notification answers against: NotNow's
+              // Accept/Deny buttons call the request endpoint without opening
+              // the app first, so the push has to carry it.
+              ...(text(resource.request_id) ? { request_id: text(resource.request_id)! } : {}),
             };
           }
 

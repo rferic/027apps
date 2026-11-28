@@ -50,14 +50,19 @@ class PushMessagingService : FirebaseMessagingService() {
             open,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(PushText.body(data, masked, locale, strings.pushEvent))
             .setContentIntent(intent)
             .setAutoCancel(true)
-            .build()
-        manager.notify(System.currentTimeMillis().toInt(), notification)
+        // A request is answered from the notification (spec §5.2); the inbox
+        // remains the place to find it when the push was missed.
+        val requestId = data["request_id"]
+        if (data["key"] == "push.todo_request_created" && !requestId.isNullOrBlank()) {
+            TodoRequestActionReceiver.actions(this, requestId).forEach(builder::addAction)
+        }
+        manager.notify(System.currentTimeMillis().toInt(), builder.build())
     }
 
     private companion object {

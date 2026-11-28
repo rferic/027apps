@@ -1,7 +1,8 @@
-# API — Tareas
+# API — NotNow
 
-All routes live under `/api/v1/todo` and answer with the Core envelope. The table
-below is the contract; implementation lands in the API task.
+All routes live under `/api/v1/todo` and answer with the Core envelope. Every
+route is also published in the instance's OpenAPI document
+(`docs/api/openapi.json`, operations tagged `todo`).
 
 | Method | Path | Scope |
 |---|---|---|
@@ -34,6 +35,25 @@ below is the contract; implementation lands in the API task.
 
 A task is pending or done, holds one assignee or none, and the holder is the only
 one who edits and completes it. Requests expire after 24 hours.
+
+## Shapes worth knowing
+
+- `GET /tasks/{id}` answers `{ task, occurrences }`: the periods the task went
+  through, newest first (`done`/`missed`, when and by whom).
+- `GET /requests?direction=incoming|outgoing` answers rows that name the task,
+  its group and who asks (`taskTitle`, `groupName`, `requesterName`), so a client
+  renders the inbox without extra reads. `incoming` never includes a request the
+  caller made themselves.
+- `GET / (group list)` includes `memberCount` and `pendingCount`.
+- `GET /groups/{id}` answers `{ group, members }`.
+
+## Idempotency
+
+`POST /groups/{id}/tasks`, `POST /tasks/{id}/complete` and
+`POST /tasks/{id}/requests` **require** an `Idempotency-Key` header (8 to 120
+characters). A retry with the same key and the same user answers the stored
+result and changes nothing; reusing a key on a different endpoint is a
+`validation_failed`. A missing header is refused before any work happens.
 
 ## Errors and limits
 

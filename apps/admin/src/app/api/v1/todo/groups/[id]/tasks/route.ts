@@ -1,6 +1,7 @@
 import { createTask, listTasks } from "@027apps/todo/domain/tasks.js";
 import { createTaskSchema, taskQuerySchema } from "@027apps/todo/domain/schemas.js";
-import { handle, json, parseQuery } from "@/lib/todo";
+import { withIdempotency } from "@027apps/todo/domain/idempotency.js";
+import { handle, idempotencyKey, json, parseQuery } from "@/lib/todo";
 
 /** GET /api/v1/todo/groups/{id}/tasks — filters and a cursor. */
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -36,18 +37,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         recurrence?: "none" | "weekly" | "monthly" | "yearly";
         keep_assignee?: boolean;
       };
-      return json({
-        task: await createTask(todo, caller, id, {
-          title: body.title,
-          notes: body.notes ?? undefined,
-          categoryId: body.category_id ?? null,
-          power: body.power ?? null,
-          assigneeId: body.assignee_id ?? null,
-          dueOn: body.due_on ?? null,
-          recurrence: body.recurrence,
-          keepAssignee: body.keep_assignee,
-        }),
-      });
+      const task = await withIdempotency(
+        todo,
+        caller,
+        { key: idempotencyKey(req), endpoint: `POST /groups/${id}/tasks` },
+        (scoped) =>
+          createTask(scoped, caller, id, {
+            title: body.title,
+            notes: body.notes ?? undefined,
+            categoryId: body.category_id ?? null,
+            power: body.power ?? null,
+            assigneeId: body.assignee_id ?? null,
+            dueOn: body.due_on ?? null,
+            recurrence: body.recurrence,
+            keepAssignee: body.keep_assignee,
+          }),
+      );
+      return json({ task });
     },
   );
 }

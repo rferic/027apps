@@ -18,6 +18,7 @@ import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import java.io.Closeable
+import java.util.UUID
 import java.io.IOException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -116,8 +117,35 @@ class ApiClient(
             ),
         ).group ?: throw ApiException("internal", 0, "missing group", null)
 
+    suspend fun todoUpdateGroup(groupId: String, body: TodoUpdateGroupBody): TodoGroupDto =
+        read<TodoGroupResponse>(request(HttpMethod.Patch, "/api/v1/todo/groups/$groupId", body)).group
+            ?: throw ApiException("internal", 0, "missing group", null)
+
+    suspend fun todoDeleteGroup(groupId: String) {
+        val response = request(HttpMethod.Delete, "/api/v1/todo/groups/$groupId")
+        if (!response.status.isSuccess()) throw errorOf(response)
+    }
+
     suspend fun todoMembers(groupId: String): List<TodoMemberDto> =
         read<TodoMembersResponse>(request(HttpMethod.Get, "/api/v1/todo/groups/$groupId/members")).members
+
+    suspend fun todoAddMember(groupId: String, userId: String): List<TodoMemberDto> =
+        read<TodoMembersResponse>(
+            request(HttpMethod.Post, "/api/v1/todo/groups/$groupId/members", TodoAddMemberBody(userId)),
+        ).members
+
+    suspend fun todoRemoveMember(groupId: String, userId: String): List<TodoMemberDto> =
+        read<TodoMembersResponse>(
+            request(HttpMethod.Delete, "/api/v1/todo/groups/$groupId/members/$userId"),
+        ).members
+
+    /**
+     * The people on this instance, so the owner can add somebody to a group.
+     * The Core only answers this to an administrator; everybody else gets 403
+     * and the screen explains it.
+     */
+    suspend fun todoCandidates(): List<TodoCandidateDto> =
+        read<TodoCandidatesResponse>(request(HttpMethod.Get, "/api/v1/users?limit=100&state=active")).users
 
     suspend fun todoTasks(groupId: String, state: String? = null, mine: Boolean = false): List<TodoTaskDto> {
         val query = buildList {
@@ -131,7 +159,20 @@ class ApiClient(
     }
 
     suspend fun todoCreateTask(groupId: String, body: TodoCreateTaskBody): TodoTaskDto =
-        read<TodoTaskResponse>(request(HttpMethod.Post, "/api/v1/todo/groups/$groupId/tasks", body)).task
+        read<TodoTaskResponse>(
+            request(
+                HttpMethod.Post,
+                "/api/v1/todo/groups/$groupId/tasks",
+                body,
+                headers = idempotency(),
+            ),
+        ).task ?: throw ApiException("internal", 0, "missing task", null)
+
+    suspend fun todoTask(id: String): TodoTaskDetailResponse =
+        read(request(HttpMethod.Get, "/api/v1/todo/tasks/$id"))
+
+    suspend fun todoUpdateTask(id: String, body: TodoUpdateTaskBody): TodoTaskDto =
+        read<TodoTaskResponse>(request(HttpMethod.Patch, "/api/v1/todo/tasks/$id", body)).task
             ?: throw ApiException("internal", 0, "missing task", null)
 
     suspend fun todoDeleteTask(id: String) {
@@ -148,16 +189,18 @@ class ApiClient(
             ?: throw ApiException("internal", 0, "missing task", null)
 
     suspend fun todoComplete(id: String): TodoTaskDto =
-        read<TodoTaskResponse>(request(HttpMethod.Post, "/api/v1/todo/tasks/$id/complete", emptyBody())).task
-            ?: throw ApiException("internal", 0, "missing task", null)
+        read<TodoTaskResponse>(
+            request(HttpMethod.Post, "/api/v1/todo/tasks/$id/complete", emptyBody(), headers = idempotency()),
+        ).task ?: throw ApiException("internal", 0, "missing task", null)
 
     suspend fun todoReopen(id: String): TodoTaskDto =
         read<TodoTaskResponse>(request(HttpMethod.Post, "/api/v1/todo/tasks/$id/reopen", emptyBody())).task
             ?: throw ApiException("internal", 0, "missing task", null)
 
     suspend fun todoRequest(id: String): TodoRequestDto =
-        read<TodoRequestResponse>(request(HttpMethod.Post, "/api/v1/todo/tasks/$id/requests", emptyBody())).request
-            ?: throw ApiException("internal", 0, "missing request", null)
+        read<TodoRequestResponse>(
+            request(HttpMethod.Post, "/api/v1/todo/tasks/$id/requests", emptyBody(), headers = idempotency()),
+        ).request ?: throw ApiException("internal", 0, "missing request", null)
 
     suspend fun todoRequests(direction: String): List<TodoRequestDto> =
         read<TodoRequestsResponse>(request(HttpMethod.Get, "/api/v1/todo/requests?direction=$direction")).requests
@@ -178,8 +221,23 @@ class ApiClient(
         read<TodoBoardResponse>(request(HttpMethod.Post, "/api/v1/todo/groups/$groupId/season/close", emptyBody())).board
             ?: TodoBoardDto()
 
+    suspend fun todoSeasons(groupId: String): List<TodoSeasonDto> =
+        read<TodoSeasonsResponse>(request(HttpMethod.Get, "/api/v1/todo/groups/$groupId/seasons")).seasons
+
+    suspend fun todoSeason(groupId: String, number: Int): TodoSeasonDto =
+        read<TodoSeasonResponse>(request(HttpMethod.Get, "/api/v1/todo/groups/$groupId/seasons/$number")).season
+            ?: throw ApiException("not_found", 404, "missing season", null)
+
     suspend fun todoCategories(): List<TodoCategoryDto> =
         read<TodoCategoriesResponse>(request(HttpMethod.Get, "/api/v1/todo/categories")).categories
+
+    /**
+     * The three writes that create something carry an `Idempotency-Key` (spec §6):
+     * a tap repeated on a flaky network must not create a second task or count a
+     * completion twice. The retry after a 401 reuses it, so the server sees one key.
+     */
+    private fun idempotency(): Map<String, String> =
+        mapOf("Idempotency-Key" to UUID.randomUUID().toString())
 
     private fun emptyBody(): kotlinx.serialization.json.JsonObject = buildJsonObject { }
 

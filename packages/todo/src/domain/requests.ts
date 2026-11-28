@@ -17,7 +17,17 @@ import type { TodoDeps } from "./types";
 const REQUEST_COLUMNS = `r.id, r.group_id, r.task_id, r.requester_id, r.state,
   to_char(r.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as created_at,
   to_char(r.expires_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as expires_at,
-  to_char(r.resolved_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as resolved_at`;
+  to_char(r.resolved_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as resolved_at,
+  t.title as task_title, g.name as group_name, p.display_name as requester_name`;
+
+/**
+ * The inbox is read by a person, so it names the task, its group and who asks;
+ * ids alone would render an empty row in the app. The task join never drops a
+ * request: deleting a task cascades its requests away.
+ */
+const REQUEST_JOINS = `join module_todo.todo_tasks t on t.id = r.task_id
+  join module_todo.todo_groups g on g.id = r.group_id
+  left join public.profiles p on p.id = r.requester_id`;
 
 export interface RequestView {
   id: string;
@@ -28,10 +38,14 @@ export interface RequestView {
   createdAt: string;
   expiresAt: string;
   resolvedAt: string | null;
+  taskTitle: string;
+  groupName: string;
+  requesterName: string;
 }
 
 function toRequest(row: Record<string, unknown>): RequestView {
   const stamp = (value: unknown) => (value === null || value === undefined ? null : String(value));
+  const text = (value: unknown) => (value === null || value === undefined ? "" : String(value));
   return {
     id: String(row.id),
     groupId: String(row.group_id),
@@ -41,6 +55,9 @@ function toRequest(row: Record<string, unknown>): RequestView {
     createdAt: String(row.created_at),
     expiresAt: String(row.expires_at),
     resolvedAt: stamp(row.resolved_at),
+    taskTitle: text(row.task_title),
+    groupName: text(row.group_name),
+    requesterName: text(row.requester_name),
   };
 }
 
@@ -76,7 +93,7 @@ export async function requestTask(
   const { rows: inserted } = await deps.db.query(
     `insert into module_todo.todo_requests (group_id, task_id, requester_id, expires_at)
      values ($1, $2, $3, now() + make_interval(hours => $4))
-     returning ${REQUEST_COLUMNS.replaceAll("r.", "")}`,
+     returning id`,
     [String(rows[0].group_id), taskId, caller.userId, ttl],
   ).catch((error: { code?: string }) => {
     if (error.code === "23505") {
@@ -84,12 +101,17 @@ export async function requestTask(
     }
     throw error;
   });
-  const request = toRequest(inserted[0]!);
+  const { rows: created } = await deps.db.query(
+    `select ${REQUEST_COLUMNS} from module_todo.todo_requests r ${REQUEST_JOINS} where r.id = $1`,
+    [String(inserted[0]!.id)],
+  );
+  const request = toRequest(created[0]!);
   await emitRequestCreated(deps, {
     groupId: request.groupId,
     actorId: caller.userId,
     holderId: String(rows[0].assignee_id),
     taskId,
+    requestId: request.id,
     title: String(rows[0].title ?? ""),
   });
   return request;
@@ -102,12 +124,10 @@ export async function listRequests(
 ): Promise<RequestView[]> {
   const { rows } = await deps.db.query(
     direction === "outgoing"
-      ? `select ${REQUEST_COLUMNS} from module_todo.todo_requests r
+      ? `select ${REQUEST_COLUMNS} from module_todo.todo_requests r ${REQUEST_JOINS}
           where r.requester_id = $1 order by r.created_at desc limit 100`
-      : `select ${REQUEST_COLUMNS}
-           from module_todo.todo_requests r
-           join module_todo.todo_tasks t on t.id = r.task_id
-          where t.assignee_id = $1
+      : `select ${REQUEST_COLUMNS} from module_todo.todo_requests r ${REQUEST_JOINS}
+          where t.assignee_id = $1 and r.requester_id <> $1
           order by (r.state = 'pending') desc, r.created_at desc
           limit 100`,
     [caller.userId],
@@ -124,7 +144,7 @@ async function answer(
   const { rows } = await deps.db.query(
     `select ${REQUEST_COLUMNS}, t.assignee_id, t.state as task_state
        from module_todo.todo_requests r
-       join module_todo.todo_tasks t on t.id = r.task_id
+       ${REQUEST_JOINS}
        join module_todo.todo_group_members m
          on m.group_id = r.group_id and m.user_id = $2
       where r.id = $1`,
@@ -145,7 +165,7 @@ async function answer(
     `update module_todo.todo_requests
         set state = $3, decided_by = $2, resolved_at = now()
       where id = $1 and state = 'pending'
-      returning ${REQUEST_COLUMNS.replaceAll("r.", "")}`,
+      returning id`,
     [requestId, caller.userId, accept ? "accepted" : "denied"],
   );
   if (!resolved[0]) throw new TodoDomainError("request_expired", "the request is no longer open");
@@ -162,10 +182,14 @@ async function answer(
       actorId: caller.userId,
       assigneeId: String(rows[0].requester_id),
       taskId: String(rows[0].task_id),
-      title: String(rows[0].title ?? ""),
+      title: String(rows[0].task_title ?? ""),
     });
   }
-  const answered = toRequest(resolved[0]);
+  const { rows: answeredRows } = await deps.db.query(
+    `select ${REQUEST_COLUMNS} from module_todo.todo_requests r ${REQUEST_JOINS} where r.id = $1`,
+    [requestId],
+  );
+  const answered = toRequest(answeredRows[0]!);
   if (rows[0].requester_id) {
     await emitRequestResolved(deps, {
       groupId: answered.groupId,
@@ -173,7 +197,7 @@ async function answer(
       requesterId: String(rows[0].requester_id),
       taskId: answered.taskId,
       requestId: answered.id,
-      title: String(rows[0].title ?? ""),
+      title: answered.taskTitle,
       state: accept ? "accepted" : "denied",
     });
   }

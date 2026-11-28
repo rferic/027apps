@@ -1,12 +1,15 @@
-import { deleteTask, getTask, updateTask } from "@027apps/todo/domain/tasks.js";
+import { deleteTask, getTask, listOccurrences, updateTask } from "@027apps/todo/domain/tasks.js";
 import { updateTaskSchema } from "@027apps/todo/domain/schemas.js";
 import { handle, json } from "@/lib/todo";
 
-/** GET /api/v1/todo/tasks/{id} */
+/** GET /api/v1/todo/tasks/{id} — the task and the history of its periods. */
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   return handle(req, { scopes: ["tasks:read"], rateLimit: { identity: "user", limit: 120 } }, async ({ todo, caller }) =>
-    json({ task: await getTask(todo, caller, id) }),
+    json({
+      task: await getTask(todo, caller, id),
+      occurrences: await listOccurrences(todo, caller, id),
+    }),
   );
 }
 

@@ -17,6 +17,29 @@ function resource(fields: Record<string, JsonValue>): JsonValue {
   return fields;
 }
 
+/**
+ * The two names a notification needs to say something: the group and the person
+ * who acted. The Core's push payload reads `group_name`/`actor_name`; ids alone
+ * would render a blank body on the lock screen.
+ */
+async function names(
+  deps: TodoDeps,
+  groupId: string,
+  actorId: string | null,
+): Promise<{ group_name: string; actor_name: string }> {
+  const { rows } = await deps.db.query(
+    `select g.name as group_name, p.display_name as actor_name
+       from module_todo.todo_groups g
+       left join public.profiles p on p.id = $2
+      where g.id = $1`,
+    [groupId, actorId],
+  );
+  return {
+    group_name: String(rows[0]?.group_name ?? ""),
+    actor_name: String(rows[0]?.actor_name ?? ""),
+  };
+}
+
 export async function emitTaskCreated(
   deps: TodoDeps,
   args: {
@@ -39,9 +62,11 @@ export async function emitTaskCreated(
     resource: resource({
       task_id: args.taskId,
       title: args.title,
+      description: args.title,
       group_id: args.groupId,
       power: args.power,
       actor_id: args.actorId,
+      ...(await names(deps, args.groupId, args.actorId)),
     }),
     notify: ["push"],
   });
@@ -58,8 +83,10 @@ export async function emitTaskReleased(
     resource: resource({
       task_id: args.taskId,
       title: args.title,
+      description: args.title,
       group_id: args.groupId,
       actor_id: args.actorId,
+      ...(await names(deps, args.groupId, args.actorId)),
     }),
     notify: ["push"],
   });
@@ -76,9 +103,11 @@ export async function emitTaskCompleted(
     resource: resource({
       task_id: args.taskId,
       title: args.title,
+      description: args.title,
       group_id: args.groupId,
       power: args.power,
       actor_id: args.actorId,
+      ...(await names(deps, args.groupId, args.actorId)),
     }),
     notify: ["push"],
   });
@@ -98,8 +127,10 @@ export async function emitTaskAssigned(
     resource: resource({
       task_id: args.taskId,
       title: args.title,
+      description: args.title,
       group_id: args.groupId,
       actor_id: args.actorId,
+      ...(await names(deps, args.groupId, args.actorId)),
     }),
     notify: ["push"],
   });
@@ -107,7 +138,14 @@ export async function emitTaskAssigned(
 
 export async function emitRequestCreated(
   deps: TodoDeps,
-  args: { groupId: string; actorId: string; holderId: string; taskId: string; title: string },
+  args: {
+    groupId: string;
+    actorId: string;
+    holderId: string;
+    taskId: string;
+    requestId: string;
+    title: string;
+  },
 ): Promise<void> {
   await enqueueEvent(deps.db, {
     module_key: MODULE,
@@ -117,9 +155,12 @@ export async function emitRequestCreated(
     resource: resource({
       task_id: args.taskId,
       title: args.title,
+      description: args.title,
       group_id: args.groupId,
-      request_id: null,
+      // The notification's buttons answer this id without opening the app.
+      request_id: args.requestId,
       actor_id: args.actorId,
+      ...(await names(deps, args.groupId, args.actorId)),
     }),
     notify: ["push"],
   });
@@ -146,9 +187,69 @@ export async function emitRequestResolved(
       task_id: args.taskId,
       request_id: args.requestId,
       title: args.title,
+      description: args.title,
       group_id: args.groupId,
       state: args.state,
       actor_id: args.actorId,
+      ...(await names(deps, args.groupId, args.actorId)),
+    }),
+    notify: ["push"],
+  });
+}
+
+/**
+ * The deadline passed with the task pending. A free task warns the group; a held
+ * one warns only its holder. Nobody acted, so there is no actor to exclude.
+ */
+export async function emitTaskOverdue(
+  deps: TodoDeps,
+  args: { groupId: string; taskId: string; title: string; holderId: string | null },
+): Promise<void> {
+  const assigned = args.holderId !== null;
+  await enqueueEvent(deps.db, {
+    module_key: MODULE,
+    type: assigned ? "todo.task_overdue_assigned" : "todo.task_overdue",
+    target: assigned ? "user" : channel(args.groupId),
+    subject_id: assigned ? args.holderId : null,
+    resource: resource({
+      task_id: args.taskId,
+      title: args.title,
+      description: args.title,
+      group_id: args.groupId,
+      actor_id: null,
+      ...(await names(deps, args.groupId, null)),
+    }),
+    notify: ["push"],
+  });
+}
+
+/** A period closed with the task undone: same recipients as an overdue task. */
+export async function emitTaskMissedPeriod(
+  deps: TodoDeps,
+  args: {
+    groupId: string;
+    taskId: string;
+    title: string;
+    holderId: string | null;
+    periodStart: string;
+    periodEnd: string;
+  },
+): Promise<void> {
+  const assigned = args.holderId !== null;
+  await enqueueEvent(deps.db, {
+    module_key: MODULE,
+    type: assigned ? "todo.task_missed_period_assigned" : "todo.task_missed_period",
+    target: assigned ? "user" : channel(args.groupId),
+    subject_id: assigned ? args.holderId : null,
+    resource: resource({
+      task_id: args.taskId,
+      title: args.title,
+      description: args.title,
+      group_id: args.groupId,
+      period_start: args.periodStart,
+      period_end: args.periodEnd,
+      actor_id: null,
+      ...(await names(deps, args.groupId, null)),
     }),
     notify: ["push"],
   });
@@ -166,6 +267,7 @@ export async function emitSeasonClosed(
       group_id: args.groupId,
       season_number: args.seasonNumber,
       actor_id: args.actorId,
+      ...(await names(deps, args.groupId, args.actorId)),
     }),
     notify: ["push"],
   });
