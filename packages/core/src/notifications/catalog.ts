@@ -9,7 +9,11 @@ export type NotificationKind =
   | "invitation.requested"
   | "invitation.request_resolved"
   | "owe_no.movement_created"
-  | "owe_no.movement_changed";
+  | "owe_no.movement_changed"
+  | "todo.task"
+  | "todo.overdue"
+  | "todo.request"
+  | "todo.season";
 
 export interface NotificationType {
   key: NotificationKind;
@@ -22,6 +26,10 @@ export const NOTIFICATION_TYPES: readonly NotificationType[] = [
   { key: "invitation.request_resolved", module: null },
   { key: "owe_no.movement_created", module: "owe-no" },
   { key: "owe_no.movement_changed", module: "owe-no" },
+  { key: "todo.task", module: "todo" },
+  { key: "todo.overdue", module: "todo" },
+  { key: "todo.request", module: "todo" },
+  { key: "todo.season", module: "todo" },
 ];
 
 /**
@@ -35,6 +43,20 @@ const EVENT_KIND: Readonly<Record<string, NotificationKind>> = {
   "owe_no.movement_created": "owe_no.movement_created",
   "owe_no.movement_updated": "owe_no.movement_changed",
   "owe_no.movement_deleted": "owe_no.movement_changed",
+  // NotNow: a task moving (created, assigned, released, done) is one switch; the
+  // deadline, the requests and the season close have their own.
+  "todo.task_created": "todo.task",
+  "todo.task_created_assigned": "todo.task",
+  "todo.task_assigned": "todo.task",
+  "todo.task_released": "todo.task",
+  "todo.task_completed": "todo.task",
+  "todo.task_overdue": "todo.overdue",
+  "todo.task_overdue_assigned": "todo.overdue",
+  "todo.task_missed_period": "todo.overdue",
+  "todo.task_missed_period_assigned": "todo.overdue",
+  "todo.request_created": "todo.request",
+  "todo.request_resolved": "todo.request",
+  "todo.season_closed": "todo.season",
 };
 
 export function notificationKind(eventType: string): NotificationKind | null {

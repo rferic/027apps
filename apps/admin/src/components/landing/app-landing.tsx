@@ -199,7 +199,7 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
             <h2 className="display">{t("The app,")}{" "}<br />
               <span className="dim">{t("inside.")}</span>
             </h2>
-            <span className="index">{t("01–04 / APP MODULES")}</span>
+            <span className="index">{t("01–05 / APP MODULES")}</span>
           </div>
           <p>
             <span className="note-pill">
@@ -260,10 +260,62 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
               </div>
             </article>
 
+
             <article className="feature-row flip">
               <div className="copy">
                 <p className="eyebrow">
-                  <strong>02</strong>{" / "}{t("CATEGORIES")}
+                  <strong>02</strong>{" / "}NOTNOW
+                </p>
+                <h3>{t("Post-its that live in a group.")}</h3>
+                <p>{t("For the everyday: leave a task, somebody takes it, and whoever does it earns points. Not a kanban and not a project manager.")}{" "}
+                  <span className="note-pill"><b>●</b>{" "}{t("In development")}</span>
+                </p>
+                <ul className="check-list"><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Free or held: only its holder completes it")}</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Ask for a task and the holder answers")}</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Power by season, with ranking and archive")}</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Recurring tasks keep their history")}</li></ul>
+              </div>
+              <div className="visual">
+                <div className="phone">
+                  <div className="notch"></div>
+                  <div className="screen">
+                    <div className="ph-head">
+                      <span>NotNow</span>
+                      <span>ER</span>
+                    </div>
+                    <div className="ph-card">
+                      <div className="k">{t("Demo family · season 1")}</div>
+                      <div className="v teal">{t("Eric 5 power")}</div>
+                    </div>
+                    <div className="ph-list">
+                      <div className="ph-item">
+                        <span className="ph-dot">🛒</span>
+                        <span className="who">{t("Buy for the week")}</span>
+                        <span className="amt">Eric</span>
+                      </div>
+                      <div className="ph-item">
+                        <span className="ph-dot">🧾</span>
+                        <span className="who">{t("Pay the community")}</span>
+                        <span className="amt">{t("Free")}</span>
+                      </div>
+                      <div className="ph-item">
+                        <span className="ph-dot">💡</span>
+                        <span className="who">{t("Change the bulb")}</span>
+                        <span className="amt pos">{t("Done")}</span>
+                      </div>
+                    </div>
+                    <div className="ph-tabs">
+                      <b>{t("Home")}</b>
+                      <span>{t("Categories")}</span>
+                      <span>{t("Members")}</span>
+                      <span>{t("Modules")}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article className="feature-row">
+              <div className="copy">
+                <p className="eyebrow">
+                  <strong>03</strong>{" / "}{t("CATEGORIES")}
                 </p>
                 <h3>{t("Every group, with its permissions.")}</h3>
                 <p>{t("Home, school, leisure — whatever you need. Each category groups its members and decides what each one sees.")}{" "}</p>
@@ -303,7 +355,7 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
             <article className="feature-row">
               <div className="copy">
                 <p className="eyebrow">
-                  <strong>03</strong>{" / "}{t("MEMBERS")}
+                  <strong>04</strong>{" / "}{t("MEMBERS")}
                 </p>
                 <h3>{t("A private club, not an open signup.")}</h3>
                 <p>{t("The admin invites the first people; each member can bring a few more, with a level and a live quota. Access is a rotating QR or a shareable link.")}{" "}</p>
@@ -353,7 +405,7 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
             <article className="feature-row flip">
               <div className="copy">
                 <p className="eyebrow">
-                  <strong>04</strong>{" / "}{t("MODULES")}
+                  <strong>05</strong>{" / "}{t("MODULES")}
                 </p>
                 <h3>{t("Turn on only what you use.")}</h3>
                 <p>{t("OweNo, categories, API… Modules switch on and off without touching the rest. The app shows only what is active.")}{" "}</p>

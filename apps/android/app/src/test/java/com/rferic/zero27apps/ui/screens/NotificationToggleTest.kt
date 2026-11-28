@@ -67,6 +67,11 @@ class NotificationToggleTest {
         assertEquals("Solicitudes de plazas", notificationTypeLabel("invitation.requested", es))
         assertEquals("Gasto corregido o borrado", notificationTypeLabel("owe_no.movement_changed", es))
         assertEquals("Gasto nuevo", notificationTypeLabel("owe_no.movement_created", es))
+        // NotNow's four kinds: a technical key on screen is a bug, not a fallback.
+        assertEquals("Tarea creada, cogida o hecha", notificationTypeLabel("todo.task", es))
+        assertEquals("Tarea vencida", notificationTypeLabel("todo.overdue", es))
+        assertEquals("Solicitud de tarea", notificationTypeLabel("todo.request", es))
+        assertEquals("Temporada cerrada", notificationTypeLabel("todo.season", es))
         assertEquals("fixture.created", notificationTypeLabel("fixture.created", es))
     }
 }

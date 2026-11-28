@@ -91,4 +91,66 @@ class PushTextTest {
         assertEquals(true, text.contains("Cena"))
         assertEquals(true, text.contains("20"))
     }
+
+    @Test
+    fun `the module is called NotNow on the lock screen`() {
+        assertEquals("NotNow", PushText.title("todo"))
+    }
+
+    @Test
+    fun `a NotNow push names the task, the group and who acted`() {
+        val created = mapOf(
+            "key" to "push.todo_task_created",
+            "module" to "todo",
+            "description" to "Sacar la basura",
+            "group" to "Casa",
+            "actor" to "Luis",
+        )
+        assertEquals(
+            "Luis añadió «Sacar la basura» · Casa",
+            PushText.body(created, masked = false, locale = "es", fallback = "Novedad"),
+        )
+        assertEquals(
+            "Luis added «Sacar la basura» · Casa",
+            PushText.body(created, masked = false, locale = "en", fallback = "Novedad"),
+        )
+    }
+
+    @Test
+    fun `a request push asks for the task and a resolved one answers`() {
+        val request = mapOf(
+            "key" to "push.todo_request_created",
+            "module" to "todo",
+            "description" to "Comprar para la semana",
+            "group" to "Demo family",
+            "actor" to "Eric RF",
+        )
+        assertEquals(
+            "Eric RF pide «Comprar para la semana»",
+            PushText.body(request, masked = false, locale = "es", fallback = "Novedad"),
+        )
+        assertEquals(
+            "«Comprar para la semana» sigue con quien la tenía",
+            PushText.body(
+                request + mapOf("key" to "push.todo_request_resolved", "state" to "denied"),
+                masked = false,
+                locale = "es",
+                fallback = "Novedad",
+            ),
+        )
+    }
+
+    @Test
+    fun `a push without an actor drops that part instead of a dangling separator`() {
+        val overdue = mapOf(
+            "key" to "push.todo_task_overdue",
+            "module" to "todo",
+            "description" to "Pagar la luz",
+            "group" to "Casa",
+        )
+        assertEquals(
+            "«Pagar la luz» está vencida · Casa",
+            PushText.body(overdue, masked = false, locale = "es", fallback = "Novedad"),
+        )
+    }
 }

@@ -115,6 +115,12 @@ Ejemplo completo:
 
 - `key` único, kebab-case; `name`/`label` en inglés; `version` semver. Palabras reservadas:
   `admin`, `mcp`, `api`, `core` no pueden ser `key`.
+- **`key` es técnico y `name` es la marca**: la clave nombra cosas que no se renombran sin
+  migración (esquema `module_<key>`, paquete `packages/<key>`, API `/api/v1/<key>`, ajustes
+  `<key>.*`, `/panel/<key>/...` y el `openModule` de la app); el nombre es solo lo que se muestra.
+  Un cambio de marca actualiza `name` y las traducciones, nunca la `key`. Por eso NotNow vive en
+  `key: "todo"` y su URL de panel es `/panel/todo`, decisión tomada el 2026-11-28: la URL puede
+  ser técnica.
 - `is_public` e `i18n` son obligatorios; `i18n` usa los locales soportados
   (`en`, `es`, `ca`, `it`, `fr`, `de`, `pt`, `gl`, `eu`) e **incluye `en` siempre**.
 - Cada migración declara `up` y `down`, con `digest` y `down_digest`; cada
