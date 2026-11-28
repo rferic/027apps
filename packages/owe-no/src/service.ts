@@ -57,6 +57,8 @@ export interface MemberView {
   kind: "user" | "fictitious";
   /** The creator blocked this account: it cannot be added again. */
   blocked: boolean;
+  /** The account's email, to tell two members with the same name apart. */
+  email: string | null;
 }
 
 interface MemberRow {
@@ -68,6 +70,13 @@ interface MemberRow {
 }
 
 const key = (groupId: string) => groupId;
+
+/** Auth email of a member's account; null when the member is fictitious or gone. */
+async function accountEmail(deps: OweDeps, userId: string): Promise<string | null> {
+  const { rows } = await deps.db.query("select email from auth.users where id = $1", [userId]);
+  const email = rows[0]?.email;
+  return typeof email === "string" && email.length > 0 ? email : null;
+}
 
 async function memberFor(
   deps: OweDeps,
@@ -226,12 +235,13 @@ export async function listMembers(
     throw new OweDomainError("not_found", "group not found");
   }
   const { rows } = await deps.db.query(
-    `select m.id, m.display_name, m.state, m.user_id,
+    `select m.id, m.display_name, m.state, m.user_id, u.email,
             exists (
               select 1 from module_owe_no.owe_no_blocks b
                where b.group_id = m.group_id and b.user_id = m.user_id
             ) as blocked
        from module_owe_no.owe_no_members m
+       left join auth.users u on u.id = m.user_id
       where m.group_id = $1
         and (
           m.state <> 'removed'
@@ -250,6 +260,7 @@ export async function listMembers(
     user_id: row.user_id === null ? null : String(row.user_id),
     kind: row.user_id === null ? "fictitious" : "user",
     blocked: Boolean(row.blocked),
+    email: row.email === null || row.email === undefined ? null : String(row.email),
   }));
 }
 
@@ -304,6 +315,7 @@ export async function addMember(
         user_id: null,
         kind: "fictitious",
         blocked: false,
+        email: null,
       };
     }
   }
@@ -322,13 +334,15 @@ export async function addMember(
     [groupId, input.inviteeId ?? null, displayName, userId, state],
   );
   const row = rows[0];
+  const memberUserId = row.user_id === null ? null : String(row.user_id);
   return {
     id: String(row.id),
     display_name: String(row.display_name),
     state: row.state as MemberView["state"],
-    user_id: row.user_id === null ? null : String(row.user_id),
-    kind: row.user_id === null ? "fictitious" : "user",
+    user_id: memberUserId,
+    kind: memberUserId === null ? "fictitious" : "user",
     blocked: false,
+    email: memberUserId === null ? null : await accountEmail(deps, memberUserId),
   };
 }
 

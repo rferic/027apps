@@ -1,0 +1,31 @@
+{
+  "name": "@027apps/todo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "tsc": "tsc --noEmit"
+  },
+  "exports": {
+    "./domain/*.js": "./src/domain/*.ts",
+    "./service.js": "./src/service.ts",
+    "./admin/overview/page": "./admin/overview/page.tsx",
+    "./admin/categories/page": "./admin/categories/page.tsx"
+  },
+  "dependencies": {
+    "@027apps/core": "workspace:*",
+    "@027apps/i18n": "workspace:*",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5",
+    "vitest": "^5",
+    "@types/react": "^19",
+    "react": "19.3.1"
+  },
+  "peerDependencies": {
+    "react": "^19.3.1"
+  }
+}

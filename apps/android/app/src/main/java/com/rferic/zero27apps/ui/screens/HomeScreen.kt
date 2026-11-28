@@ -443,6 +443,14 @@ private fun widgetCopy(widget: WidgetDto, resolved: WidgetValue?): WidgetCopy {
             label = if (resolved?.value == "1") strings.groupOne else strings.groupMany,
             detail = null,
         )
+        key.startsWith("todo") -> WidgetCopy(
+            title = strings.widgetTasksTitle,
+            label = when (resolved?.value) {
+                "1" -> strings.widgetTaskOne
+                else -> strings.widgetTaskMany
+            },
+            detail = if (resolved?.value == "0") strings.widgetNothingPending else null,
+        )
         key.contains("notes") -> WidgetCopy(
             title = strings.notesTitle,
             label = if (resolved?.value == "1") strings.noteOne else strings.noteMany,

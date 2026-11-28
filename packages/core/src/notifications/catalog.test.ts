@@ -8,6 +8,19 @@ describe("notification catalog", () => {
     expect(notificationKind("owe_no.movement_created")).toBe("owe_no.movement_created");
   });
 
+  it("groups the NotNow events into four switches", () => {
+    expect(notificationKind("todo.task_created_assigned")).toBe("todo.task");
+    expect(notificationKind("todo.task_completed")).toBe("todo.task");
+    expect(notificationKind("todo.task_overdue_assigned")).toBe("todo.overdue");
+    expect(notificationKind("todo.task_missed_period")).toBe("todo.overdue");
+    expect(notificationKind("todo.task_missed_period_assigned")).toBe("todo.overdue");
+    expect(notificationKind("todo.request_resolved")).toBe("todo.request");
+    expect(notificationKind("todo.season_closed")).toBe("todo.season");
+    expect(
+      NOTIFICATION_TYPES.filter((type) => type.module === "todo").map((type) => type.key),
+    ).toEqual(["todo.task", "todo.overdue", "todo.request", "todo.season"]);
+  });
+
   it("leaves an unknown event unsilenceable", () => {
     expect(notificationKind("fixture.created")).toBeNull();
     expect(isNotificationKind("fixture.created")).toBe(false);

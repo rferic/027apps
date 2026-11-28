@@ -27,6 +27,8 @@ data class OweMemberDto(
     @SerialName("user_id") val userId: String? = null,
     val kind: String = "user",
     val blocked: Boolean = false,
+    /** The account's email, to tell two members with the same name apart. */
+    val email: String? = null,
 )
 
 @Serializable
@@ -111,6 +113,8 @@ data class OweMovementResponse(val movement: OweMovementDto)
 data class OweIdentityDto(
     val id: String,
     @SerialName("display_name") val displayName: String,
+    /** The account's email, to tell two equal names apart. */
+    val email: String? = null,
 )
 
 @Serializable

@@ -207,7 +207,7 @@ export function SelfHostLanding({ locale }: { locale: Locale }) {
             <h2 className="display">{t("What you get")}{" "}<br />
               <span className="dim">{t("from one instance.")}</span>
             </h2>
-            <span className="index">{t("01–09 / INCLUDED")}</span>
+            <span className="index">{t("01–10 / INCLUDED")}</span>
           </div>
           <div className="grid-3">
             <article className="module">
@@ -218,6 +218,15 @@ export function SelfHostLanding({ locale }: { locale: Locale }) {
               </div>
               <h3>OweNo</h3>
               <p>{t("Shared expenses, balances, settlements and Splitwise import.")}</p>
+            </article>
+            <article className="module">
+              <div className="ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 4.5h12.5A1.5 1.5 0 0 1 19 6v11.5" /><path d="M19 17.5A2.5 2.5 0 0 1 16.5 20H5.5A1.5 1.5 0 0 1 4 18.5v-13" /><path d="m8 11 2.5 2.5L16 8" />
+                </svg>
+              </div>
+              <h3>NotNow</h3>
+              <p>{t("Shared tasks as post-its, with requests, power and seasons.")}{" "}<span className="note-pill" style={s("font-size: 10px; padding: 2px 8px")}><b>●</b>{" "}{t("In development")}</span></p>
             </article>
             <article className="module">
               <div className="ico">

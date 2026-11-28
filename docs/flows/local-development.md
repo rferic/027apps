@@ -123,6 +123,7 @@ Si el comando devuelve `200`, el flujo de desarrollo local está operativo. Si d
 | La página no hidrata (el selector de idioma o los botones no responden) | Bloqueo de assets estáticos o HMR de Next.js por origen desconocido. | Comprobar que `allowedDevOrigins` en `next.config.ts` incluye `027apps.local`, y recargar con `Cmd + Shift + R`. |
 | Error `Could not resolve host: 027apps.local` | OrbStack no tiene habilitado el acceso a dominios de contenedores o el proxy no arrancó. | Revisar ajustes de red de OrbStack y relanzar el comando `docker run` de Caddy. |
 | Sesión o idioma "perdidos" al abrir la app | Cambio de host (ej. de `localhost:3003` a `027apps.local`). | Las cookies están asociadas al dominio. Trabajar siempre sobre el mismo dominio (`http://027apps.local`). |
+| Tras iniciar sesión con la contraseña correcta siempre aparece el asistente (`/setup`) | `instance.public_url` está vacío: el login manda al asistente mientras el alta esté incompleta. | Rellenar **Public URL** con el origen real (con este proxy, `http://027apps.local`; con el servidor de desarrollo directo, `http://localhost:3003`) desde el asistente o en Ajustes → Instancia. Sin barra final y sin ruta. |
 | El correo de prueba del asistente falla | Configuración SMTP o validación de Supabase. | El asistente usa `POST /api/v1/setup/test-email` llamando a `resetPasswordForEmail` sin `redirectTo`, por lo que Supabase recurre a `site_url`. El panel solo dispone de `/login` (no existe ruta `/recover`): el correo valida el funcionamiento SMTP, no un enlace de recuperación. |
 
 ---

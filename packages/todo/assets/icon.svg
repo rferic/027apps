@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="NotNow">
+  <!-- G · nota maciza: la hoja con el check recortado. Una sola tinta. -->
+  <g transform="translate(-2.5 0)">
+    <path fill-rule="evenodd" d="M7.8 3.4h13.4a1.4 1.4 0 0 1 1.4 1.4v12.4l-5.2 5.2H7.8a1.4 1.4 0 0 1-1.4-1.4V4.8a1.4 1.4 0 0 1 1.4-1.4Z
+      M15.2 8.6l-4.4 4.5-1.9-1.9-1.7 1.7 3.6 3.6 6.1-6.2Z" />
+  </g>
+</svg>
