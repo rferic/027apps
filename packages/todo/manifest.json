@@ -28,7 +28,7 @@
       "version": "1.2.0",
       "up": "./sql/003-widgets.sql",
       "down": "./sql/003-widgets.down.sql",
-      "digest": "sha256:2ca437e19a5810e33a3dbec659262bc8e70216679f26026f1f62fa81c5166482",
+      "digest": "sha256:3b5b99599d1ef70edc4d4cc5398e5cb868c65bf8fe061f076bc6fa4e93e121da",
       "down_digest": "sha256:c1344cbfc918599552d8d1c7ab4b7c9fce37b26f58dd9da2e0d0b475a3cbc42c"
     }
   ],

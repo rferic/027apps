@@ -75,11 +75,14 @@ begin
     (gid, '🧾 Pagar la comunidad', null, category, 5, null, ana),
     (gid, '💡 Cambiar la bombilla del pasillo', null, null, 1, luis, ana);
 
-  update module_todo.todo_tasks set state = 'done', completed_at = now(), completed_by = ana
+  update module_todo.todo_tasks set state = 'done', completed_at = now(), completed_by = luis
    where group_id = gid and title like '%bombilla%';
 
-  insert into module_todo.todo_power_totals (group_id, user_id, season_number, points, tasks_done)
-  values (gid, ana, 1, 1, 1);
+  -- The point goes to whoever holds the done task, which is the demo's second user.
+  if luis is not null then
+    insert into module_todo.todo_power_totals (group_id, user_id, season_number, points, tasks_done)
+    values (gid, luis, 1, 1, 1);
+  end if;
 
   -- The personal group, so the demo shows both shapes of container.
   select id into personal from module_todo.todo_groups where kind = 'personal' and owner_id = ana;

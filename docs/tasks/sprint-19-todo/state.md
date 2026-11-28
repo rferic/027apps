@@ -231,3 +231,9 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
   `todo.metric`, los hooks `seed_demo`/`clear_demo` (idempotentes y sin tocar datos de la familia),
   las 27 claves de panel traducidas a los nueve idiomas y la documentación por capacidad completa.
   `i18n:check` en verde.
+- `2026-11-28` — **instalado y probado de punta a punta en local**: instancia montada
+  (`eric@local.test`), módulo `todo` instalado y activo en `1.2.0`, demo sembrada y flujo completo
+  por HTTP con dos usuarios (crear puntual y periódica, coger, completar, power con posiciones,
+  solicitud, aceptar, y archivo de temporadas). Dos fallos encontrados y corregidos: la demo
+  acreditaba los puntos a quien no había hecho la tarea, y las fechas de solicitud salían como
+  `Date.toString()` en vez de ISO.

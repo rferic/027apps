@@ -14,8 +14,10 @@ import type { TodoDeps } from "./types";
  * the request, so two taps cannot hand it to two people.
  */
 
-const REQUEST_COLUMNS = `r.id, r.group_id, r.task_id, r.requester_id, r.state, r.created_at,
-  r.expires_at, r.resolved_at`;
+const REQUEST_COLUMNS = `r.id, r.group_id, r.task_id, r.requester_id, r.state,
+  to_char(r.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as created_at,
+  to_char(r.expires_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as expires_at,
+  to_char(r.resolved_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as resolved_at`;
 
 export interface RequestView {
   id: string;
