@@ -7,7 +7,7 @@
 **Fecha de inicio:** 2026-11-27
 **Última actualización:** 2026-11-27
 **Estado:** `implementacion` (tarea 01 en curso)
-**Siguiente paso:** tarea 03 — dominio de tareas.
+**Siguiente paso:** tarea 07 — API `/api/v1/todo`.
 
 ## 1. Brief
 
@@ -202,3 +202,10 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
 - `2026-11-28` — logos cerrados tras la revisión del propietario: OweNo **B** y NotNow **G**.
   Guardados los cuatro SVG (icono monocromo y logo a dos tonos de cada módulo). El icono de
   OweNo cambia en su paquete; no toca SQL ni versión del manifest.
+- `2026-11-28` — **tareas 03–06** en `test`: ciclo de vida de la tarea (coger, soltar,
+  completar, borrar), recurrencia con ocurrencias y cierre de periodo, solicitudes a 24 h con
+  caducidad, y power con temporadas, archivo y el job horario `job_hourly` (idempotente y con
+  puesta al día de varias temporadas). `db-tests` en 18 casos del módulo.
+- `2026-11-28` — hallazgo del Core: `assertSafeModuleSql` prohíbe la palabra `do` en cualquier
+  contexto, así que un módulo no puede usar `on conflict`. Se ha esquivado con `where not exists`
+  en el job; conviene afinarlo en el Core (bloquear `DO $$`, no `on conflict`).

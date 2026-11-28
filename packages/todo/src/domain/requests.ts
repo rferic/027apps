@@ -1,6 +1,7 @@
 import type { Caller } from "./groups.js";
 import { TodoDomainError } from "./errors.js";
 import { canRequestTask, canReopenTask } from "./permissions.js";
+import { refund } from "./power.js";
 import { localDate } from "./recurrence.js";
 import type { TodoDeps } from "./types.js";
 
@@ -187,7 +188,7 @@ export async function reopenTask(
   taskId: string,
 ): Promise<{ id: string; state: "pending" }> {
   const { rows } = await deps.db.query(
-    `select t.id, t.group_id, t.state, t.assignee_id, t.completed_at, t.recurrence,
+    `select t.id, t.group_id, t.state, t.assignee_id, t.completed_at, t.recurrence, t.power,
             to_char(t.period_start, 'YYYY-MM-DD') as period_start,
             g.timezone, g.power_enabled, g.season_number,
             to_char(g.season_started_on, 'YYYY-MM-DD') as season_started_on
@@ -227,6 +228,15 @@ export async function reopenTask(
       `delete from module_todo.todo_task_occurrences
         where task_id = $1 and period_start = $2`,
       [taskId, String(rows[0].period_start)],
+    );
+  }
+  if (rows[0].power_enabled === true) {
+    await refund(
+      deps,
+      String(rows[0].group_id),
+      caller.userId,
+      Number(rows[0].season_number),
+      rows[0].power === null ? null : Number(rows[0].power),
     );
   }
   return { id: taskId, state: "pending" };

@@ -1,4 +1,5 @@
 import { TodoDomainError } from "./errors.js";
+import { localDate } from "./recurrence.js";
 import {
   charLength,
   groupName as validGroupName,
@@ -29,7 +30,8 @@ export interface MemberView {
 }
 
 const GROUP_COLUMNS = `g.id, g.name, g.kind, g.owner_id, g.timezone, g.power_enabled,
-  g.power_period, g.season_number, g.season_started_on`;
+  g.power_period, g.season_number,
+  to_char(g.season_started_on, 'YYYY-MM-DD') as season_started_on`;
 
 function toGroup(row: Record<string, unknown>): TodoGroup {
   return {
@@ -120,12 +122,16 @@ export async function createGroup(
 ): Promise<TodoGroup> {
   const name = validGroupName(input.name);
   const power = groupPower("group", input.powerEnabled ?? false, input.powerPeriod ?? "infinite");
+  // The season starts on the group's today, from the domain clock, so a test and
+  // a job agree on which season a completion belongs to.
+  const startedOn = localDate(deps.now?.() ?? new Date(), input.timezone);
   return run(deps, async (db) => {
     const { rows } = await db.query(
-      `insert into module_todo.todo_groups (name, kind, owner_id, timezone, power_enabled, power_period)
-       values ($1, 'group', $2, $3, $4, $5)
+      `insert into module_todo.todo_groups
+         (name, kind, owner_id, timezone, power_enabled, power_period, season_started_on)
+       values ($1, 'group', $2, $3, $4, $5, $6)
        returning ${GROUP_COLUMNS.replaceAll("g.", "")}`,
-      [name, caller.userId, input.timezone, power.powerEnabled, power.powerPeriod],
+      [name, caller.userId, input.timezone, power.powerEnabled, power.powerPeriod, startedOn],
     );
     const group = toGroup(rows[0]!);
     await db.query(
@@ -136,8 +142,8 @@ export async function createGroup(
     if (power.powerEnabled) {
       await db.query(
         `insert into module_todo.todo_seasons (group_id, number, period, started_on)
-         values ($1, 1, $2, current_date)`,
-        [group.id, power.powerPeriod],
+         values ($1, 1, $2, $3)`,
+        [group.id, power.powerPeriod, startedOn],
       );
     }
     return group;

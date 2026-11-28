@@ -9,6 +9,7 @@ import {
   taskTitle,
 } from "./permissions.js";
 import { localDate, nextPeriod, periodEnded, periodFor, type Recurrence } from "./recurrence.js";
+import { award } from "./power.js";
 import type { TodoDeps, TodoTask, TodoTaskState } from "./types.js";
 
 /**
@@ -80,9 +81,9 @@ async function load(
   deps: TodoDeps,
   userId: string,
   taskId: string,
-): Promise<{ task: TaskView; timezone: string; powerEnabled: boolean }> {
+): Promise<{ task: TaskView; timezone: string; powerEnabled: boolean; seasonNumber: number }> {
   const { rows } = await deps.db.query(
-    `select ${TASK_COLUMNS}, g.timezone, g.power_enabled
+    `select ${TASK_COLUMNS}, g.timezone, g.power_enabled, g.season_number
        from module_todo.todo_tasks t
        join module_todo.todo_groups g on g.id = t.group_id
        join module_todo.todo_group_members m
@@ -95,6 +96,7 @@ async function load(
     task: toTask(rows[0]),
     timezone: String(rows[0].timezone),
     powerEnabled: rows[0].power_enabled === true,
+    seasonNumber: Number(rows[0].season_number),
   };
 }
 
@@ -339,7 +341,7 @@ export async function completeTask(
   caller: Caller,
   taskId: string,
 ): Promise<TaskView> {
-  const { task, timezone } = await load(deps, caller.userId, taskId);
+  const { task, timezone, powerEnabled, seasonNumber } = await load(deps, caller.userId, taskId);
   if (!canCompleteTask(caller.userId, task)) {
     throw new TodoDomainError(
       task.state === "done" ? "task_done" : "forbidden",
@@ -370,6 +372,9 @@ export async function completeTask(
            completed_by = excluded.completed_by`,
     [task.groupId, taskId, period.start, period.end, now.toISOString(), caller.userId],
   );
+  if (powerEnabled) {
+    await award(deps, task.groupId, caller.userId, seasonNumber, task.power);
+  }
   return toTask(rows[0]);
 }
 

@@ -6,7 +6,7 @@
     "icon": "assets/icon.svg",
     "color": "indigo"
   },
-  "version": "1.0.0",
+  "version": "1.1.0",
   "contract": 1,
   "is_public": true,
   "migrations": [
@@ -16,6 +16,13 @@
       "down": "./sql/001-init.down.sql",
       "digest": "sha256:3a37d008f81e4fa7c98cdf9215002e4851b55983d49abf6779d302803e4a7969",
       "down_digest": "sha256:1c0b1f91a0ecedc221cf918c19f8acb109ca12f6b521ee55049688e25cc965a5"
+    },
+    {
+      "version": "1.1.0",
+      "up": "./sql/002-jobs.sql",
+      "down": "./sql/002-jobs.down.sql",
+      "digest": "sha256:baff7b147911bc46ae2442b5af5a8d8e22e41ddfd1cdddc209f41a6fe2922daf",
+      "down_digest": "sha256:13af1a9bbf256b683b3cdfacfd45d4b2a6d8b4b542626904a06648dcec6ae5eb"
     }
   ],
   "settings": [
@@ -168,6 +175,14 @@
       "label": "New task",
       "icon": "add",
       "screen": "new_task"
+    }
+  ],
+  "jobs": [
+    {
+      "key": "hourly",
+      "schedule": "5 * * * *",
+      "fn": "job_hourly",
+      "timeout_seconds": 60
     }
   ]
 }
