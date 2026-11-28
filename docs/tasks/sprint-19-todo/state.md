@@ -33,9 +33,11 @@
 
 - **Nombre:** **NotNow** (elegido el 2026-11-27; «tareas» sigue siendo el concepto, no la marca)
 - **Key:** `todo` (no reservada)
-- **Icono/logo:** **A · lista con checks** (elegido por el propietario el 2026-11-27). Rejilla
-  24×24, `fill="none"`, `stroke="currentColor"`, `stroke-width="1.8"`, extremos redondeados:
-  tres filas de check + línea (`M4 7l1.7 1.7L9 5.4` / `M12 7.5h8`, repetido en `12.5` y `18`).
+- **Icono/logo:** **G · la nota maciza con el check recortado** (2026-11-28), tras tres rondas de
+  propuestas. `assets/icon.svg` es la versión a una tinta (`fill="currentColor"`,
+  `fill-rule="evenodd"`, hoja con esquina cortada y check en negativo); `assets/logo.svg` es la de
+  dos tonos para la landing y la ficha del panel. **OweNo** pasa a **B · dos personas, un gasto**
+  (dos círculos solapados con el lente sólido) en `packages/owe-no/assets/{icon,logo}.svg`.
 - **Branding:** `color: indigo` (`--module-indigo`, `#4f46e5` / `#818cf8`); descripción en
   inglés por redactar en el manifest
 - **Manifest borrador:** pendiente
@@ -197,3 +199,6 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
 - `2026-11-27` — **tarea 02** en `test`: `permissions.ts` (reglas puras, 21 tests) y `groups.ts`
   (grupos, miembros, carpeta personal idempotente, echar libera tareas y caduca solicitudes),
   con `todo-group_members`/`todo_groups` cualificados por esquema. `db-tests` en 356.
+- `2026-11-28` — logos cerrados tras la revisión del propietario: OweNo **B** y NotNow **G**.
+  Guardados los cuatro SVG (icono monocromo y logo a dos tonos de cada módulo). El icono de
+  OweNo cambia en su paquete; no toca SQL ni versión del manifest.

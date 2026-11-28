@@ -1,9 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-  <!-- A · lista con checks: the approved Tareas mark -->
-  <path d="M4 7l1.7 1.7L9 5.4" />
-  <path d="M12 7.5h8" />
-  <path d="M4 12.5l1.7 1.7L9 10.9" />
-  <path d="M12 13h8" />
-  <path d="M4 18l1.7 1.7L9 17" />
-  <path d="M12 18.5h8" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="NotNow">
+  <!-- G · nota maciza: la hoja con el check recortado. Una sola tinta. -->
+  <g transform="translate(-2.5 0)">
+    <path fill-rule="evenodd" d="M7.8 3.4h13.4a1.4 1.4 0 0 1 1.4 1.4v12.4l-5.2 5.2H7.8a1.4 1.4 0 0 1-1.4-1.4V4.8a1.4 1.4 0 0 1 1.4-1.4Z
+      M15.2 8.6l-4.4 4.5-1.9-1.9-1.7 1.7 3.6 3.6 6.1-6.2Z" />
+  </g>
 </svg>
