@@ -292,8 +292,8 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
   validaciones de `createTask`, y las etiquetas de los cuatro avisos y el widget de tareas no
   estaban traducidos en Ajustes/Inicio. Todo con tests donde había dominio.
 - `2026-11-28` — **verificación final**: `pnpm lint` (0 errores, avisos previos de `<img>`),
-  `pnpm tsc` limpio, `pnpm --filter admin build` compila, core 642, admin 1364, todo 36, Android 158
-  tests unitarios (incluye etiquetas de los cuatro avisos), `i18n:check` verde (1147 cadenas) y
+  `pnpm tsc` limpio, `pnpm --filter admin build` compila, core 642, admin 1364, todo 39, Android 159
+  tests unitarios (incluye etiquetas de los cuatro avisos y la paleta de emojis), `i18n:check` verde (1147 cadenas) y
   `check:openapi` 150/150. `db-tests` **383 en verde** con la instancia limpia (módulo desinstalado
   y demo borrada); con el módulo instalado o la demo sembrada, siete pruebas de otros paquetes
   cuentan filas del registro/catálogo y fallan: es estado del entorno, no del código. La suite
