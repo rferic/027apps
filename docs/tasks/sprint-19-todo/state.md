@@ -72,6 +72,8 @@
 - **Alta rápida:** el «+» de Inicio abre el formulario de tarea preguntando a qué grupo va (con
   la grupo personal entre las opciones y la última usada preseleccionada). Desde dentro de un
   grupo, el grupo se deduce y el formulario no pregunta. Se declara como `app_actions: new_task`.
+- **Independencia de OweNo:** los grupos de NotNow son suyos, no los de OweNo. Tablas, miembros y
+  permisos separados, sin `requires` ni ids compartidos; desinstalar un módulo no toca al otro.
 - **Grupo:** lo crea un usuario y él gestiona sus miembros (añadir y echar). El admin de la
   instancia puede verlo y tocarlo todo desde el panel.
 - **Grupo personal:** cada usuario tiene un grupo con un solo miembro (él) y **sin power**. No
@@ -212,3 +214,5 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
 - `2026-11-28` — terminología unificada: el contenedor se llama **grupo** en UI, spec, plan y
   código. El privado de cada usuario es su **grupo personal** («Personal»), con un solo miembro.
   Desaparece la palabra «carpeta».
+- `2026-11-28` — dejado explícito que NotNow y OweNo no comparten grupos: spec §1.3, criterio de
+  aceptación 16 y una comprobación en el test del manifest de que el módulo no declara `requires`.

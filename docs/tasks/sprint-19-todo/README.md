@@ -20,6 +20,8 @@ en `state.md` §2). **Identidad:** `todo` / «Tareas» / indigo, logo *lista con
 
 ## Decisiones cerradas (propietario, 2026-11-27)
 
+- **Los grupos son de NotNow, no de OweNo:** entidades, miembros y permisos separados, sin
+  dependencia entre módulos. Nada de listas comunes.
 - Grupos propios creados por los usuarios; cada usuario tiene su grupo personal (un solo miembro) y
   sin power. Power **por grupo y aislado**; el de un grupo no toca el de otro.
 - Una sola persona por tarea. **Sin privilegios de creador:** libre la edita cualquiera del grupo;

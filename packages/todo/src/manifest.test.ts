@@ -49,6 +49,15 @@ describe("todo manifest", () => {
     expect(parsed.branding.color).toBe("indigo");
   });
 
+  it("stands alone: no dependency on another module", () => {
+    // NotNow groups are not OweNo groups: no `requires`, no shared entity.
+    expect((manifest as { requires?: unknown }).requires ?? []).toEqual([]);
+    const sql = [...manifest.migrations.flatMap((m) => [m.up, m.down])];
+    for (const file of sql) {
+      expect(file).not.toMatch(/owe/i);
+    }
+  });
+
   it("declares a version and the icon the branding points at", () => {
     expect(manifest.version).toMatch(/^\d+\.\d+\.\d+$/);
     expect(existsSync(resolve(ROOT, manifest.branding.icon))).toBe(true);
