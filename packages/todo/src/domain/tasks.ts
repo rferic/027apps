@@ -1,17 +1,17 @@
-import { requireMember } from "./groups.js";
-import type { Caller } from "./groups.js";
-import { TodoDomainError } from "./errors.js";
+import { requireMember } from "./groups";
+import type { Caller } from "./groups";
+import { TodoDomainError } from "./errors";
 import {
   canCompleteTask,
   canDeleteTask,
   canEditTask,
   canReleaseTask,
   taskTitle,
-} from "./permissions.js";
-import { localDate, nextPeriod, periodEnded, periodFor, type Recurrence } from "./recurrence.js";
-import { emitTaskCompleted, emitTaskCreated, emitTaskReleased } from "./events.js";
-import { award } from "./power.js";
-import type { TodoDeps, TodoTask, TodoTaskState } from "./types.js";
+} from "./permissions";
+import { localDate, nextPeriod, periodEnded, periodFor, type Recurrence } from "./recurrence";
+import { emitTaskCompleted, emitTaskCreated, emitTaskReleased } from "./events";
+import { award } from "./power";
+import type { TodoDeps, TodoTask, TodoTaskState } from "./types";
 
 /**
  * Tasks (spec §5.2–§5.4): create, edit, take, release, complete and delete.

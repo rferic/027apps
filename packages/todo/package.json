@@ -9,7 +9,9 @@
   },
   "exports": {
     "./domain/*.js": "./src/domain/*.ts",
-    "./service.js": "./src/service.ts"
+    "./service.js": "./src/service.ts",
+    "./admin/overview/page": "./admin/overview/page.tsx",
+    "./admin/categories/page": "./admin/categories/page.tsx"
   },
   "dependencies": {
     "@027apps/core": "workspace:*",
@@ -19,6 +21,11 @@
   "devDependencies": {
     "@types/node": "^22.20.5",
     "typescript": "^5",
-    "vitest": "^5"
+    "vitest": "^5",
+    "@types/react": "^19",
+    "react": "19.3.1"
+  },
+  "peerDependencies": {
+    "react": "^19.3.1"
   }
 }

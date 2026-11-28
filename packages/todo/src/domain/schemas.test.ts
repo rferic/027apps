@@ -4,7 +4,7 @@ import {
   createTaskSchema,
   taskQuerySchema,
   updateTaskSchema,
-} from "./schemas.js";
+} from "./schemas";
 
 /** What the edge accepts before the domain counts characters (spec §6). */
 describe("todo schemas", () => {

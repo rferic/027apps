@@ -11,7 +11,7 @@ import {
   groupName,
   groupPower,
   taskTitle,
-} from "./permissions.js";
+} from "./permissions";
 
 /** The stable error code, which is what the API maps to a status. */
 const codeOf = (fn: () => unknown): string => {

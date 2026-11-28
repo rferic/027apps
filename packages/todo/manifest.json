@@ -184,5 +184,21 @@
       "fn": "job_hourly",
       "timeout_seconds": 60
     }
+  ],
+  "admin_pages": [
+    {
+      "route": "overview",
+      "label": "Overview",
+      "icon": "chart",
+      "group": "module",
+      "role": "admin"
+    },
+    {
+      "route": "categories",
+      "label": "Categories",
+      "icon": "tags",
+      "group": "module",
+      "role": "admin"
+    }
   ]
 }

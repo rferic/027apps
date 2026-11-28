@@ -1,12 +1,12 @@
-import { TodoDomainError } from "./errors.js";
-import { localDate } from "./recurrence.js";
+import { TodoDomainError } from "./errors";
+import { localDate } from "./recurrence";
 import {
   charLength,
   groupName as validGroupName,
   groupPower,
   type PowerPeriod,
-} from "./permissions.js";
-import type { TodoDeps, TodoGroup, TodoGroupKind } from "./types.js";
+} from "./permissions";
+import type { TodoDeps, TodoGroup, TodoGroupKind } from "./types";
 
 /**
  * Groups, their members and the personal group (spec §5.1).

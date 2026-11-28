@@ -1,4 +1,4 @@
-import { TodoDomainError } from "./errors.js";
+import { TodoDomainError } from "./errors";
 
 /**
  * The rules of Tareas, in one place and without a database (spec §4).

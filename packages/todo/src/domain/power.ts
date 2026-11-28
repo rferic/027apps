@@ -1,9 +1,9 @@
-import type { Caller } from "./groups.js";
-import { requireMember, requireOwner } from "./groups.js";
-import { TodoDomainError } from "./errors.js";
-import { emitSeasonClosed } from "./events.js";
-import { nextPeriod, periodEnded, periodFor, localDate, type Recurrence } from "./recurrence.js";
-import type { TodoDeps } from "./types.js";
+import type { Caller } from "./groups";
+import { requireMember, requireOwner } from "./groups";
+import { TodoDomainError } from "./errors";
+import { emitSeasonClosed } from "./events";
+import { nextPeriod, periodEnded, periodFor, localDate, type Recurrence } from "./recurrence";
+import type { TodoDeps } from "./types";
 
 /**
  * Power and seasons (spec §5.5).

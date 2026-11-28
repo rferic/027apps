@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { localDate, nextPeriod, periodEnded, periodFor } from "./recurrence.js";
+import { localDate, nextPeriod, periodEnded, periodFor } from "./recurrence";
 
 describe("weekly periods", () => {
   it("runs Monday to Sunday", () => {

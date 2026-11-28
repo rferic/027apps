@@ -1,10 +1,10 @@
-import type { Caller } from "./groups.js";
-import { TodoDomainError } from "./errors.js";
-import { canRequestTask, canReopenTask } from "./permissions.js";
-import { emitRequestCreated, emitRequestResolved, emitTaskAssigned } from "./events.js";
-import { refund } from "./power.js";
-import { localDate } from "./recurrence.js";
-import type { TodoDeps } from "./types.js";
+import type { Caller } from "./groups";
+import { TodoDomainError } from "./errors";
+import { canRequestTask, canReopenTask } from "./permissions";
+import { emitRequestCreated, emitRequestResolved, emitTaskAssigned } from "./events";
+import { refund } from "./power";
+import { localDate } from "./recurrence";
+import type { TodoDeps } from "./types";
 
 /**
  * Requests to take a task somebody else holds (spec §5.2) and undo (spec §5.4).

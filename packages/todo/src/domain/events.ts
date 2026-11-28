@@ -1,6 +1,6 @@
 import { enqueueEvent } from "@027apps/core/realtime/service.js";
 import type { JsonValue } from "@027apps/core/api/types.js";
-import type { TodoDeps } from "./types.js";
+import type { TodoDeps } from "./types";
 
 /**
  * The ten outbox events of the module (spec §5.6).
