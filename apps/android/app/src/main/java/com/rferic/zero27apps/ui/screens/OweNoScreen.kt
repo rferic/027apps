@@ -91,6 +91,13 @@ internal fun plainAmount(amountMinor: Long): String =
 internal fun settlementParticipants(receiverId: String, amountMinor: Long): List<OweParticipantBody> =
     listOf(OweParticipantBody(memberId = receiverId, amountMinor = amountMinor))
 
+/**
+ * A new expense is paid by whoever adds it. Someone who left the group cannot
+ * pay, so the first active member stands in.
+ */
+internal fun defaultExpensePayer(active: List<OweMemberDto>, myMemberId: String?): String? =
+    active.firstOrNull { it.id == myMemberId }?.id ?: active.firstOrNull()?.id
+
 /** Domain details → a sentence the owner can act on. */
 internal fun oweErrorText(
     error: Throwable,
@@ -717,6 +724,7 @@ fun OweNoScreen(
     if (showExpense && current != null) {
         ExpenseDialog(
             members = current.members,
+            myMemberId = current.members.firstOrNull { it.userId == store.userId }?.id,
             categories = store.categories,
             currency = current.group.currency,
             locale = locale,
@@ -1879,6 +1887,7 @@ private fun NewGroupDialog(onDismiss: () -> Unit, onCreate: (String, String) -> 
 @Composable
 private fun ExpenseDialog(
     members: List<OweMemberDto>,
+    myMemberId: String?,
     categories: List<OweCategoryDto>,
     currency: String,
     locale: String,
@@ -1896,7 +1905,7 @@ private fun ExpenseDialog(
     val palette = LocalPalette.current
     val active = members.filter { it.state == "active" }
     val initialSelected = editing?.shares?.map { it.memberId }?.toSet() ?: active.map { it.id }.toSet()
-    val initialPayer = editing?.paidBy ?: active.firstOrNull()?.id
+    val initialPayer = editing?.paidBy ?: defaultExpensePayer(active, myMemberId)
     val initialExact = editing != null && editing.shares.isNotEmpty() && run {
         val ordered = active.filter { initialSelected.contains(it.id) }
         ordered.any { member ->
