@@ -7,7 +7,7 @@
 **Fecha de inicio:** 2026-11-27
 **Última actualización:** 2026-11-27
 **Estado:** `implementacion` (tarea 01 en curso)
-**Siguiente paso:** tarea 10 — app Android (pantallas y botones del push).
+**Siguiente paso:** tarea 10 — terminar la verificación en el emulador (login y recorrido de pantallas) antes de pasarla a `test`.
 
 ## 1. Brief
 
@@ -237,3 +237,9 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
   solicitud, aceptar, y archivo de temporadas). Dos fallos encontrados y corregidos: la demo
   acreditaba los puntos a quien no había hecho la tarea, y las fechas de solicitud salían como
   `Date.toString()` en vez de ISO.
+- `2026-11-28` — **tarea 10** en `en curso`: pantallas de NotNow en la app (`TodoScreen`), DTOs y
+  métodos del cliente, enrutado por `openModule`, alta rápida desde el «+» (`new_task`), destinos
+  del push (`todo_group`) y 36 cadenas nuevas en los nueve idiomas. Compila, `assembleDebug` y los
+  tests unitarios pasan, y el APK está instalado en el emulador apuntando a `10.0.2.2:3003`.
+  **No verificada todavía**: el login por adb se atasca (el teclado del emulador intercala
+  caracteres) y el reinicio del entorno cortó la sesión. No pasa a `test` hasta recorrerla.

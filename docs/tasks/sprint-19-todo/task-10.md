@@ -2,7 +2,7 @@
 id: sprint-19-task-10
 titulo: App Android
 area: app
-estado: pendiente
+estado: en curso
 plan: docs/superpowers/plans/2026-11-27-todo.md
 spec: docs/superpowers/specs/2026-11-27-todo.md
 fuente: docs/tasks/sprint-19-todo/README.md
