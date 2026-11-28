@@ -92,11 +92,16 @@ internal fun settlementParticipants(receiverId: String, amountMinor: Long): List
     listOf(OweParticipantBody(memberId = receiverId, amountMinor = amountMinor))
 
 /**
- * A new expense is paid by whoever adds it. Someone who left the group cannot
- * pay, so the first active member stands in.
+ * A new expense is paid by whoever adds it; the same holds for a payment the
+ * owner registers. Someone who left the group cannot pay, so the first active
+ * member stands in.
  */
-internal fun defaultExpensePayer(active: List<OweMemberDto>, myMemberId: String?): String? =
+internal fun defaultPayer(active: List<OweMemberDto>, myMemberId: String?): String? =
     active.firstOrNull { it.id == myMemberId }?.id ?: active.firstOrNull()?.id
+
+/** A payment goes to someone else: the first active member who is not paying. */
+internal fun defaultReceiver(active: List<OweMemberDto>, payer: String?): String? =
+    active.firstOrNull { it.id != payer }?.id ?: active.firstOrNull()?.id
 
 /**
  * What a selector shows under the name: the account email, so two members
@@ -798,6 +803,7 @@ fun OweNoScreen(
     if ((showPayment || settlementEdit != null) && current != null) {
         ManualPaymentDialog(
             members = current.members,
+            myMemberId = current.members.firstOrNull { it.userId == store.userId }?.id,
             currency = current.group.currency,
             saving = store.loading,
             error = store.error,
@@ -1942,7 +1948,7 @@ private fun ExpenseDialog(
     val palette = LocalPalette.current
     val active = members.filter { it.state == "active" }
     val initialSelected = editing?.shares?.map { it.memberId }?.toSet() ?: active.map { it.id }.toSet()
-    val initialPayer = editing?.paidBy ?: defaultExpensePayer(active, myMemberId)
+    val initialPayer = editing?.paidBy ?: defaultPayer(active, myMemberId)
     val initialExact = editing != null && editing.shares.isNotEmpty() && run {
         val ordered = active.filter { initialSelected.contains(it.id) }
         ordered.any { member ->
@@ -2552,6 +2558,7 @@ private fun currencySymbol(currency: String): String = when (currency.uppercase(
 @Composable
 private fun ManualPaymentDialog(
     members: List<OweMemberDto>,
+    myMemberId: String?,
     currency: String,
     saving: Boolean,
     error: String? = null,
@@ -2565,15 +2572,12 @@ private fun ManualPaymentDialog(
     val palette = LocalPalette.current
     val active = members.filter { it.state == "active" }
     // Editing prefills every field from the settlement itself; creating starts
-    // on the first two members, as before.
-    var from by remember(editing?.id) {
-        mutableStateOf(editing?.paidBy ?: active.firstOrNull()?.id)
-    }
+    // with the owner paying whoever comes first in the split.
+    val initialFrom = editing?.paidBy ?: defaultPayer(active, myMemberId)
+    var from by remember(editing?.id) { mutableStateOf(initialFrom) }
     var to by remember(editing?.id) {
         mutableStateOf(
-            editing?.shares?.firstOrNull()?.memberId
-                ?: active.drop(1).firstOrNull()?.id
-                ?: active.firstOrNull()?.id,
+            editing?.shares?.firstOrNull()?.memberId ?: defaultReceiver(active, initialFrom),
         )
     }
     var amount by remember(editing?.id) {
@@ -2594,12 +2598,17 @@ private fun ManualPaymentDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text("${strings.whoPays}:", fontSize = 12.sp)
+                fun pickPayer(id: String) {
+                    // Changing who pays cannot leave the receiver paying themselves.
+                    if (to == id) to = defaultReceiver(active, id)
+                    from = id
+                }
                 for (member in active) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth().clickable { from = member.id },
+                        modifier = Modifier.fillMaxWidth().clickable { pickPayer(member.id) },
                     ) {
-                        Checkbox(checked = from == member.id, onCheckedChange = { from = member.id })
+                        Checkbox(checked = from == member.id, onCheckedChange = { pickPayer(member.id) })
                         MemberName(member, fontSize = 13.sp)
                     }
                 }

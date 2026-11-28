@@ -14,16 +14,26 @@ class OweExpensePayerTest {
 
     @Test
     fun `a new expense is paid by whoever adds it`() {
-        assertEquals("member-me", defaultExpensePayer(listOf(other, me), "member-me"))
+        assertEquals("member-me", defaultPayer(listOf(other, me), "member-me"))
     }
 
     @Test
     fun `a member who left falls back to the first active member`() {
-        assertEquals("member-other", defaultExpensePayer(listOf(other), "member-gone"))
+        assertEquals("member-other", defaultPayer(listOf(other), "member-gone"))
     }
 
     @Test
     fun `an unknown reader keeps the first active member`() {
-        assertEquals("member-other", defaultExpensePayer(listOf(other), null))
+        assertEquals("member-other", defaultPayer(listOf(other), null))
+    }
+
+    @Test
+    fun `a payment goes to someone other than whoever pays`() {
+        assertEquals("member-other", defaultReceiver(listOf(me, other), "member-me"))
+    }
+
+    @Test
+    fun `one member alone receives their own payment`() {
+        assertEquals("member-me", defaultReceiver(listOf(me), "member-me"))
     }
 }
