@@ -11,11 +11,11 @@ import com.rferic.zero27apps.BuildConfig
 import com.rferic.zero27apps.InstanceStore
 import com.rferic.zero27apps.auth.EncryptedStringStore
 import com.rferic.zero27apps.auth.KeystoreSecretCipher
-import com.rferic.zero27apps.auth.SupabaseFactory
+import com.rferic.zero27apps.auth.StoredSession
 import com.rferic.zero27apps.data.ApiClient
+import com.rferic.zero27apps.data.RefreshResult
 import com.rferic.zero27apps.prefs.PrefsStringStore
 import androidx.glance.appwidget.updateAll
-import io.github.jan.supabase.auth.auth
 import io.ktor.client.engine.okhttp.OkHttp
 import java.util.concurrent.TimeUnit
 
@@ -32,27 +32,23 @@ class OweWidgetWorker(
         val prefs = PrefsStringStore(context)
         val instanceStore = InstanceStore(prefs, BuildConfig.DEFAULT_INSTANCE_URL)
         val sessionStore = EncryptedStringStore(KeystoreSecretCipher(), prefs, "session")
-        val supabaseFactory = SupabaseFactory(sessionStore)
         val store = WidgetSnapshotStore(context)
 
         var api: ApiClient? = null
-        var supabase: io.github.jan.supabase.SupabaseClient? = null
         try {
+            // No Supabase client here on purpose: a client loads, renews and
+            // saves the session on its own account, and Supabase revokes the
+            // whole session when a rotated refresh token comes back. The widget
+            // reads the token the app left and never rotates it; an expired
+            // token or a 401 only blanks the snapshot until the next run.
             api = ApiClient(
                 baseUrl = instanceStore.current(),
                 engine = OkHttp.create(),
                 protectionBypass = BuildConfig.VERCEL_PROTECTION_BYPASS,
-                token = { supabase?.auth?.currentSessionOrNull()?.accessToken },
-                // The widget is a spectator: it never refreshes (that rotates
-                // the token the app is using) and never deletes the session. A
-                // 401 only blanks the snapshot until the next run.
-                refresh = { com.rferic.zero27apps.data.RefreshResult.NoSession },
+                token = { StoredSession.accessToken(sessionStore) },
+                refresh = { RefreshResult.NoSession },
             )
-            val instance = api.instance()
-            val auth = instance.auth ?: return finish(context, store, WidgetSnapshot())
-            supabase = supabaseFactory.create(auth.supabaseUrl, auth.supabaseAnonKey)
-            supabase.auth.awaitInitialization()
-            val session = supabase.auth.currentSessionOrNull()
+            val session = StoredSession.read(sessionStore)
                 ?: return finish(context, store, WidgetSnapshot())
             val locale = runCatching { api.me().locale }.getOrNull() ?: "en"
             val groups = api.oweGroups().filter { it.role == "active" }
