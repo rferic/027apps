@@ -42,7 +42,7 @@ describe("import wizard", () => {
         }}
         identities={[
           { id: "m1", display_name: "Eric", kind: "member" },
-          { id: "u9", display_name: "Pablo", kind: "account" },
+          { id: "u9", display_name: "Pablo", kind: "account", email: "pablo@example.com" },
         ]}
         choices={{}}
         onChoice={() => {}}
@@ -58,6 +58,7 @@ describe("import wizard", () => {
     expect(html).toContain("Cuentas");
     expect(html).toContain("Eric");
     expect(html).toContain("Pablo");
+    expect(html).toContain("pablo@example.com");
     expect(html).toContain("Tu cuenta no aparece aquí si ya eres miembro");
   });
 });

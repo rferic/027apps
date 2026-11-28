@@ -1036,6 +1036,7 @@ const oweMember = z
     state: z.enum(["invited", "active", "left", "removed"]),
     user_id: z.uuid().nullable(),
     kind: z.enum(["user", "fictitious"]),
+    email: z.string().nullable(),
   })
   .strict();
 
@@ -1155,7 +1156,7 @@ export const oweCategoryListSchema = component(
 
 export const oweIdentitySchema = component(
   "OweIdentity",
-  z.object({ id: z.uuid(), display_name: z.string() }).strict(),
+  z.object({ id: z.uuid(), display_name: z.string(), email: z.string().nullable() }).strict(),
 );
 
 export const oweIdentityListSchema = component(
@@ -1170,6 +1171,7 @@ export const oweImportMappingOptionSchema = component(
       id: z.uuid(),
       display_name: z.string(),
       kind: z.enum(["member", "account"]),
+      email: z.string().nullable(),
     })
     .strict(),
 );

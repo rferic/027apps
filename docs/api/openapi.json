@@ -8396,6 +8396,12 @@
                 "display_name": {
                   "type": "string"
                 },
+                "email": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "id": {
                   "format": "uuid",
                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
@@ -8435,7 +8441,8 @@
                 "display_name",
                 "state",
                 "user_id",
-                "kind"
+                "kind",
+                "email"
               ],
               "type": "object"
             },
@@ -8916,6 +8923,12 @@
           "display_name": {
             "type": "string"
           },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "id": {
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
@@ -8924,7 +8937,8 @@
         },
         "required": [
           "id",
-          "display_name"
+          "display_name",
+          "email"
         ],
         "type": "object"
       },
@@ -8938,6 +8952,12 @@
                 "display_name": {
                   "type": "string"
                 },
+                "email": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "id": {
                   "format": "uuid",
                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
@@ -8946,7 +8966,8 @@
               },
               "required": [
                 "id",
-                "display_name"
+                "display_name",
+                "email"
               ],
               "type": "object"
             },
@@ -9033,6 +9054,12 @@
                 "display_name": {
                   "type": "string"
                 },
+                "email": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "id": {
                   "format": "uuid",
                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
@@ -9049,7 +9076,8 @@
               "required": [
                 "id",
                 "display_name",
-                "kind"
+                "kind",
+                "email"
               ],
               "type": "object"
             },
@@ -9067,6 +9095,12 @@
           "display_name": {
             "type": "string"
           },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "id": {
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
@@ -9083,7 +9117,8 @@
         "required": [
           "id",
           "display_name",
-          "kind"
+          "kind",
+          "email"
         ],
         "type": "object"
       },
@@ -9238,6 +9273,12 @@
                 "display_name": {
                   "type": "string"
                 },
+                "email": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "id": {
                   "format": "uuid",
                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
@@ -9277,7 +9318,8 @@
                 "display_name",
                 "state",
                 "user_id",
-                "kind"
+                "kind",
+                "email"
               ],
               "type": "object"
             },
@@ -9297,6 +9339,12 @@
             "properties": {
               "display_name": {
                 "type": "string"
+              },
+              "email": {
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "id": {
                 "format": "uuid",
@@ -9337,7 +9385,8 @@
               "display_name",
               "state",
               "user_id",
-              "kind"
+              "kind",
+              "email"
             ],
             "type": "object"
           }

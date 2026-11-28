@@ -495,6 +495,8 @@ export async function listImports(deps: OweDeps): Promise<ImportBatchView[]> {
 export interface ImportIdentity {
   id: string;
   display_name: string;
+  /** The account's email, to tell two equal names apart. */
+  email: string | null;
 }
 
 /**
@@ -505,6 +507,8 @@ export interface ImportMappingOption {
   id: string;
   display_name: string;
   kind: "member" | "account";
+  /** The account's email, to tell two equal names apart. */
+  email: string | null;
 }
 
 /**
@@ -519,12 +523,14 @@ export async function importMappingOptions(
 ): Promise<ImportMappingOption[]> {
   await groupContext(deps, userId, groupId);
   const { rows } = await deps.db.query(
-    `select m.id, m.display_name, 'member' as kind
+    `select m.id, m.display_name, 'member' as kind, u.email
        from module_owe_no.owe_no_members m
+       left join auth.users u on u.id = m.user_id
       where m.group_id = $1 and m.state in ('active', 'invited')
      union all
-     select p.id, p.display_name, 'account' as kind
+     select p.id, p.display_name, 'account' as kind, u.email
        from public.profiles p
+       left join auth.users u on u.id = p.id
       where p.deactivated_at is null
         and not exists (
           select 1 from module_owe_no.owe_no_members m
@@ -538,6 +544,7 @@ export async function importMappingOptions(
     id: String(row.id),
     display_name: String(row.display_name),
     kind: String(row.kind) === "member" ? "member" : "account",
+    email: row.email === null || row.email === undefined ? null : String(row.email),
   }));
 }
 
@@ -553,8 +560,9 @@ export async function importIdentities(
 ): Promise<ImportIdentity[]> {
   await groupContext(deps, userId, groupId);
   const { rows } = await deps.db.query(
-    `select p.id, p.display_name
+    `select p.id, p.display_name, u.email
        from public.profiles p
+       left join auth.users u on u.id = p.id
       where p.deactivated_at is null
         and not exists (
           select 1 from module_owe_no.owe_no_members m
@@ -564,5 +572,9 @@ export async function importIdentities(
       limit 50`,
     [groupId],
   );
-  return rows.map((row) => ({ id: String(row.id), display_name: String(row.display_name) }));
+  return rows.map((row) => ({
+    id: String(row.id),
+    display_name: String(row.display_name),
+    email: row.email === null || row.email === undefined ? null : String(row.email),
+  }));
 }

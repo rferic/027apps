@@ -98,6 +98,21 @@ internal fun settlementParticipants(receiverId: String, amountMinor: Long): List
 internal fun defaultExpensePayer(active: List<OweMemberDto>, myMemberId: String?): String? =
     active.firstOrNull { it.id == myMemberId }?.id ?: active.firstOrNull()?.id
 
+/**
+ * What a selector shows under the name: the account email, so two members
+ * called the same are not a coin toss. A fictitious member has none.
+ */
+internal fun memberSubtitle(member: OweMemberDto): String? = emailLine(member.email)
+
+/** The account lists (invite, link) get the same second line. */
+internal fun identitySubtitle(identity: OweIdentityDto): String? = emailLine(identity.email)
+
+private fun emailLine(email: String?): String? = email?.trim()?.takeIf { it.isNotEmpty() }
+
+/** A closed field has one line: name and email joined, when there is an email. */
+internal fun memberLabel(member: OweMemberDto): String =
+    memberSubtitle(member)?.let { "${member.displayName} · $it" } ?: member.displayName
+
 /** Domain details → a sentence the owner can act on. */
 internal fun oweErrorText(
     error: Throwable,
@@ -1553,7 +1568,9 @@ private fun LinkDialog(
                 modifier = Modifier.focusRequester(focus),
             )
             matches.forEach { identity ->
-                SheetAction(label = identity.displayName) { onPick(identity) }
+                SheetAction(label = identity.displayName, note = identitySubtitle(identity)) {
+                    onPick(identity)
+                }
             }
         },
     )
@@ -1633,7 +1650,12 @@ private fun InviteDialog(
                 )
                 matches.forEach { identity ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(identity.displayName, modifier = Modifier.weight(1f), fontSize = 13.sp)
+                        Column(Modifier.weight(1f)) {
+                            Text(identity.displayName, fontSize = 13.sp)
+                            identitySubtitle(identity)?.let {
+                                Text(it, fontSize = 11.sp, color = palette.mutedForeground)
+                            }
+                        }
                         TextButton(onClick = { onInvite(identity.displayName, identity.id) }) {
                             Text(strings.invite)
                         }
@@ -1884,6 +1906,21 @@ private fun NewGroupDialog(onDismiss: () -> Unit, onCreate: (String, String) -> 
     )
 }
 
+/** A member in a selector: the name, and the account email in small print. */
+@Composable
+private fun MemberName(
+    member: OweMemberDto,
+    modifier: Modifier = Modifier,
+    fontSize: androidx.compose.ui.unit.TextUnit = 14.sp,
+) {
+    Column(modifier) {
+        Text(member.displayName, fontSize = fontSize)
+        memberSubtitle(member)?.let {
+            Text(it, fontSize = 11.sp, color = LocalPalette.current.mutedForeground)
+        }
+    }
+}
+
 @Composable
 private fun ExpenseDialog(
     members: List<OweMemberDto>,
@@ -2056,14 +2093,14 @@ private fun ExpenseDialog(
                     Text("${strings.paidBy} ", fontSize = 13.sp, color = palette.mutedForeground)
                     androidx.compose.foundation.layout.Box {
                         Chip(
-                            label = payerMember?.displayName ?: "—",
+                            label = payerMember?.let { memberLabel(it) } ?: "—",
                             open = true,
                             onClick = { payerOpen = true },
                         )
                         DropdownMenu(expanded = payerOpen, onDismissRequest = { payerOpen = false }) {
                             for (member in active) {
                                 DropdownMenuItem(
-                                    text = { Text(member.displayName) },
+                                    text = { MemberName(member) },
                                     onClick = {
                                         // A new payer joins the split unless they were excluded.
                                         if (payer != null && selected.contains(payer)) {
@@ -2369,8 +2406,8 @@ private fun ExpenseDialog(
                         ) {
                             if (checked) Text("✓", fontSize = 12.sp, color = palette.background)
                         }
-                        Text(
-                            member.displayName,
+                        MemberName(
+                            member,
                             modifier = Modifier.weight(1f).padding(start = 10.dp),
                             fontSize = 14.sp,
                         )
@@ -2563,7 +2600,7 @@ private fun ManualPaymentDialog(
                         modifier = Modifier.fillMaxWidth().clickable { from = member.id },
                     ) {
                         Checkbox(checked = from == member.id, onCheckedChange = { from = member.id })
-                        Text(member.displayName, fontSize = 13.sp)
+                        MemberName(member, fontSize = 13.sp)
                     }
                 }
                 Text("${strings.whoReceives}:", fontSize = 12.sp)
@@ -2573,7 +2610,7 @@ private fun ManualPaymentDialog(
                         modifier = Modifier.fillMaxWidth().clickable { to = member.id },
                     ) {
                         Checkbox(checked = to == member.id, onCheckedChange = { to = member.id })
-                        Text(member.displayName, fontSize = 13.sp)
+                        MemberName(member, fontSize = 13.sp)
                     }
                 }
                 OutlinedTextField(

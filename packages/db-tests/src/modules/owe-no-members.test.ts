@@ -93,11 +93,33 @@ describe("owe-no fictitious participant (D30)", () => {
       expect(member.state).toBe("active");
       expect(member.kind).toBe("fictitious");
       expect(member.user_id).toBeNull();
+      expect(member.email).toBeNull();
     });
   });
 });
 
 describe("owe-no member visibility (D31)", () => {
+  it("lists the account email so two members with the same name can be told apart", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const address = email("homonym");
+      const { id } = await createTestUser(c, {
+        email: address,
+        role: "user",
+        displayName: "Ana",
+      });
+      const member = await addMember(deps(c), owner.id, group.id, {
+        displayName: "Ana",
+        inviteeId: id,
+      });
+      await acceptInvitation(deps(c), id, group.id);
+      const listed = (await listMembers(deps(c), owner.id, group.id)).find(
+        (row) => row.id === member.id,
+      );
+      expect(listed?.email).toBe(address);
+    });
+  });
+
   it("keeps an active member active when the creator invites them again", async () => {
     await inRollback(async (c) => {
       const { group, owner } = await setup(c);

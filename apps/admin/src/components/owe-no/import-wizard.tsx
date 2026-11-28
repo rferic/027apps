@@ -29,7 +29,7 @@ type Preview = {
   }>;
 };
 
-type Identity = { id: string; display_name: string; kind: "member" | "account" };
+type Identity = { id: string; display_name: string; kind: "member" | "account"; email?: string | null };
 
 /** 2 MB: the same limit the API enforces, so the browser never truncates silently. */
 const MAX_BYTES = 2 * 1024 * 1024;
@@ -644,7 +644,8 @@ export function MappingStep({
                     <optgroup label={copy.groupMembers}>
                       {members.map((identity) => (
                         <option key={identity.id} value={`member:${identity.id}`}>
-                          {identity.display_name} {copy.memberSuffix}
+                          {identity.display_name}
+                          {identity.email ? ` · ${identity.email}` : ""} {copy.memberSuffix}
                         </option>
                       ))}
                     </optgroup>
@@ -653,7 +654,8 @@ export function MappingStep({
                     <optgroup label={copy.accounts}>
                       {accounts.map((identity) => (
                         <option key={identity.id} value={`account:${identity.id}`}>
-                          {identity.display_name} {copy.accountSuffix}
+                          {identity.display_name}
+                          {identity.email ? ` · ${identity.email}` : ""} {copy.accountSuffix}
                         </option>
                       ))}
                     </optgroup>

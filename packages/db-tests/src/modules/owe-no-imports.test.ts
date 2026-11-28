@@ -159,11 +159,10 @@ describe("owe-no importer", () => {
       const members = await listMembers(deps, ana.userId, group.id);
       const anaMember = members.find((member) => member.user_id === ana.userId)!;
       const mapping = await importMappingOptions(deps, ana.userId, group.id);
-      expect(mapping).toContainEqual({
-        id: anaMember.id,
-        display_name: "Ana",
-        kind: "member",
-      });
+      expect(mapping).toContainEqual(
+        expect.objectContaining({ id: anaMember.id, display_name: "Ana", kind: "member" }),
+      );
+      expect(mapping.find((option) => option.id === anaMember.id)?.email).toBe(anaMember.email);
       expect(mapping.filter((option) => option.kind === "account").map((option) => option.id)).not.toContain(
         ana.userId,
       );
