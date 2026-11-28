@@ -9,7 +9,7 @@ import {
 import type { TodoDeps, TodoGroup, TodoGroupKind } from "./types.js";
 
 /**
- * Groups, their members and the personal folder (spec §5.1).
+ * Groups, their members and the personal group (spec §5.1).
  *
  * A non-member gets `not_found`, never `forbidden`: the id of somebody else's
  * group must not be distinguishable from an id that does not exist.
@@ -71,7 +71,7 @@ export async function requireOwner(deps: TodoDeps, userId: string, groupId: stri
 }
 
 /**
- * The personal folder appears the first time the user opens the module. The
+ * The personal group appears the first time the user opens the module. The
  * partial unique index makes two concurrent calls collapse into one row.
  */
 export async function ensurePersonalGroup(
@@ -209,7 +209,7 @@ export async function updateGroup(
 export async function deleteGroup(deps: TodoDeps, caller: Caller, groupId: string): Promise<void> {
   const group = await requireOwner(deps, caller.userId, groupId);
   if (group.kind === "personal") {
-    throw new TodoDomainError("personal_group", "the personal folder cannot be deleted");
+    throw new TodoDomainError("personal_group", "the personal group cannot be deleted");
   }
   await deps.db.query("delete from module_todo.todo_groups where id = $1", [groupId]);
 }
@@ -244,7 +244,7 @@ export async function addMember(
 ): Promise<MemberView[]> {
   const group = await requireOwner(deps, caller.userId, groupId);
   if (group.kind === "personal") {
-    throw new TodoDomainError("personal_group", "the personal folder has no members");
+    throw new TodoDomainError("personal_group", "the personal group has no members");
   }
   const { rows: profile } = await deps.db.query(
     "select 1 from public.profiles where id = $1 and deactivated_at is null",
@@ -272,7 +272,7 @@ export async function removeMember(
 ): Promise<MemberView[]> {
   const group = await requireOwner(deps, caller.userId, groupId);
   if (group.kind === "personal") {
-    throw new TodoDomainError("personal_group", "the personal folder has no members");
+    throw new TodoDomainError("personal_group", "the personal group has no members");
   }
   if (group.ownerId === userId) {
     throw new TodoDomainError("last_owner", "the owner cannot leave the group");

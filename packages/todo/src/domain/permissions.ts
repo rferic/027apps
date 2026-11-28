@@ -84,14 +84,14 @@ export function canManageGroup(userId: string, group: { ownerId: string | null }
 
 export type PowerPeriod = "infinite" | "weekly" | "monthly" | "yearly";
 
-/** The personal folder never plays the power game (spec §5.5). */
+/** The personal group never plays the power game (spec §5.5). */
 export function groupPower(
   kind: "group" | "personal",
   powerEnabled: boolean,
   powerPeriod: PowerPeriod,
 ): { powerEnabled: boolean; powerPeriod: PowerPeriod } {
   if (kind === "personal" && (powerEnabled || powerPeriod !== "infinite")) {
-    throw new TodoDomainError("personal_group", "a personal folder has no power");
+    throw new TodoDomainError("personal_group", "a personal group has no power");
   }
   return { powerEnabled, powerPeriod };
 }

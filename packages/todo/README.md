@@ -1,6 +1,6 @@
 # Tareas
 
-Shared tasks as post-its. A group holds tasks; each user also has a personal folder.
+Shared tasks as post-its. A group holds tasks; each user also has a personal group.
 
 - A task is **pending** or **done**, with one holder or none.
 - Free: any member edits it and can take it. Held: only its holder edits and

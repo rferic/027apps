@@ -11,7 +11,7 @@
 
 ## 1. Brief
 
-- **Idea:** post-its de tareas dentro de grupos que crea el propio usuario, más una carpeta
+- **Idea:** post-its de tareas dentro de grupos que crea el propio usuario, más un grupo
   personal por usuario.
 - **Necesidad:** repartir lo cotidiano sin convertirlo en un tablero de gestión de proyectos.
 - **Concepto:** una tarea es un post-it: está **pendiente o hecha**, se crea **libre** (la coge
@@ -70,11 +70,11 @@
   formulario y el teclado libre. Sin campo aparte; los límites se cuentan por puntos de código,
   porque un emoji es un carácter en PostgreSQL y dos en JavaScript.
 - **Alta rápida:** el «+» de Inicio abre el formulario de tarea preguntando a qué grupo va (con
-  la carpeta personal entre las opciones y la última usada preseleccionada). Desde dentro de un
+  la grupo personal entre las opciones y la última usada preseleccionada). Desde dentro de un
   grupo, el grupo se deduce y el formulario no pregunta. Se declara como `app_actions: new_task`.
 - **Grupo:** lo crea un usuario y él gestiona sus miembros (añadir y echar). El admin de la
   instancia puede verlo y tocarlo todo desde el panel.
-- **Carpeta personal:** cada usuario tiene un grupo de uno, sin miembros y **sin power**. No
+- **Grupo personal:** cada usuario tiene un grupo con un solo miembro (él) y **sin power**. No
   compite con nada.
 - **Estado de una tarea:** `pendiente` o `hecha`. Nada más.
 - **Una sola persona** puede tener una tarea en su poder.
@@ -101,7 +101,7 @@
   quien la crea y se puede editar); quien la completa suma. Modos: **infinito** (sin fecha de
   cierre) o **temporada** semanal, mensual o anual. Al cerrar temporada se genera la **página de
   resultados** (posición, puntos y tareas hechas por persona), se archiva y se resetea. En
-  infinito, el grupo cierra temporada a mano cuando quiera. La carpeta personal no juega.
+  infinito, el grupo cierra temporada a mano cuando quiera. La grupo personal no juega.
 - **Avisos (nunca al actor):** creación → grupo si está libre, asignado si tiene dueño;
   asignación → el nuevo dueño; devolución → el grupo; vencimiento o cierre de periodo sin hacer
   → grupo si libre, dueño si asignada; completar → **siempre el grupo**; solicitud → el dueño
@@ -118,7 +118,7 @@
 - **Settings de instancia:** `default_power` (1–5, por defecto 1) y `request_ttl_days` (7).
 - **Widgets:** `todo.my_tasks` en la app («Mis tareas»: pendientes y próxima fecha) y
   `todo.power` en el panel (clasificación de la temporada en curso).
-- **`is_public`: `true`** — es de la familia; cualquiera tiene su carpeta personal y puede crear
+- **`is_public`: `true`** — es de la familia; cualquiera tiene su grupo personal y puede crear
   grupos.
 - **Sin límite** de grupos por usuario ni de miembros por grupo.
 
@@ -183,7 +183,7 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
 ## 10. Bitácora
 
 - `2026-11-27` — intake, referencia legacy, concepto del propietario y cuatro tandas de
-  preguntas. Cerradas: grupos propios, carpeta personal sin power, power por grupo y aislado,
+  preguntas. Cerradas: grupos propios, grupo personal sin power, power por grupo y aislado,
   una sola persona por tarea, sin privilegios de creador, solicitudes con botones y bandeja,
   recurrencia con historial, deshacer con resta de puntos, borrado solo de pendientes,
   resultados por temporada con archivo, solicitud a 24 h y contador de puntos sin libro.
@@ -197,7 +197,7 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
   DDL 1.0.0 con diez tablas, vista y helpers, RLS de solo lectura, e instalación/desinstalación
   comprobadas en `db-tests` (352 tests en verde).
 - `2026-11-27` — **tarea 02** en `test`: `permissions.ts` (reglas puras, 21 tests) y `groups.ts`
-  (grupos, miembros, carpeta personal idempotente, echar libera tareas y caduca solicitudes),
+  (grupos, miembros, grupo personal idempotente, echar libera tareas y caduca solicitudes),
   con `todo-group_members`/`todo_groups` cualificados por esquema. `db-tests` en 356.
 - `2026-11-28` — logos cerrados tras la revisión del propietario: OweNo **B** y NotNow **G**.
   Guardados los cuatro SVG (icono monocromo y logo a dos tonos de cada módulo). El icono de
@@ -209,3 +209,6 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
 - `2026-11-28` — hallazgo del Core: `assertSafeModuleSql` prohíbe la palabra `do` en cualquier
   contexto, así que un módulo no puede usar `on conflict`. Se ha esquivado con `where not exists`
   en el job; conviene afinarlo en el Core (bloquear `DO $$`, no `on conflict`).
+- `2026-11-28` — terminología unificada: el contenedor se llama **grupo** en UI, spec, plan y
+  código. El privado de cada usuario es su **grupo personal** («Personal»), con un solo miembro.
+  Desaparece la palabra «carpeta».

@@ -20,7 +20,7 @@ en `state.md` §2). **Identidad:** `todo` / «Tareas» / indigo, logo *lista con
 
 ## Decisiones cerradas (propietario, 2026-11-27)
 
-- Grupos propios creados por los usuarios; cada usuario tiene su carpeta personal sin miembros y
+- Grupos propios creados por los usuarios; cada usuario tiene su grupo personal (un solo miembro) y
   sin power. Power **por grupo y aislado**; el de un grupo no toca el de otro.
 - Una sola persona por tarea. **Sin privilegios de creador:** libre la edita cualquiera del grupo;
   asignada, solo su dueño, que además es el único que la completa.
@@ -38,7 +38,7 @@ en `state.md` §2). **Identidad:** `todo` / «Tareas» / indigo, logo *lista con
 | # | Tarea | Área | Entregable | Depende |
 |---|---|---|---|---|
 | 01 | Contrato, paquete y base de datos | sql + core | manifest válido, DDL `up`/`down`, RLS, instalación limpia | — |
-| 02 | Dominio: grupos, miembros y carpeta personal | core | `groups.ts` + matriz de permisos | 01 |
+| 02 | Dominio: grupos, miembros y grupo personal | core | `groups.ts` + matriz de permisos | 01 |
 | 03 | Dominio: tareas | core | `tasks.ts` (crear, editar, borrar, coger, soltar, completar) | 02 |
 | 04 | Dominio: recurrencia y ocurrencias | core | `recurrence.ts` (periodos, historial, cierre) | 03 |
 | 05 | Dominio: solicitudes, completar y deshacer | core | `requests.ts` + deshacer con resta | 03 |

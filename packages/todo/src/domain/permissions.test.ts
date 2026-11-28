@@ -119,7 +119,7 @@ describe("group management", () => {
     expect(canManageGroup("luis", { ownerId: "ana" })).toBe(false);
   });
 
-  it("never gives power to a personal folder", () => {
+  it("never gives power to a personal group", () => {
     expect(codeOf(() => groupPower("personal", true, "weekly"))).toBe("personal_group");
     expect(groupPower("personal", false, "infinite")).toEqual({
       powerEnabled: false,
