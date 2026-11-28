@@ -7,7 +7,7 @@
 **Fecha de inicio:** 2026-11-27
 **Última actualización:** 2026-11-27
 **Estado:** `implementacion` (tarea 01 en curso)
-**Siguiente paso:** tarea 07 — API `/api/v1/todo`.
+**Siguiente paso:** tarea 08 — eventos, avisos y push con acciones.
 
 ## 1. Brief
 
@@ -216,3 +216,6 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
   Desaparece la palabra «carpeta».
 - `2026-11-28` — dejado explícito que NotNow y OweNo no comparten grupos: spec §1.3, criterio de
   aceptación 16 y una comprobación en el test del manifest de que el módulo no declara `requires`.
+- `2026-11-28` — **tarea 07** en `test`: `apps/admin/src/lib/todo.ts` (door, mapeo de errores del
+  dominio, `profileContext`, `personalName`, `parseQuery`) y las 19 rutas de `/api/v1/todo` con
+  sus scopes, rate limits y esquemas zod. 36 tests en el paquete; `admin` 1364 en verde.
