@@ -75,8 +75,10 @@ fun TodoRequestsPane(
                     Text(
                         if (tab == "incoming") {
                             "${request.requesterName} · ${request.groupName}"
-                        } else {
+                        } else if (request.state == "pending") {
                             "${request.groupName} · ${expiry(request.expiresAt, strings.todoExpires)}"
+                        } else {
+                            request.groupName
                         },
                         color = palette.mutedForeground,
                         fontSize = 11.5.sp,

@@ -42,7 +42,7 @@
       "version": "1.4.0",
       "up": "./sql/005-demo.sql",
       "down": "./sql/005-demo.down.sql",
-      "digest": "sha256:0d8d27212ac17c54985aa7840dd0547fc0684d76dbcc0e344ef6d4751c140a21",
+      "digest": "sha256:67bae093286c22d8c4441409955793e651f0443c10f148fb814c842719359024",
       "down_digest": "sha256:53e5b881fcf6d5938bd46e87828822c6ad3931173e277cd6219e0921405996a8"
     }
   ],

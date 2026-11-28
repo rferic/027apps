@@ -1,4 +1,5 @@
 import type { Caller } from "./groups";
+import { getTask } from "./tasks";
 import { TodoDomainError } from "./errors";
 import { canRequestTask, canReopenTask } from "./permissions";
 import { emitRequestCreated, emitRequestResolved, emitTaskAssigned } from "./events";
@@ -125,9 +126,14 @@ export async function listRequests(
   const { rows } = await deps.db.query(
     direction === "outgoing"
       ? `select ${REQUEST_COLUMNS} from module_todo.todo_requests r ${REQUEST_JOINS}
+          join module_todo.todo_group_members m
+            on m.group_id = r.group_id and m.user_id = $1
           where r.requester_id = $1 order by r.created_at desc limit 100`
       : `select ${REQUEST_COLUMNS} from module_todo.todo_requests r ${REQUEST_JOINS}
-          where t.assignee_id = $1 and r.requester_id <> $1
+          join module_todo.todo_group_members m
+            on m.group_id = r.group_id and m.user_id = $1
+          where r.requester_id <> $1
+            and ((r.state = 'pending' and t.assignee_id = $1) or r.decided_by = $1)
           order by (r.state = 'pending') desc, r.created_at desc
           limit 100`,
     [caller.userId],
@@ -240,7 +246,7 @@ export async function reopenTask(
   deps: TodoDeps,
   caller: Caller,
   taskId: string,
-): Promise<{ id: string; state: "pending" }> {
+): Promise<Awaited<ReturnType<typeof getTask>>> {
   const { rows } = await deps.db.query(
     `select t.id, t.group_id, t.state, t.assignee_id, t.completed_at, t.recurrence, t.power,
             to_char(t.period_start, 'YYYY-MM-DD') as period_start,
@@ -293,5 +299,6 @@ export async function reopenTask(
       rows[0].power === null ? null : Number(rows[0].power),
     );
   }
-  return { id: taskId, state: "pending" };
+  // The route publishes the task, so it returns what every other write returns.
+  return getTask(deps, caller, taskId);
 }

@@ -1,6 +1,7 @@
 package com.rferic.zero27apps.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -60,13 +61,6 @@ fun TodoTaskFormDialog(
     var group by remember { mutableStateOf(target.group ?: groups.firstOrNull()) }
     val periodic = recurrence != "none"
 
-    fun insert(emoji: String) {
-        val text = title.text
-        val start = title.selection.start.coerceIn(0, text.length)
-        val end = title.selection.end.coerceIn(0, text.length)
-        val next = text.replaceRange(start, end, emoji)
-        title = TextFieldValue(next, TextRange(start + emoji.length))
-    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -116,7 +110,7 @@ fun TodoTaskFormDialog(
                     label = { Text(strings.todoTitle) },
                     singleLine = true,
                 )
-                EmojiPicker(::insert)
+                EmojiPicker { emoji -> title = insertAtSelection(title, emoji) }
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
@@ -124,7 +118,7 @@ fun TodoTaskFormDialog(
                 )
                 if (categories.isNotEmpty()) {
                     TodoSectionLabel(strings.todoCategory)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         categories.take(6).forEach { option ->
                             TodoPill(
                                 label = "${option.emoji} ${option.name}",
@@ -137,7 +131,7 @@ fun TodoTaskFormDialog(
                 // Inside a group the people are known: a task can start held.
                 if (target.group != null && members.size > 1) {
                     TodoSectionLabel(strings.todoHeldBy.replace("{name}", "").trim())
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         TodoPill(strings.todoFree, assignee == null) { assignee = null }
                         members.forEach { member ->
                             val label = if (member.userId == userId) strings.todoMine else member.displayName
@@ -147,7 +141,7 @@ fun TodoTaskFormDialog(
                 }
                 if (group?.powerEnabled == true) {
                     TodoSectionLabel(strings.todoPower)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         (1..5).forEach { value ->
                             TodoPill("$value ⚡", power == value) {
                                 power = if (power == value) null else value
@@ -156,7 +150,7 @@ fun TodoTaskFormDialog(
                     }
                 }
                 TodoSectionLabel(strings.todoRepeats)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(
                         "none" to strings.todoNever,
                         "weekly" to strings.todoWeekly,
@@ -173,6 +167,7 @@ fun TodoTaskFormDialog(
                         value = due,
                         onValueChange = { due = it },
                         label = { Text(strings.todoDueDate) },
+                        placeholder = { Text("YYYY-MM-DD") },
                         singleLine = true,
                     )
                 }
@@ -213,13 +208,6 @@ fun TodoTaskDetailSheet(
     var power by remember(task.id) { mutableStateOf(task.power) }
     var due by remember(task.id) { mutableStateOf(task.dueOn ?: "") }
 
-    fun insert(emoji: String) {
-        val text = title.text
-        val start = title.selection.start.coerceIn(0, text.length)
-        val end = title.selection.end.coerceIn(0, text.length)
-        val next = text.replaceRange(start, end, emoji)
-        title = TextFieldValue(next, TextRange(start + emoji.length))
-    }
 
     fun saveNow() {
         onSave(
@@ -259,7 +247,7 @@ fun TodoTaskDetailSheet(
                         label = { Text(strings.todoTitle) },
                         singleLine = true,
                     )
-                    EmojiPicker(::insert)
+                    EmojiPicker { emoji -> title = insertAtSelection(title, emoji) }
                     OutlinedTextField(
                         value = notes,
                         onValueChange = { notes = it },
@@ -267,7 +255,7 @@ fun TodoTaskDetailSheet(
                     )
                     if (categories.isNotEmpty()) {
                         TodoSectionLabel(strings.todoCategory)
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             categories.take(6).forEach { option ->
                                 TodoPill("${option.emoji} ${option.name}", category == option.id) {
                                     category = if (category == option.id) null else option.id
@@ -277,7 +265,7 @@ fun TodoTaskDetailSheet(
                     }
                     if (powerEnabled) {
                         TodoSectionLabel(strings.todoPower)
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             (1..5).forEach { value ->
                                 TodoPill("$value ⚡", power == value) {
                                     power = if (power == value) null else value
@@ -290,11 +278,12 @@ fun TodoTaskDetailSheet(
                             value = due,
                             onValueChange = { due = it },
                             label = { Text(strings.todoDueDate) },
+                            placeholder = { Text("YYYY-MM-DD") },
                             singleLine = true,
                         )
                     }
                 } else {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         if (task.power != null) TodoTag("⚡ ${task.power}", palette.accent)
                         if (task.dueOn != null) TodoTag(task.dueOn!!, palette.mutedForeground)
                         if (task.periodic) {
@@ -315,7 +304,7 @@ fun TodoTaskDetailSheet(
                     }
 
                     Spacer(Modifier.height(2.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (task.done) {
                             if (task.assigneeId == userId) TodoAction(strings.todoReopen, onReopen)
                         } else {
@@ -329,9 +318,9 @@ fun TodoTaskDetailSheet(
                             }
                         }
                     }
-                    if (!task.done) {
+                    if (canEdit && !task.done) {
                         if (confirmingDelete) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(strings.todoDeleteTaskConfirm, color = palette.destructive, fontSize = 11.5.sp)
                                 TodoAction(strings.todoDelete) { onDelete() }
                                 TodoAction(strings.cancel) { confirmingDelete = false }

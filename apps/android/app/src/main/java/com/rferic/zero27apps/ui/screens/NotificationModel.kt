@@ -18,6 +18,10 @@ internal fun notificationTypeLabel(key: String, strings: Strings): String = when
     "invitation.request_resolved" -> strings.notificationInvitationResolved
     "owe_no.movement_created" -> strings.notificationMovementCreated
     "owe_no.movement_changed" -> strings.notificationMovementChanged
+    "todo.task" -> strings.notificationTodoTask
+    "todo.overdue" -> strings.notificationTodoOverdue
+    "todo.request" -> strings.notificationTodoRequest
+    "todo.season" -> strings.notificationTodoSeason
     // A future kind reaches the app before this build knows its label: show the
     // key instead of hiding the switch.
     else -> key

@@ -51,6 +51,28 @@ interface RouteOptions {
   scopes: string[];
   rateLimit: { identity: "user" | "ip" | "key"; limit: number; windowSeconds?: number; bucket?: string };
   schema?: ZodType;
+  /** Routes whose behaviour depends on the module's settings read them here. */
+  moduleSettings?: boolean;
+}
+
+/** The two instance settings the domain reads; stored as JSON values. */
+async function moduleSettings(db: {
+  query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+}): Promise<{ requestTtlHours?: number; defaultPower?: number | null }> {
+  const { rows } = await db.query(
+    `select key, value from public.settings
+      where key in ('todo.request_ttl_hours', 'todo.default_power')`,
+  );
+  const value = (key: string) => {
+    const row = rows.find((candidate) => candidate.key === key);
+    return typeof row?.value === "number" ? row.value : undefined;
+  };
+  const ttl = value("todo.request_ttl_hours");
+  const power = value("todo.default_power");
+  return {
+    ...(ttl !== undefined ? { requestTtlHours: ttl } : {}),
+    ...(power !== undefined ? { defaultPower: power } : {}),
+  };
 }
 
 function toCaller(caller: RequestContext["caller"]): Caller {
@@ -68,13 +90,14 @@ export function handle(
 ): Promise<Response> {
   return (async () => {
     const { deps, auth, settingsDeps } = await getInfra();
+    const settings = options.moduleSettings ? await moduleSettings(settingsDeps.db) : {};
     return withDoor(
       req,
       { ...options, moduleKey: "todo", auth },
       deps,
       async (ctx) =>
         fn({
-          todo: { db: settingsDeps.db, withTransaction: runInTransaction },
+          todo: { db: settingsDeps.db, withTransaction: runInTransaction, ...settings },
           caller: toCaller(ctx.caller),
           ctx,
         }).catch((error: unknown) => {

@@ -11,6 +11,8 @@ export interface TodoDeps {
   now?: () => Date;
   /** Overrides the instance `request_ttl_hours` setting in tests. */
   requestTtlHours?: number;
+  /** The instance `default_power` a new task starts with, when the group plays. */
+  defaultPower?: number | null;
 }
 
 export type TodoGroupKind = "group" | "personal";

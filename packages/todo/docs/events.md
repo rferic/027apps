@@ -1,4 +1,4 @@
-# Events — Tareas
+# Events — NotNow
 
 One channel, `todo-group-{id}`, resolved by `channel_members(topic text)`.
 

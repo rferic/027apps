@@ -52,6 +52,13 @@ export async function withIdempotency<T>(
        values ($1, $2, $3, $4::jsonb)`,
       [key, caller.userId, args.endpoint, JSON.stringify(result)],
     );
+    // A key answers retries for a day and then goes: the table must not grow
+    // with every write the instance ever saw.
+    await db.query(
+      `delete from module_todo.todo_idempotency
+        where user_id = $1 and created_at < now() - interval '24 hours'`,
+      [caller.userId],
+    );
     return result;
   });
 }

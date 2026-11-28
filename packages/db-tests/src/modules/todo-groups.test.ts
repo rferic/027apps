@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { query } from "../pg.js";
 import { inRollback, installTodo, session, todoDeps } from "./todo-fixture.js";
+import { createTask } from "@027apps/todo/domain/tasks.js";
+import { requestTask } from "@027apps/todo/domain/requests.js";
 import {
   addMember,
   createGroup,
@@ -168,6 +170,49 @@ describe("todo groups", () => {
       expect(await codeOf(() => deleteGroup(deps, { userId: luis.userId!, role: luis.role }, group.id))).toBe(
         "not_found",
       );
+    });
+  });
+});
+
+describe("todo removing a member", () => {
+  it("frees their tasks, kills the requests aimed at them and tells the group", async () => {
+    await inRollback(async (c) => {
+      await installTodo(c);
+      const deps = todoDeps(c);
+      const ana = await session(c, "user");
+      const luis = await session(c, "user");
+      const pepe = await session(c, "user");
+      const me = { userId: ana.userId!, role: ana.role };
+      const group = await createGroup(deps, me, { name: "Casa", timezone: TZ });
+      await addMember(deps, me, group.id, luis.userId!);
+      await addMember(deps, me, group.id, pepe.userId!);
+      const task = await createTask(deps, me, group.id, {
+        title: "Sacar la basura",
+        assigneeId: luis.userId,
+      });
+      // Pepe asks Luis for it; the request must not survive Luis leaving.
+      await requestTask(deps, { userId: pepe.userId!, role: pepe.role }, task.id);
+
+      await removeMember(deps, me, group.id, luis.userId!);
+
+      const { rows: taskRow } = await query(
+        c,
+        "select assignee_id from module_todo.todo_tasks where id = $1",
+        [task.id],
+      );
+      expect(taskRow[0]!.assignee_id).toBeNull();
+      const { rows: requests } = await query(
+        c,
+        "select state from module_todo.todo_requests where task_id = $1",
+        [task.id],
+      );
+      expect(requests.map((row) => row.state)).toEqual(["expired"]);
+      const { rows: events } = await query(
+        c,
+        "select type, resource from public.event_outbox where type = 'todo.task_released'",
+      );
+      expect(events).toHaveLength(1);
+      expect((events[0]!.resource as { description?: string }).description).toBe("Sacar la basura");
     });
   });
 });

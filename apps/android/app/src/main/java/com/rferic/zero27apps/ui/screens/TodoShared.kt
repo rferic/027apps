@@ -13,7 +13,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rferic.zero27apps.ui.theme.LocalPalette
@@ -78,4 +80,13 @@ fun TodoSectionLabel(text: String) {
         fontWeight = FontWeight.Medium,
         modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
     )
+}
+
+/** Inserts `emoji` where the cursor is (or replaces the selection), nothing else. */
+fun insertAtSelection(current: TextFieldValue, emoji: String): TextFieldValue {
+    val text = current.text
+    val start = current.selection.start.coerceIn(0, text.length)
+    val end = current.selection.end.coerceIn(0, text.length)
+    val next = text.replaceRange(start, end, emoji)
+    return TextFieldValue(next, TextRange(start + emoji.length))
 }

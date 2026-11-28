@@ -90,7 +90,7 @@ avisaba de que eran «planned».
 
 NotNow se presenta en la landing como **en desarrollo** (`In development`): el módulo está
 implementado y recorrido con dos usuarios en local, pero la ficha no promete nada hasta que el
-propietario lo acepte sobre el APK de staging. Su fila de la app lleva tres características y una
+propietario lo acepte sobre el APK de staging. Su fila de la app lleva cuatro características y una
 maqueta HTML del grupo con post-its; su tarjeta de `/self-host` dice «Shared tasks as post-its,
 with requests, power and seasons». Al pasar a `available` se actualizan las dos páginas y esta
 tabla en el mismo PR.

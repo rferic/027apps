@@ -163,8 +163,9 @@ export async function createTask(
     if (!rows[0]) throw new TodoDomainError("validation_failed", "the assignee is not a member");
   }
 
-  // The power belongs to the group: without the game the value is not stored.
-  const power = group.powerEnabled ? (input.power ?? null) : null;
+  // The power belongs to the group: without the game the value is not stored,
+  // and a task that does not name one starts at the instance default.
+  const power = group.powerEnabled ? (input.power ?? deps.defaultPower ?? null) : null;
   if (power !== null && (power < 1 || power > 5)) {
     throw new TodoDomainError("validation_failed", "power must be 1..5");
   }
@@ -174,7 +175,7 @@ export async function createTask(
        (group_id, title, notes, category_id, power, assignee_id, recurrence, keep_assignee,
         due_on, period_start, period_end, created_by)
      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-     returning ${TASK_COLUMNS.replaceAll("t.", "")}`,
+     returning id`,
     [
       groupId,
       title,
@@ -190,7 +191,7 @@ export async function createTask(
       caller.userId,
     ],
   );
-  const task = toTask(rows[0]!);
+  const task = (await load(deps, caller.userId, String(rows[0]!.id))).task;
   await emitTaskCreated(deps, {
     groupId,
     actorId: caller.userId,
@@ -320,21 +321,35 @@ export async function updateTask(
   }
   const title = patch.title === undefined ? task.title : taskTitle(patch.title);
   const notes = patch.notes === undefined ? task.notes : patch.notes?.trim() ?? null;
+  // Same edges as a create: the database check is the last line, not the first.
+  if (notes !== null && [...notes].length > 2000) {
+    throw new TodoDomainError("validation_failed", "notes are too long");
+  }
+  if (patch.categoryId !== undefined && patch.categoryId !== null) {
+    const { rows: category } = await deps.db.query(
+      "select 1 from module_todo.todo_categories where id = $1",
+      [patch.categoryId],
+    );
+    if (!category[0]) throw new TodoDomainError("not_found", "category not found");
+  }
   const power =
     patch.power === undefined || !powerEnabled ? task.power : patch.power === null ? null : patch.power;
   if (power !== null && (power < 1 || power > 5)) {
     throw new TodoDomainError("validation_failed", "power must be 1..5");
   }
   const dueOn = patch.dueOn === undefined ? task.dueOn : patch.dueOn;
+  if (patch.dueOn !== undefined && task.recurrence !== "none") {
+    throw new TodoDomainError("validation_failed", "a periodic task has no due date");
+  }
 
   const { rows } = await deps.db.query(
     `update module_todo.todo_tasks
         set title = $2, notes = $3, category_id = $4, power = $5, due_on = $6, updated_at = now()
       where id = $1
-      returning ${TASK_COLUMNS.replaceAll("t.", "")}`,
+      returning id`,
     [taskId, title, notes, patch.categoryId === undefined ? task.categoryId : patch.categoryId, power, dueOn],
   );
-  return toTask(rows[0]!);
+  return (await load(deps, caller.userId, String(rows[0]!.id))).task;
 }
 
 export async function deleteTask(
@@ -363,11 +378,11 @@ export async function claimTask(
     `update module_todo.todo_tasks
         set assignee_id = $2, updated_at = now()
       where id = $1 and state = 'pending' and assignee_id is null
-      returning ${TASK_COLUMNS.replaceAll("t.", "")}`,
+      returning id`,
     [taskId, caller.userId],
   );
   if (!rows[0]) throw new TodoDomainError("already_assigned", "somebody took it first");
-  return toTask(rows[0]);
+  return (await load(deps, caller.userId, taskId)).task;
 }
 
 export async function releaseTask(
@@ -394,7 +409,7 @@ export async function releaseTask(
     taskId: released.id,
     title: released.title,
   });
-  return released;
+  return (await load(deps, caller.userId, taskId)).task;
 }
 
 /**
@@ -449,7 +464,7 @@ export async function completeTask(
     title: completed.title,
     power: completed.power,
   });
-  return completed;
+  return (await load(deps, caller.userId, taskId)).task;
 }
 
 /**

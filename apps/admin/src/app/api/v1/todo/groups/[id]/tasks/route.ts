@@ -25,7 +25,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   return handle(
     req,
-    { scopes: ["tasks:write"], rateLimit: { identity: "user", limit: 30 }, schema: createTaskSchema },
+    { scopes: ["tasks:write"], rateLimit: { identity: "user", limit: 30 }, schema: createTaskSchema, moduleSettings: true },
     async ({ todo, caller, ctx }) => {
       const body = ctx.body as {
         title: string;

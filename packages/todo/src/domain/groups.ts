@@ -8,6 +8,7 @@ import {
 } from "./permissions";
 import type { TodoDeps, TodoGroup, TodoGroupKind } from "./types";
 import { notifyOverdue } from "./overdue";
+import { emitTaskReleased } from "./events";
 
 /**
  * Groups, their members and the personal group (spec §5.1).
@@ -46,6 +47,23 @@ function toGroup(row: Record<string, unknown>): TodoGroup {
     seasonNumber: Number(row.season_number),
     seasonStartedOn: String(row.season_started_on),
   };
+}
+
+
+/**
+ * A timezone the world does not know would be stored and then break every query
+ * that asks PostgreSQL for the group's today, so it is refused at the edge.
+ */
+function validTimezone(timezone: string): string {
+  if (charLength(timezone) > 64) {
+    throw new TodoDomainError("validation_failed", "timezone is too long");
+  }
+  try {
+    new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(new Date());
+  } catch {
+    throw new TodoDomainError("validation_failed", "invalid timezone");
+  }
+  return timezone;
 }
 
 async function run<T>(deps: TodoDeps, fn: (db: TodoDeps["db"]) => Promise<T>): Promise<T> {
@@ -125,14 +143,15 @@ export async function createGroup(
   const power = groupPower("group", input.powerEnabled ?? false, input.powerPeriod ?? "infinite");
   // The season starts on the group's today, from the domain clock, so a test and
   // a job agree on which season a completion belongs to.
-  const startedOn = localDate(deps.now?.() ?? new Date(), input.timezone);
+  const timezone = validTimezone(input.timezone);
+  const startedOn = localDate(deps.now?.() ?? new Date(), timezone);
   return run(deps, async (db) => {
     const { rows } = await db.query(
       `insert into module_todo.todo_groups
          (name, kind, owner_id, timezone, power_enabled, power_period, season_started_on)
        values ($1, 'group', $2, $3, $4, $5, $6)
        returning ${GROUP_COLUMNS.replaceAll("g.", "")}`,
-      [name, caller.userId, input.timezone, power.powerEnabled, power.powerPeriod, startedOn],
+      [name, caller.userId, timezone, power.powerEnabled, power.powerPeriod, startedOn],
     );
     const group = toGroup(rows[0]!);
     await db.query(
@@ -195,10 +214,7 @@ export async function updateGroup(
     input.powerEnabled ?? group.powerEnabled,
     input.powerPeriod ?? group.powerPeriod,
   );
-  const timezone = input.timezone ?? group.timezone;
-  if (charLength(timezone) > 64) {
-    throw new TodoDomainError("validation_failed", "timezone is too long");
-  }
+  const timezone = input.timezone === undefined ? group.timezone : validTimezone(input.timezone);
   const { rows } = await deps.db.query(
     `update module_todo.todo_groups
         set name = $2, timezone = $3, power_enabled = $4, power_period = $5, updated_at = now()
@@ -281,21 +297,37 @@ export async function removeMember(
   if (group.ownerId === userId) {
     throw new TodoDomainError("last_owner", "the owner cannot leave the group");
   }
+  let freed: Array<{ id: string; title: string }> = [];
   await run(deps, async (db) => {
-    await db.query(
+    const { rows } = await db.query(
       `update module_todo.todo_tasks set assignee_id = null, updated_at = now()
-        where group_id = $1 and assignee_id = $2 and state = 'pending'`,
+        where group_id = $1 and assignee_id = $2 and state = 'pending'
+        returning id, title`,
       [groupId, userId],
     );
+    freed = rows.map((row) => ({ id: String(row.id), title: String(row.title) }));
+    const freedIds = freed.map((task) => task.id);
+    // Their open requests die, and so do the ones asking for a task that is now
+    // free: nobody may inherit a request aimed at the person who left.
     await db.query(
       `update module_todo.todo_requests set state = 'expired', resolved_at = now()
-        where group_id = $1 and requester_id = $2 and state = 'pending'`,
-      [groupId, userId],
+        where group_id = $1 and state = 'pending'
+          and (requester_id = $2 or ($3::uuid[] <> '{}' and task_id = any($3::uuid[])))`,
+      [groupId, userId, freedIds],
     );
     await db.query("delete from module_todo.todo_group_members where group_id = $1 and user_id = $2", [
       groupId,
       userId,
     ]);
   });
+  // The group hears that those tasks are free again (spec §5.1).
+  for (const task of freed) {
+    await emitTaskReleased(deps, {
+      groupId,
+      actorId: caller.userId,
+      taskId: task.id,
+      title: task.title,
+    });
+  }
   return listMembers(deps, caller, groupId);
 }

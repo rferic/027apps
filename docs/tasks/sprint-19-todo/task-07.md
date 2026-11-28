@@ -8,7 +8,7 @@ spec: docs/superpowers/specs/2026-11-27-todo.md
 fuente: docs/tasks/sprint-19-todo/README.md
 ---
 
-**Objetivo:** Los 25 endpoints con zod, scopes, idempotencia y rate limits, y su documentación.
+**Objetivo:** Las 26 operaciones con zod, scopes, idempotencia y rate limits, y su documentación.
 
 **Ficheros:** `apps/admin/src/app/api/v1/todo/**` (18 ficheros de ruta) · `apps/admin/src/lib/todo.ts` · `packages/todo/docs/api.md`
 

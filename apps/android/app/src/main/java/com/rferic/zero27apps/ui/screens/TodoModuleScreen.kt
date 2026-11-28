@@ -100,13 +100,6 @@ fun TodoGroupFormDialog(
     var power by remember { mutableStateOf(existing?.powerEnabled ?: false) }
     var period by remember { mutableStateOf(existing?.powerPeriod ?: "infinite") }
 
-    fun insert(emoji: String) {
-        val text = name.text
-        val start = name.selection.start.coerceIn(0, text.length)
-        val end = name.selection.end.coerceIn(0, text.length)
-        val next = text.replaceRange(start, end, emoji)
-        name = TextFieldValue(next, TextRange(start + emoji.length))
-    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -133,7 +126,7 @@ fun TodoGroupFormDialog(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions.Default,
                 )
-                EmojiPicker(::insert)
+                EmojiPicker { emoji -> name = insertAtSelection(name, emoji) }
                 if (existing?.personal != true) {
                     TodoSectionLabel(strings.todoPower)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

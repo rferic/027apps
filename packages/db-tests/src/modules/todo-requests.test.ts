@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { query } from "../pg.js";
 import { inRollback, installTodo, session, todoDeps } from "./todo-fixture.js";
-import { addMember, createGroup } from "@027apps/todo/domain/groups.js";
+import { addMember, createGroup, removeMember } from "@027apps/todo/domain/groups.js";
 import { claimTask, completeTask, createTask, getTask } from "@027apps/todo/domain/tasks.js";
 import {
   acceptRequest,
@@ -148,6 +148,32 @@ describe("todo requests", () => {
         [group.id],
       );
       expect(await codeOf(() => reopenTask(deps, me, again.id))).toBe("season_closed");
+    });
+  });
+});
+
+describe("todo inbox privacy", () => {
+  it("stops naming a group once the member is gone", async () => {
+    await inRollback(async (c) => {
+      await installTodo(c);
+      const deps = todoDeps(c, clock);
+      const ana = await session(c, "user", "Ana");
+      const luis = await session(c, "user", "Luis");
+      const me = { userId: ana.userId!, role: ana.role };
+      const asLuis = { userId: luis.userId!, role: luis.role };
+      const group = await createGroup(deps, me, { name: "Casa", timezone: TZ });
+      await addMember(deps, me, group.id, luis.userId!);
+      const task = await createTask(deps, me, group.id, {
+        title: "Sacar la basura",
+        assigneeId: ana.userId,
+      });
+      await requestTask(deps, asLuis, task.id);
+      expect(await listRequests(deps, asLuis, "outgoing")).toHaveLength(1);
+
+      // Out of the group: the inbox must not keep naming its tasks or its name.
+      await removeMember(deps, me, group.id, luis.userId!);
+      expect(await listRequests(deps, asLuis, "outgoing")).toEqual([]);
+      expect(await listRequests(deps, asLuis, "incoming")).toEqual([]);
     });
   });
 });

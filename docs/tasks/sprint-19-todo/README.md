@@ -2,7 +2,7 @@
 id: sprint-19-todo
 titulo: Módulo Tareas — post-its por grupo, solicitudes y power
 area: producto
-estado: aprobada 2026-11-27 · plan pendiente de aprobación
+estado: aprobada 2026-11-27 · plan aprobado 2026-11-27
 spec: docs/superpowers/specs/2026-11-27-todo.md
 plan: docs/superpowers/plans/2026-11-27-todo.md
 mockup: docs/mockups/todo/index.html
@@ -45,8 +45,8 @@ en `state.md` §2). **Identidad:** `todo` / «Tareas» / indigo, logo *lista con
 | 04 | Dominio: recurrencia y ocurrencias | core | `recurrence.ts` (periodos, historial, cierre) | 03 |
 | 05 | Dominio: solicitudes, completar y deshacer | core | `requests.ts` + deshacer con resta | 03 |
 | 06 | Dominio: power, temporadas y job | core + sql | `power.ts`, `job_hourly`, resultados archivados | 04, 05 |
-| 07 | API `/api/v1/todo` | web | 25 endpoints con zod, scopes, idempotencia y rate limits | 06 |
-| 08 | Eventos, avisos y push con acciones | core + app | 10 eventos, 4 tipos de aviso, botones en la notificación | 06 |
+| 07 | API `/api/v1/todo` | web | 26 operaciones con zod, scopes, idempotencia y rate limits | 06 |
+| 08 | Eventos, avisos y push con acciones | core + app | 12 eventos, 4 tipos de aviso, botones en la notificación | 06 |
 | 09 | Panel | web | `/panel/todo` y `/panel/todo/categories` | 07 |
 | 10 | App Android | app | módulo, grupo, detalle, bandeja, power y resultados | 07, 08 |
 | 11 | Widgets, demo, i18n y documentación | core + docs | widgets, `seed_demo`, 9 locales, docs por capacidad | 06 |
@@ -57,6 +57,6 @@ Orden de ejecución: **01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 0
 
 ## Puertas
 
-- [ ] Plan aprobado.
+- [x] Plan aprobado (2026-11-27).
 - [ ] UI aceptada en staging (APK de debug).
 - [ ] Aceptación del resultado y orden de merge del PR del sprint.

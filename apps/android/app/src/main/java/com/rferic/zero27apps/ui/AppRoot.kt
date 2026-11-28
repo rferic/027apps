@@ -817,6 +817,7 @@ private fun actionLabel(
     strings: com.rferic.zero27apps.ui.i18n.Strings,
 ): String = when (action.key) {
     "add_expense" -> strings.addExpense
+    "new_task" -> strings.todoNewTask
     else -> action.label
 }
 

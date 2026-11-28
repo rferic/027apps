@@ -53,11 +53,13 @@ one who edits and completes it. Requests expire after 24 hours.
 `POST /tasks/{id}/requests` **require** an `Idempotency-Key` header (8 to 120
 characters). A retry with the same key and the same user answers the stored
 result and changes nothing; reusing a key on a different endpoint is a
-`validation_failed`. A missing header is refused before any work happens.
+`validation_failed`. A missing header is refused before any work happens, and a
+key is kept for a day: older rows are deleted on the next write.
 
 ## Errors and limits
 
 Domain codes: `not_found`, `forbidden`, `already_assigned`, `task_done`, `task_pending`,
 `request_exists`, `request_expired`, `not_assignee`, `season_closed`, `power_disabled`,
 `personal_group`, `last_owner`. Reads allow 120 requests a minute per user, writes 30; creating a
-group allows 10 an hour, asking for a task 20, and closing a season 5.
+group allows 10 an hour, asking for a task 20, and closing a season 5. `reopen` and
+deleting a group are capped at 10/min.

@@ -7,7 +7,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   return handle(
     req,
-    { scopes: ["tasks:write"], rateLimit: { identity: "user", limit: 20, windowSeconds: 3600, bucket: "todo-request" } },
+    {
+      scopes: ["tasks:write"],
+      rateLimit: { identity: "user", limit: 20, windowSeconds: 3600, bucket: "todo-request" },
+      moduleSettings: true,
+    },
     async ({ todo, caller }) => {
       const request = await withIdempotency(
         todo,

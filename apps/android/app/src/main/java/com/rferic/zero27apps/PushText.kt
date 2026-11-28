@@ -9,7 +9,7 @@ import java.util.Locale
  * shown only when the user keeps amounts visible: the privacy switch lives in
  * the app, and a lock screen must not show money the owner chose to hide.
  *
- * Invitation pushes carry a `key` and, since the QA round, a `seats` count: they
+ * Invitation pushes carry a `key` and a `seats` count: they
  * render a localized sentence naming how many invitations are involved, with no
  * actor name and no money, instead of the amount/description composition the
  * expense pushes use.
@@ -57,7 +57,7 @@ object PushText {
      * simply drops that part instead of showing a placeholder.
      */
     private fun todo(data: Map<String, String>, locale: String): String {
-        val copy = TODO[locale.substringBefore('-').lowercase()] ?: TODO.getValue("en")
+        val copy = TODO_COPY[locale.substringBefore('-').lowercase()] ?: TODO_COPY.getValue("en")
         val title = data["description"]?.takeIf { it.isNotBlank() }
         val actor = data["actor"]?.takeIf { it.isNotBlank() }
         val group = data["group"]?.takeIf { it.isNotBlank() }
@@ -104,7 +104,7 @@ object PushText {
         val season: String,
     )
 
-    private val TODO: Map<String, TodoCopy> = mapOf(
+    private val TODO_COPY: Map<String, TodoCopy> = mapOf(
         "en" to TodoCopy(
             created = "{actor} added «{title}» · {group}",
             assigned = "{actor} gave you «{title}»",

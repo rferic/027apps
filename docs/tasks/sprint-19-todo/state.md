@@ -6,9 +6,10 @@
 **Módulo:** `todo` — NotNow
 **Fecha de inicio:** 2026-11-27
 **Última actualización:** 2026-11-28
-**Estado:** `implementacion` (tareas 01–11 en `test`, 12 en curso)
-**Siguiente paso:** tarea 12 — fichas públicas en landing y auditorías de calidad, estilo y seguridad;
-después, aceptación del propietario en staging y orden de merge.
+**Estado:** `implementacion` (tareas 01–12 en `test`)
+**Siguiente paso:** aceptación del propietario en staging con el APK de debug (incluido el push con
+botones, que necesita FCM real); después, orden explícita de merge del PR del sprint y promoción
+`staging → main` como PR aparte. La landing pasa NotNow a `available` en el mismo PR de aceptación.
 
 ## 1. Brief
 
@@ -40,7 +41,7 @@ después, aceptación del propietario en staging y orden de merge.
   dos tonos para la landing y la ficha del panel. **OweNo** pasa a **B · dos personas, un gasto**
   (dos círculos solapados con el lente sólido) en `packages/owe-no/assets/{icon,logo}.svg`.
 - **Branding:** `color: indigo` (`--module-indigo`, `#4f46e5` / `#818cf8`); descripción en
-  inglés por redactar en el manifest
+  inglés en el manifest: «Shared tasks as post-its: take one, get one, earn power»
 - **Manifest:** `packages/todo/manifest.json` en **1.4.0** (contrato 1, cinco migraciones con
   digests, 12 eventos, 1 canal, 1 job, 2 widgets, 2 páginas de panel, hooks de demo)
 - **Validación contra el esquema:** verde en `packages/todo/src/manifest.test.ts`
@@ -174,7 +175,7 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
 - [ ] Requisitos cerrados por el usuario.
 - [ ] ¿Empezamos el spec? — respuesta explícita.
 - [ ] Spec + mockup aceptados por el usuario.
-- [ ] Plan aprobado por el usuario.
+- [x] Plan aprobado por el usuario (2026-11-27).
 - [ ] UI aceptada (si aplica). — recorrida en local con dos usuarios; falta la aceptación del
   propietario sobre el APK de staging, incluido el push con botones (requiere FCM, no hay
   credenciales en local: el propio Ajustes avisa «FCM public configuration is missing»).
@@ -281,10 +282,43 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
   sin operación). Añadidas 26 operaciones en `packages/core/src/openapi/todo.ts`; el documento
   declara ahora 150 de 150. El generador no tiene hueco para cabeceras: el `Idempotency-Key` se
   documenta en la descripción de las tres operaciones.
-- `2026-11-28` — **verificación**: `pnpm lint` (0 errores, avisos previos de `<img>`), `pnpm tsc`
-  limpio, core 642, admin 1364, todo 36, Android 157 tests unitarios, `admin build` pendiente de
-  repetir en la auditoría, `db-tests` 381 con la instancia **sin módulos instalados** (con el módulo
-  instalado, 18 pruebas de otros paquetes cuentan filas del registro y fallan: es estado del
-  entorno, no del código). `i18n:check` verde y `check:openapi` 150/150. La suite completa de
-  `db-tests` necesita `SUPABASE_DB_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY` y
+- `2026-11-28` — **auditorías en paralelo** (calidad, estilo y seguridad; ver §11). La de seguridad
+  no encontró críticos ni altos; la de calidad sí encontró tres altos reales que se corrigieron:
+  `reopenTask` devolvía una tarea parcial (la app fallaba al deshacer), el receptor de la
+  notificación no llevaba el bypass de Vercel y hacía `Toast` fuera del hilo principal, y la app
+  ofrecía «Borrar» en tareas ajenas. También se corrigieron: la bandeja no comprueba membresía
+  (fuga de metadatos a un expulsado), las claves de idempotencia no caducaban, echar a alguien no
+  caducaba las solicitudes sobre sus tareas ni avisaba al grupo, `updateTask` no replicaba las
+  validaciones de `createTask`, y las etiquetas de los cuatro avisos y el widget de tareas no
+  estaban traducidos en Ajustes/Inicio. Todo con tests donde había dominio.
+- `2026-11-28` — **verificación final**: `pnpm lint` (0 errores, avisos previos de `<img>`),
+  `pnpm tsc` limpio, `pnpm --filter admin build` compila, core 642, admin 1364, todo 36, Android 158
+  tests unitarios (incluye etiquetas de los cuatro avisos), `i18n:check` verde (1147 cadenas) y
+  `check:openapi` 150/150. `db-tests` **383 en verde** con la instancia limpia (módulo desinstalado
+  y demo borrada); con el módulo instalado o la demo sembrada, siete pruebas de otros paquetes
+  cuentan filas del registro/catálogo y fallan: es estado del entorno, no del código. La suite
+  completa necesita `SUPABASE_DB_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY` y
   `SUPABASE_SERVICE_ROLE_KEY`.
+
+## 11. Auditorías (2026-11-28)
+
+Tres revisiones en paralelo, sobre el diff del sprint y con la spec delante.
+
+| Auditoría | Veredicto | Hallazgos corregidos |
+|---|---|---|
+| Seguridad (OWASP, IDOR, idempotencia, abuso) | Aprobado con observaciones; sin críticos ni altos | Bandeja sin comprobar membresía (fuga de `taskTitle`/`groupName` a un expulsado); `todo_idempotency` sin caducidad; `updateTask` sin validar notas/categoría; fechas de zona inválidas en `updateGroup` |
+| Calidad | Cambios mayores: 3 altos | `reopen` devolvía tarea parcial; receptor del push sin bypass de Vercel y `Toast` fuera del hilo principal; «Borrar» visible en tareas ajenas; `request_ttl_hours` y `default_power` sin cablear; `removeMember` sin caducar solicitudes ni avisar; etiquetas de avisos y widget sin traducir; `assigneeName` vacío en las escrituras |
+| Estilo | Cambios en docs y tres puntos Kotlin | Cifras y estados desactualizados (26 operaciones, 12 eventos, plan aprobado), `TODO` como nombre de tabla de copias, `insert(emoji)` duplicado, imports y constantes |
+
+**Deuda aceptada, con motivo:**
+- `TodoScreen.kt` orquesta el módulo en ~500 líneas con el estado en `remember`. Las pantallas ya
+  están extraídas; mover el estado a un holder es un refactor que no aporta al propietario ahora y
+  se hará si el módulo crece.
+- El catálogo de categorías del panel no escribe auditoría porque el Core no tiene servicio de
+  auditoría todavía; cuando exista, la acción lo usará.
+- Los botones Aceptar/Denegar del push no se pueden probar en local (sin credenciales FCM): la
+  prueba es del propietario en staging con dos móviles.
+- `db-tests` no es hermético respecto a una instancia con módulos instalados o demo sembrada:
+  varias pruebas cuentan filas del registro/catálogo. La verificación completa se hace con la
+  instancia limpia (módulo desinstalado y demo borrada) y luego se reinstala. Conviene que el
+  Core aísle esas pruebas del estado del entorno.
