@@ -44,6 +44,9 @@ export default async function TodoCategories({
   const categories = await listCategories({ db: context.db });
   const error = typeof context.searchParams.error === "string" ? context.searchParams.error : null;
   const ok = typeof context.searchParams.ok === "string" ? context.searchParams.ok : null;
+  // `?edit=<id>` reuses the same form: the catalog is a list, not a wizard.
+  const editId = typeof context.searchParams.edit === "string" ? context.searchParams.edit : null;
+  const editing = editId ? categories.find((category) => category.id === editId) ?? null : null;
 
   return (
     <section className="flex flex-col gap-6">
@@ -66,14 +69,14 @@ export default async function TodoCategories({
       )}
 
       <form action={actions.save} className="flex flex-wrap items-end gap-2 rounded-lg border p-3">
-        <input type="hidden" name="id" value="" />
+        <input type="hidden" name="id" value={editing?.id ?? ""} />
         <label className="flex flex-col gap-1 text-xs">
           {tr("Name")}
-          <input name="name" required maxLength={40} className="rounded-md border px-2 py-1 text-sm" />
+          <input name="name" required maxLength={40} defaultValue={editing?.name ?? ""} className="rounded-md border px-2 py-1 text-sm" />
         </label>
         <label className="flex flex-col gap-1 text-xs">
           {tr("Colour")}
-          <select name="color" defaultValue="slate" className="rounded-md border px-2 py-1 text-sm">
+          <select name="color" defaultValue={editing?.color ?? "slate"} className="rounded-md border px-2 py-1 text-sm">
             {CATEGORY_COLORS.map((color) => (
               <option key={color} value={color}>
                 {color}
@@ -83,14 +86,19 @@ export default async function TodoCategories({
         </label>
         <label className="flex flex-col gap-1 text-xs">
           {tr("Order")}
-          <input name="sort_order" type="number" defaultValue={categories.length * 10} className="w-24 rounded-md border px-2 py-1 text-sm" />
+          <input name="sort_order" type="number" defaultValue={editing?.sortOrder ?? categories.length * 10} className="w-24 rounded-md border px-2 py-1 text-sm" />
         </label>
         <div className="w-full">
-          <EmojiField title={tr("Emoji")} labels={emojiLabels} />
+          <EmojiField title={tr("Emoji")} labels={emojiLabels} selected={editing?.emoji} />
         </div>
         <button type="submit" className="rounded-md border px-3 py-1.5 text-sm font-medium">
-          {tr("Add")}
+          {editing ? tr("Save") : tr("Add")}
         </button>
+        {editing && (
+          <a href="/panel/todo/categories" className="rounded-md border px-3 py-1.5 text-sm">
+            {tr("Cancel")}
+          </a>
+        )}
       </form>
 
       <ul className="flex flex-col divide-y rounded-lg border">
@@ -103,6 +111,9 @@ export default async function TodoCategories({
             <span className="font-medium">{category.name}</span>
             <span className={`h-3 w-3 rounded-sm ${SLOT_STYLE[category.color] ?? ""}`} aria-label={category.color} />
             <span className="text-xs text-muted-foreground">#{category.sortOrder}</span>
+            <a href={`?edit=${category.id}`} className="rounded-md border px-2 py-1 text-xs">
+              {tr("Edit")}
+            </a>
             <form action={actions.remove} className="ml-auto">
               <input type="hidden" name="id" value={category.id} />
               <button type="submit" className="rounded-md border px-2 py-1 text-xs">

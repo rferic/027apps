@@ -43,7 +43,7 @@ export const EMOJI_GROUPS: readonly EmojiGroup[] = [
 
 export const DEFAULT_EMOJI = "📌";
 
-export function EmojiField({ title, labels }: { title: string; labels: Record<string, string> }) {
+export function EmojiField({ title, labels, selected }: { title: string; labels: Record<string, string>; selected?: string }) {
   return (
     <fieldset className="flex w-full flex-col gap-1.5">
       <legend className="text-xs">{title}</legend>
@@ -64,7 +64,7 @@ export function EmojiField({ title, labels }: { title: string; labels: Record<st
                     type="radio"
                     name="emoji"
                     value={emoji}
-                    defaultChecked={emoji === DEFAULT_EMOJI}
+                    defaultChecked={emoji === (selected ?? DEFAULT_EMOJI)}
                     aria-label={emoji}
                     className="sr-only"
                   />
