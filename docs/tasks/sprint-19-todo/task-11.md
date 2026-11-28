@@ -2,7 +2,7 @@
 id: sprint-19-task-11
 titulo: Widgets, demo, i18n y documentación
 area: core + docs
-estado: pendiente
+estado: test
 plan: docs/superpowers/plans/2026-11-27-todo.md
 spec: docs/superpowers/specs/2026-11-27-todo.md
 fuente: docs/tasks/sprint-19-todo/README.md

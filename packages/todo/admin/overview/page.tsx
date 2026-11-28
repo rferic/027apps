@@ -17,7 +17,7 @@ export default async function TodoOverview({ context }: { context: ModulePageCon
   return (
     <section className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold">{tr("Tareas")}</h2>
+        <h2 className="text-lg font-semibold">{tr("NotNow")}</h2>
         <p className="text-sm text-muted-foreground">
           {tr("Every group on the instance. Reading only: tasks are edited where they live.")}
         </p>

@@ -34,3 +34,10 @@ below is the contract; implementation lands in the API task.
 
 A task is pending or done, holds one assignee or none, and the holder is the only
 one who edits and completes it. Requests expire after 24 hours.
+
+## Errors and limits
+
+Domain codes: `not_found`, `forbidden`, `already_assigned`, `task_done`, `task_pending`,
+`request_exists`, `request_expired`, `not_assignee`, `season_closed`, `power_disabled`,
+`personal_group`, `last_owner`. Reads allow 120 requests a minute per user, writes 30; creating a
+group allows 10 an hour, asking for a task 20, and closing a season 5.

@@ -227,3 +227,7 @@ recordatorios repetidos o «posponer»; editar la fecha de una tarea ya vencida 
   `/panel/todo/categories` (catálogo con formularios nativos y acciones de servidor), registrados en
   `MODULE_PAGES` y declarados en `admin_pages`. Los imports internos del paquete pasan a ir sin
   extensión, que es lo que resuelve Turbopack (OweNo ya lo hacía así).
+- `2026-11-28` — **tarea 11** en `test`: migración `1.2.0` con los widgets `todo.my_tasks` y
+  `todo.metric`, los hooks `seed_demo`/`clear_demo` (idempotentes y sin tocar datos de la familia),
+  las 27 claves de panel traducidas a los nueve idiomas y la documentación por capacidad completa.
+  `i18n:check` en verde.

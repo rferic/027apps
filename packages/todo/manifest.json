@@ -6,7 +6,7 @@
     "icon": "assets/icon.svg",
     "color": "indigo"
   },
-  "version": "1.1.0",
+  "version": "1.2.0",
   "contract": 1,
   "is_public": true,
   "migrations": [
@@ -23,6 +23,13 @@
       "down": "./sql/002-jobs.down.sql",
       "digest": "sha256:baff7b147911bc46ae2442b5af5a8d8e22e41ddfd1cdddc209f41a6fe2922daf",
       "down_digest": "sha256:13af1a9bbf256b683b3cdfacfd45d4b2a6d8b4b542626904a06648dcec6ae5eb"
+    },
+    {
+      "version": "1.2.0",
+      "up": "./sql/003-widgets.sql",
+      "down": "./sql/003-widgets.down.sql",
+      "digest": "sha256:2ca437e19a5810e33a3dbec659262bc8e70216679f26026f1f62fa81c5166482",
+      "down_digest": "sha256:c1344cbfc918599552d8d1c7ab4b7c9fce37b26f58dd9da2e0d0b475a3cbc42c"
     }
   ],
   "settings": [
@@ -200,5 +207,29 @@
       "group": "module",
       "role": "admin"
     }
-  ]
+  ],
+  "dashboard_widgets": [
+    {
+      "key": "todo.my_tasks",
+      "type": "summary",
+      "surface": "app",
+      "title": "Your tasks",
+      "icon": "check",
+      "order": 30,
+      "data_fn": "widget_my_tasks"
+    },
+    {
+      "key": "todo.metric",
+      "type": "metric",
+      "surface": "panel",
+      "title": "Open tasks",
+      "icon": "check",
+      "order": 90,
+      "data_fn": "widget_metric"
+    }
+  ],
+  "demo": {
+    "seed_fn": "seed_demo",
+    "clear_fn": "clear_demo"
+  }
 }
