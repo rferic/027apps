@@ -102,6 +102,87 @@ class ApiClient(
     suspend fun dashboard(surface: String): DashboardResponse =
         read(request(HttpMethod.Get, "/api/v1/me/dashboard?surface=$surface"))
 
+    // --- NotNow module (todo) ----------------------------------------------
+
+    suspend fun todoGroups(): List<TodoGroupDto> =
+        read<TodoGroupsResponse>(request(HttpMethod.Get, "/api/v1/todo/groups")).groups
+
+    suspend fun todoCreateGroup(name: String, powerEnabled: Boolean? = null, powerPeriod: String? = null): TodoGroupDto =
+        read<TodoGroupResponse>(
+            request(
+                HttpMethod.Post,
+                "/api/v1/todo/groups",
+                TodoCreateGroupBody(name = name, powerEnabled = powerEnabled, powerPeriod = powerPeriod),
+            ),
+        ).group ?: throw ApiException("internal", 0, "missing group", null)
+
+    suspend fun todoMembers(groupId: String): List<TodoMemberDto> =
+        read<TodoMembersResponse>(request(HttpMethod.Get, "/api/v1/todo/groups/$groupId/members")).members
+
+    suspend fun todoTasks(groupId: String, state: String? = null, mine: Boolean = false): List<TodoTaskDto> {
+        val query = buildList {
+            if (state != null) add("state=$state")
+            if (mine) add("assignee=me")
+            add("limit=100")
+        }.joinToString("&")
+        return read<TodoTasksResponse>(
+            request(HttpMethod.Get, "/api/v1/todo/groups/$groupId/tasks?$query"),
+        ).tasks
+    }
+
+    suspend fun todoCreateTask(groupId: String, body: TodoCreateTaskBody): TodoTaskDto =
+        read<TodoTaskResponse>(request(HttpMethod.Post, "/api/v1/todo/groups/$groupId/tasks", body)).task
+            ?: throw ApiException("internal", 0, "missing task", null)
+
+    suspend fun todoDeleteTask(id: String) {
+        val response = request(HttpMethod.Delete, "/api/v1/todo/tasks/$id")
+        if (!response.status.isSuccess()) throw errorOf(response)
+    }
+
+    suspend fun todoClaim(id: String): TodoTaskDto =
+        read<TodoTaskResponse>(request(HttpMethod.Post, "/api/v1/todo/tasks/$id/claim", emptyBody())).task
+            ?: throw ApiException("internal", 0, "missing task", null)
+
+    suspend fun todoRelease(id: String): TodoTaskDto =
+        read<TodoTaskResponse>(request(HttpMethod.Post, "/api/v1/todo/tasks/$id/release", emptyBody())).task
+            ?: throw ApiException("internal", 0, "missing task", null)
+
+    suspend fun todoComplete(id: String): TodoTaskDto =
+        read<TodoTaskResponse>(request(HttpMethod.Post, "/api/v1/todo/tasks/$id/complete", emptyBody())).task
+            ?: throw ApiException("internal", 0, "missing task", null)
+
+    suspend fun todoReopen(id: String): TodoTaskDto =
+        read<TodoTaskResponse>(request(HttpMethod.Post, "/api/v1/todo/tasks/$id/reopen", emptyBody())).task
+            ?: throw ApiException("internal", 0, "missing task", null)
+
+    suspend fun todoRequest(id: String): TodoRequestDto =
+        read<TodoRequestResponse>(request(HttpMethod.Post, "/api/v1/todo/tasks/$id/requests", emptyBody())).request
+            ?: throw ApiException("internal", 0, "missing request", null)
+
+    suspend fun todoRequests(direction: String): List<TodoRequestDto> =
+        read<TodoRequestsResponse>(request(HttpMethod.Get, "/api/v1/todo/requests?direction=$direction")).requests
+
+    suspend fun todoAcceptRequest(id: String): TodoRequestDto =
+        read<TodoRequestResponse>(request(HttpMethod.Post, "/api/v1/todo/requests/$id/accept", emptyBody())).request
+            ?: throw ApiException("internal", 0, "missing request", null)
+
+    suspend fun todoDenyRequest(id: String): TodoRequestDto =
+        read<TodoRequestResponse>(request(HttpMethod.Post, "/api/v1/todo/requests/$id/deny", emptyBody())).request
+            ?: throw ApiException("internal", 0, "missing request", null)
+
+    suspend fun todoBoard(groupId: String): TodoBoardDto =
+        read<TodoBoardResponse>(request(HttpMethod.Get, "/api/v1/todo/groups/$groupId/power")).board
+            ?: TodoBoardDto()
+
+    suspend fun todoCloseSeason(groupId: String): TodoBoardDto =
+        read<TodoBoardResponse>(request(HttpMethod.Post, "/api/v1/todo/groups/$groupId/season/close", emptyBody())).board
+            ?: TodoBoardDto()
+
+    suspend fun todoCategories(): List<TodoCategoryDto> =
+        read<TodoCategoriesResponse>(request(HttpMethod.Get, "/api/v1/todo/categories")).categories
+
+    private fun emptyBody(): kotlinx.serialization.json.JsonObject = buildJsonObject { }
+
     // --- OweNo module -------------------------------------------------------
 
     suspend fun oweGroups(): List<OweGroupDto> = read<OweGroupList>(request(HttpMethod.Get, "/api/v1/owe-no/groups")).groups

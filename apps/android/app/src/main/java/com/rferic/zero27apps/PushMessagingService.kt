@@ -33,8 +33,13 @@ class PushMessagingService : FirebaseMessagingService() {
         // administrators, so no role check is needed here.
         val isInvitation = data["key"] == "push.invitation_requested" ||
             data["key"] == "push.invitation_request_resolved"
+        val isTodo = data["key"]?.startsWith("push.todo_") == true
         val open = Intent(this, MainActivity::class.java)
-            .putExtra("start", if (isInvitation) "invite" else "owe_group")
+            .putExtra("start", when {
+                isInvitation -> "invite"
+                isTodo -> "todo_group"
+                else -> "owe_group"
+            })
         data["target"]?.let { open.putExtra("group", it) }
         // One PendingIntent per group: with a fixed request code every
         // notification reused the first group's intent and opened the wrong one.

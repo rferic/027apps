@@ -74,6 +74,7 @@ import com.rferic.zero27apps.ui.screens.NotificationsScreen
 import com.rferic.zero27apps.ui.screens.LoginScreen
 import com.rferic.zero27apps.ui.screens.quotaFraction
 import com.rferic.zero27apps.ui.screens.OweNoScreen
+import com.rferic.zero27apps.ui.screens.TodoScreen
 import com.rferic.zero27apps.ui.screens.ModulesScreen
 import com.rferic.zero27apps.ui.screens.SettingsScreen
 import androidx.compose.ui.graphics.Color
@@ -556,6 +557,16 @@ private fun Shell(
                 openModule = "owe-no"
                 onStartConsumed()
             }
+            StartTarget.TODO_GROUP -> {
+                targetGroup = initialGroup
+                openModule = "todo"
+                onStartConsumed()
+            }
+            StartTarget.TODO_NEW_TASK -> {
+                startAction = "new_task"
+                openModule = "todo"
+                onStartConsumed()
+            }
             StartTarget.INVITE, null -> Unit
         }
     }
@@ -663,6 +674,15 @@ private fun Shell(
                     initialGroupId = targetGroup,
                     onInitialGroupConsumed = { targetGroup = null },
                 )
+                openModule == "todo" && viewModel.api() != null -> TodoScreen(
+                    api = viewModel.api()!!,
+                    userId = (state as? AppState.SignedIn)?.user?.id,
+                    onBack = { openModule = null },
+                    startAction = startAction,
+                    onStartConsumed = { startAction = null },
+                    initialGroupId = targetGroup,
+                    onInitialGroupConsumed = { targetGroup = null },
+                )
                 tab == 1 -> ModulesScreen(
                     modules = state.modules,
                     onOpen = { key -> openModule = key },
@@ -710,6 +730,9 @@ private fun Shell(
                         if (key == "owe-no") {
                             startAction = null
                             openModule = "owe-no"
+                        } else if (key == "todo") {
+                            startAction = null
+                            openModule = "todo"
                         } else {
                             scope.launch { snackbar.showSnackbar(strings.actionSoon) }
                         }
@@ -747,6 +770,10 @@ private fun Shell(
                                     "owe_expense", "owe_movement" -> {
                                         startAction = "expense"
                                         openModule = "owe-no"
+                                    }
+                                    "new_task" -> {
+                                        startAction = "new_task"
+                                        openModule = "todo"
                                     }
                                     else -> scope.launch { snackbar.showSnackbar(strings.actionSoon) }
                                 }
