@@ -11,6 +11,11 @@ Shared tasks as post-its. A group holds tasks; each user also has a personal gro
   accepts or denies from a push with buttons or from the app inbox.
 - A group may enable **power**: tasks are worth 1–5 and whoever completes one earns
   them, in seasons that close into a results page.
+- Titles carry their own emoji (`🏠 Casa`, `💡 Cambiar la bombilla`). The app and
+  the categories panel offer the same grouped palette of everyday emojis —
+  home, kitchen, family, papers, health, travel — and any other emoji can still
+  be typed. The palette uses the app's and the panel's semantic tokens, so it
+  follows their light and dark themes.
 
 See `docs/api.md`, `docs/settings.md` and `docs/events.md`. The full specification
 is `docs/superpowers/specs/2026-11-27-todo.md`.

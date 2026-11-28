@@ -1,6 +1,7 @@
 import { t } from "@027apps/i18n/t.js";
 import type { ModulePageContext } from "@027apps/core/modules/pages.js";
 import { CATEGORY_COLORS, listCategories } from "@027apps/todo/domain/categories.js";
+import { EmojiField } from "./emoji-picker";
 
 /** The actions the panel wrapper injects; the page only renders the forms. */
 export interface CategoryActions {
@@ -31,6 +32,15 @@ export default async function TodoCategories({
   actions: CategoryActions;
 }) {
   const tr = (text: string) => t(text, context.messages);
+  // Literal calls on purpose: the i18n scan reads the literal argument, not a variable.
+  const emojiLabels: Record<string, string> = {
+    "Home & cleaning": tr("Home & cleaning"),
+    "Kitchen & shopping": tr("Kitchen & shopping"),
+    "Family & pets": tr("Family & pets"),
+    "Papers & money": tr("Papers & money"),
+    "Health & sport": tr("Health & sport"),
+    "Travel & fun": tr("Travel & fun"),
+  };
   const categories = await listCategories({ db: context.db });
   const error = typeof context.searchParams.error === "string" ? context.searchParams.error : null;
   const ok = typeof context.searchParams.ok === "string" ? context.searchParams.ok : null;
@@ -62,10 +72,6 @@ export default async function TodoCategories({
           <input name="name" required maxLength={40} className="rounded-md border px-2 py-1 text-sm" />
         </label>
         <label className="flex flex-col gap-1 text-xs">
-          {tr("Emoji")}
-          <input name="emoji" defaultValue="📌" maxLength={8} className="w-20 rounded-md border px-2 py-1 text-sm" />
-        </label>
-        <label className="flex flex-col gap-1 text-xs">
           {tr("Colour")}
           <select name="color" defaultValue="slate" className="rounded-md border px-2 py-1 text-sm">
             {CATEGORY_COLORS.map((color) => (
@@ -79,6 +85,9 @@ export default async function TodoCategories({
           {tr("Order")}
           <input name="sort_order" type="number" defaultValue={categories.length * 10} className="w-24 rounded-md border px-2 py-1 text-sm" />
         </label>
+        <div className="w-full">
+          <EmojiField title={tr("Emoji")} labels={emojiLabels} />
+        </div>
         <button type="submit" className="rounded-md border px-3 py-1.5 text-sm font-medium">
           {tr("Add")}
         </button>

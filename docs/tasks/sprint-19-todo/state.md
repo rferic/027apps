@@ -322,3 +322,13 @@ Tres revisiones en paralelo, sobre el diff del sprint y con la spec delante.
   varias pruebas cuentan filas del registro/catálogo. La verificación completa se hace con la
   instancia limpia (módulo desinstalado y demo borrada) y luego se reinstala. Conviene que el
   Core aísle esas pruebas del estado del entorno.
+
+- `2026-11-28` — **paleta de emojis**: el selector de la app pasa de 18 emojis en
+  una fila a 72 agrupados en seis bloques (casa y limpieza, cocina y compra,
+  familia y mascotas, papeles y dinero, salud y deporte, viajes y ocio), con el
+  mismo orden y los mismos grupos en el panel. En la app son chips de 42 dp con
+  `surface`/`border` y etiquetas traducidas a los nueve idiomas; en el panel son
+  radios nativos (sin JavaScript, el formulario sigue siendo HTML) con los tokens
+  semánticos. Verificado en el emulador en claro y oscuro y en el panel con los
+  dos temas; tests de la paleta en ambos lados (duplicados, máximo de ocho puntos
+  de código y emoji por defecto).
